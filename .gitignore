@@ -1,0 +1,25 @@
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# Angular / Node
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+npm-debug.log*
+
+# Local configuration and secrets
+backend/SGE.API/appsettings*.json
+!backend/SGE.API/appsettings.example.json
+
+# Local uploaded files
+backend/SGE.API/uploads/
+
+# IDE / OS
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

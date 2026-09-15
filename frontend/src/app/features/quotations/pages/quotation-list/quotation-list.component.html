@@ -1,0 +1,78 @@
+<section class="page-header">
+  <div>
+    <span class="eyebrow">Compras</span>
+    <h1>Cotacoes</h1>
+  </div>
+</section>
+
+<section class="toolbar">
+  <label>
+    <span>Buscar</span>
+    <input type="search" [formControl]="searchControl" placeholder="Cotacao, solicitacao ou obra">
+  </label>
+  <label>
+    <span>Status</span>
+    <select [formControl]="statusControl">
+      <option value="all">Todos</option>
+      <option *ngFor="let option of statusOptions" [ngValue]="option.value">
+        {{ option.label }}
+      </option>
+    </select>
+  </label>
+  <label>
+    <span>Data inicial</span>
+    <input type="date" [formControl]="startDateControl">
+  </label>
+  <label>
+    <span>Data final</span>
+    <input type="date" [formControl]="endDateControl">
+  </label>
+  <button type="button" class="secondary" (click)="clearFilters()">Limpar filtros</button>
+  <button type="button" (click)="load()">Atualizar</button>
+</section>
+
+<section class="table-card">
+  <div *ngIf="loading()" class="state">Carregando cotacoes...</div>
+  <div *ngIf="!loading() && error()" class="state error">{{ error() }}</div>
+  <div *ngIf="!loading() && !error() && filteredQuotations().length === 0" class="state">
+    Nenhuma cotacao encontrada.
+  </div>
+
+  <div class="table-wrap desktop-list" *ngIf="!loading() && !error() && filteredQuotations().length > 0">
+    <table>
+      <thead>
+        <tr>
+          <th>Cotacao</th>
+          <th>Solicitacao</th>
+          <th>Obra</th>
+          <th>Data</th>
+          <th>Status</th>
+          <th>Acoes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let quotation of filteredQuotations()">
+          <td><a class="table-link" [routerLink]="['/app/cotacoes', quotation.id]">{{ quotationNumber(quotation) }}</a></td>
+          <td>{{ requestLabel(quotation.purchaseRequestId) }}</td>
+          <td>{{ workLabel(findPurchaseRequest(quotation.purchaseRequestId)?.workId || '') }}</td>
+          <td>{{ quotation.quotationDate | date: 'dd/MM/yyyy HH:mm' }}</td>
+          <td><span class="badge status-{{ quotation.status }}">{{ statusLabel(quotation.status) }}</span></td>
+          <td><a class="row-action" [routerLink]="['/app/cotacoes', quotation.id]">Abrir</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mobile-list" *ngIf="!loading() && !error() && filteredQuotations().length > 0">
+    <article class="quotation-card" *ngFor="let quotation of filteredQuotations()">
+      <div class="card-top">
+        <a class="table-link" [routerLink]="['/app/cotacoes', quotation.id]">{{ quotationNumber(quotation) }}</a>
+        <span class="badge status-{{ quotation.status }}">{{ statusLabel(quotation.status) }}</span>
+      </div>
+      <p>{{ requestLabel(quotation.purchaseRequestId) }}</p>
+      <p>{{ workLabel(findPurchaseRequest(quotation.purchaseRequestId)?.workId || '') }}</p>
+      <span class="card-date">{{ quotation.quotationDate | date: 'dd/MM/yyyy HH:mm' }}</span>
+      <a class="card-action" [routerLink]="['/app/cotacoes', quotation.id]">Abrir</a>
+    </article>
+  </div>
+</section>

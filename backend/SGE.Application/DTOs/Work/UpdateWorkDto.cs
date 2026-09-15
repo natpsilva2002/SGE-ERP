@@ -1,0 +1,10 @@
+namespace SGE.Application.DTOs.Work;
+
+public class UpdateWorkDto
+{
+    public string Code { get; set; } = string.Empty;
+
+    public string Name { get; set; } = string.Empty;
+
+    public string? Description { get; set; }
+}

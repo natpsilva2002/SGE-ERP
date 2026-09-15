@@ -1,0 +1,258 @@
+<section class="page-header">
+  <div>
+    <span class="eyebrow">Solicitacoes</span>
+    <h1>{{ request()?.number || 'Detalhes' }}</h1>
+  </div>
+  <a routerLink="/app/solicitacoes">Voltar</a>
+</section>
+
+<div *ngIf="loading()" class="state">Carregando solicitacao...</div>
+<div *ngIf="!loading() && error()" class="state error">{{ error() }}</div>
+
+<ng-container *ngIf="!loading() && !error() && request() as current">
+  <section class="summary-grid">
+    <div>
+      <span>Numero da Solicitacao</span>
+      <strong>{{ current.number }}</strong>
+    </div>
+    <div>
+      <span>Data da solicitacao</span>
+      <strong>{{ current.createdAt | date: 'dd/MM/yyyy HH:mm' }}</strong>
+    </div>
+    <div>
+      <span>Status</span>
+      <strong class="badge status-{{ current.status }}">{{ statusLabel(current.status) }}</strong>
+    </div>
+    <div>
+      <span>Tipo</span>
+      <strong class="badge type-badge">{{ typeLabel(current.type) }}</strong>
+    </div>
+    <div>
+      <span>Solicitante</span>
+      <strong>{{ requesterLabel(current) }}</strong>
+    </div>
+    <div *ngIf="isService(current)">
+      <span>Empresa</span>
+      <strong>{{ companyLabel(current.companyId) }}</strong>
+    </div>
+    <div>
+      <span>Obra</span>
+      <strong>{{ workLabel(current.workId) }}</strong>
+    </div>
+  </section>
+
+  <section class="actions-card">
+    <button *ngIf="canSubmitForApprovalCurrent()" type="button" (click)="submitForApproval()">Enviar para aprovacao</button>
+    <button *ngIf="canApproveCurrent()" type="button" (click)="approve()">Aprovar</button>
+    <button *ngIf="canApproveCurrent()" type="button" class="danger" (click)="reject()">Rejeitar</button>
+    <button *ngIf="isService(current) && canEditCurrent() && !editingRequest()" type="button" class="secondary" [disabled]="saving()" (click)="startRequestEdit()">Editar</button>
+    <button *ngIf="canDeleteCurrent()" type="button" class="danger" (click)="deleteRequest()">Excluir</button>
+    <a *ngIf="canCreateServiceOrderCurrent()" [routerLink]="['/app/ordens-servico/nova']" [queryParams]="{ purchaseRequestId: current.id }">
+      Gerar Ordem de Servico
+    </a>
+    <a *ngIf="isService(current) && serviceOrder() as currentServiceOrder" [routerLink]="['/app/ordens-servico', currentServiceOrder.id]">
+      Abrir Ordem de Servico
+    </a>
+  </section>
+
+  <section class="form-card">
+    <h2>Dados da solicitacao</h2>
+    <div class="readonly-details" *ngIf="isMaterial(current)">
+      <div class="readonly-field">
+        <span>Numero</span>
+        <strong>{{ current.number }}</strong>
+      </div>
+      <div class="readonly-field">
+        <span>Data da solicitacao</span>
+        <strong>{{ current.createdAt | date: 'dd/MM/yyyy HH:mm' }}</strong>
+      </div>
+      <div class="readonly-field">
+        <span>Obra</span>
+        <strong>{{ workLabel(current.workId) }}</strong>
+      </div>
+      <div class="readonly-field wide">
+        <span>Descricao</span>
+        <strong>{{ current.description }}</strong>
+      </div>
+    </div>
+
+    <form [formGroup]="editForm" (ngSubmit)="saveRequest()" *ngIf="isService(current)">
+      <div class="readonly-details">
+        <div class="readonly-field">
+          <span>Numero</span>
+          <strong>{{ current.number }}</strong>
+        </div>
+        <div class="readonly-field">
+          <span>Data da solicitacao</span>
+          <strong>{{ current.createdAt | date: 'dd/MM/yyyy HH:mm' }}</strong>
+        </div>
+        <div class="readonly-field">
+          <span>Obra</span>
+          <strong>{{ workLabel(current.workId) }}</strong>
+        </div>
+      </div>
+      <label>
+        <span>Servico</span>
+        <textarea rows="3" formControlName="description" [readonly]="!canEditRequestFields()"></textarea>
+      </label>
+      <ng-container *ngIf="isService(current)">
+        <label>
+          <span>Especificacao do servico</span>
+          <textarea rows="4" formControlName="serviceSpecification" [readonly]="!canEditRequestFields()"></textarea>
+        </label>
+        <div class="service-grid">
+          <label>
+            <span>Quantidade prevista</span>
+            <input type="number" min="0.0001" step="0.0001" formControlName="serviceQuantity" [readonly]="!canEditRequestFields()">
+          </label>
+          <label>
+            <span>Unidade de medicao</span>
+            <input type="text" formControlName="serviceUnit" [readonly]="!canEditRequestFields()">
+          </label>
+        </div>
+      </ng-container>
+      <button *ngIf="canEditRequestFields()" type="submit" [disabled]="editForm.invalid || saving()">
+        {{ isMaterial(current) ? 'Atualizar solicitacao' : 'Salvar dados' }}
+      </button>
+    </form>
+  </section>
+
+  <section class="items-card" *ngIf="isMaterial(current)">
+    <div class="section-title">
+      <h2>Itens</h2>
+      <span>{{ items().length }} item(ns)</span>
+    </div>
+
+    <form *ngIf="canEditCurrent()" class="item-form" [formGroup]="itemForm" (ngSubmit)="saveItem()">
+      <label>
+        <span>Material</span>
+        <select formControlName="itemId">
+          <option value="">Selecione</option>
+          <option *ngFor="let item of activeCatalogItems()" [value]="item.id">
+            {{ item.description }}
+          </option>
+        </select>
+      </label>
+      <label>
+        <span>Quantidade</span>
+        <input type="number" min="1" step="1" formControlName="quantity">
+      </label>
+      <div class="unit-preview">
+        <span>Unidade</span>
+        <strong>{{ selectedItemUnit() || '-' }}</strong>
+      </div>
+      <div class="item-form-actions">
+        <button type="submit" [disabled]="itemForm.invalid || saving()">
+          {{ editingItemId() ? 'Salvar item' : 'Adicionar item' }}
+        </button>
+        <button *ngIf="editingItemId()" class="secondary" type="button" (click)="cancelItemEdit()">
+          Cancelar
+        </button>
+      </div>
+    </form>
+
+    <div class="table-wrap desktop-items" *ngIf="items().length > 0; else emptyItems">
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Quantidade</th>
+            <th>Unidade</th>
+            <th>Observacao</th>
+            <th *ngIf="canEditCurrent()">Acoes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of items()">
+            <td>{{ getItemDescription(item.itemId) }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.unit }}</td>
+            <td>{{ item.observation || '-' }}</td>
+            <td *ngIf="canEditCurrent()">
+              <div class="row-actions">
+                <button type="button" (click)="editItem(item)">Editar</button>
+                <button type="button" class="danger" (click)="deleteItem(item)">Remover</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mobile-items" *ngIf="items().length > 0">
+      <article class="item-card" *ngFor="let item of items()">
+        <div>
+          <span>Item</span>
+          <strong>{{ getItemDescription(item.itemId) }}</strong>
+        </div>
+        <div class="item-card-grid">
+          <div>
+            <span>Quantidade</span>
+            <strong>{{ item.quantity }}</strong>
+          </div>
+          <div>
+            <span>Unidade</span>
+            <strong>{{ item.unit }}</strong>
+          </div>
+        </div>
+        <div>
+          <span>Observacao</span>
+          <strong>{{ item.observation || '-' }}</strong>
+        </div>
+        <div class="card-actions" *ngIf="canEditCurrent()">
+          <button type="button" (click)="editItem(item)">Editar</button>
+          <button type="button" class="danger" (click)="deleteItem(item)">Remover</button>
+        </div>
+      </article>
+    </div>
+
+    <ng-template #emptyItems>
+      <div class="state">Nenhum item adicionado.</div>
+    </ng-template>
+  </section>
+
+  <section class="items-card" *ngIf="isMaterial(current)">
+    <div class="section-title">
+      <h2>Cotacoes</h2>
+    </div>
+
+    <div class="state" *ngIf="quotations().length === 0">
+      Nenhuma cotacao criada para esta solicitacao.
+    </div>
+
+    <div class="quotation-list" *ngIf="quotations().length > 0">
+      <article class="quotation-card" *ngFor="let quotation of quotations()">
+        <div>
+          <span>Cotacao</span>
+          <strong>{{ quotation.number || quotation.id }}</strong>
+        </div>
+        <div>
+          <span>Status</span>
+          <strong class="badge">{{ quotationStatusLabel(quotation.status) }}</strong>
+        </div>
+        <a [routerLink]="['/app/cotacoes', quotation.id]">Abrir</a>
+      </article>
+    </div>
+  </section>
+
+  <section class="items-card service-note" *ngIf="isService(current)">
+    <div class="section-title">
+      <h2>Ordem de servico</h2>
+      <span>{{ serviceOrder() ? 'Gerada' : 'Pendente' }}</span>
+    </div>
+    <ng-container *ngIf="serviceOrder() as currentServiceOrder; else pendingServiceOrder">
+      <p>
+        Esta solicitacao ja possui uma Ordem de Servico vinculada.
+      </p>
+      <a [routerLink]="['/app/ordens-servico', currentServiceOrder.id]">
+        Abrir OS {{ currentServiceOrder.number }}
+      </a>
+    </ng-container>
+    <ng-template #pendingServiceOrder>
+      <p>
+        Solicitacoes de servico nao seguem para cotacao e nao utilizam itens de material.
+        A Ordem de Servico deve ser gerada pelo fluxo especifico, sem cotacao.
+      </p>
+    </ng-template>
+  </section>
+</ng-container>

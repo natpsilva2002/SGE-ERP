@@ -1,0 +1,135 @@
+.login-page {
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(23, 92, 211, 0.08), transparent 42%),
+    var(--bg);
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.login-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  max-width: 420px;
+  padding: 34px;
+  width: 100%;
+}
+
+.brand-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 26px;
+}
+
+.brand-mark {
+  align-items: center;
+  background: var(--sidebar);
+  border-radius: 6px;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 800;
+  height: 34px;
+  justify-content: center;
+  width: 46px;
+}
+
+.brand-text {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+h1 {
+  font-size: 26px;
+  line-height: 1.2;
+  margin: 0 0 26px;
+}
+
+form {
+  display: grid;
+  gap: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+}
+
+.field span {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+input {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  min-height: 44px;
+  outline: none;
+  padding: 0 12px;
+  width: 100%;
+}
+
+input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(23, 92, 211, 0.12);
+}
+
+.password-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.password-field input {
+  border-bottom-right-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.password-field button {
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-left: 0;
+  border-bottom-right-radius: 6px;
+  border-top-right-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 82px;
+  padding: 0 12px;
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 12px;
+  margin: -4px 0 0;
+}
+
+.login-error {
+  background: var(--danger-bg);
+  border-radius: 6px;
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 4px;
+  padding: 10px 12px;
+}
+
+.submit-button {
+  background: var(--primary);
+  border-radius: 6px;
+  color: #ffffff;
+  font-weight: 800;
+  min-height: 44px;
+  margin-top: 8px;
+}
+
+.submit-button:hover:not(:disabled) {
+  background: var(--primary-strong);
+}

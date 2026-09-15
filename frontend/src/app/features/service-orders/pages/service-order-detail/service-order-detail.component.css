@@ -1,0 +1,426 @@
+.page-header,
+.summary-grid,
+.actions-card,
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.page-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 22px;
+}
+
+.page-header a,
+button {
+  align-items: center;
+  border-radius: 6px;
+  display: inline-flex;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 14px;
+}
+
+.page-header a,
+.secondary {
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+button {
+  background: var(--primary);
+  border: 0;
+  color: #fff;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.eyebrow,
+.summary-grid span,
+.info-list span,
+.contract-status span,
+.measurement-card span,
+.payment-history-card span,
+label span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-size: 24px;
+  margin: 4px 0 0;
+}
+
+h2 {
+  font-size: 18px;
+  margin: 0 0 16px;
+}
+
+.summary-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 16px;
+  padding: 18px;
+}
+
+.summary-grid div,
+.info-list div,
+.contract-status div,
+.payment-history-card div,
+label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.summary-grid strong,
+.info-list strong,
+.contract-status strong,
+.selected-file,
+.measurement-card strong,
+.payment-history-card strong,
+.muted-panel p {
+  overflow-wrap: anywhere;
+}
+
+.actions-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 16px;
+}
+
+.finance-actions {
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
+}
+
+.content-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.panel {
+  margin-bottom: 16px;
+  padding: 20px;
+}
+
+.info-list,
+.contract-status,
+.upload-box {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.upload-box {
+  border-top: 1px solid var(--border);
+  margin-top: 16px;
+  padding-top: 16px;
+}
+
+input,
+select,
+textarea {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+  max-width: 100%;
+  min-height: 42px;
+  min-width: 0;
+  padding: 10px;
+  width: 100%;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.selected-file {
+  background: var(--surface-muted);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 10px;
+}
+
+.badge {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 9px;
+  width: fit-content;
+}
+
+.status-1,
+.payment-1 {
+  background: #fef0c7;
+  color: #93370d;
+}
+
+.status-2,
+.status-3,
+.payment-2 {
+  background: #dcfae6;
+  color: #067647;
+}
+
+.status-4,
+.payment-3 {
+  background: #dbeafe;
+  color: #175cd3;
+}
+
+.status-5 {
+  background: #fee4e2;
+  color: #b42318;
+}
+
+.state {
+  color: var(--muted);
+  padding: 18px;
+}
+
+.state.inline {
+  padding: 0;
+}
+
+.error {
+  color: var(--danger);
+}
+
+.muted-panel p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.section-heading {
+  align-items: start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.measurement-summary {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.measurement-summary div,
+.measurement-card {
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.measurement-summary div,
+.measurement-grid div,
+.measurement-description {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.measurement-list {
+  display: grid;
+  gap: 12px;
+}
+
+.payment-history {
+  display: grid;
+  gap: 12px;
+}
+
+.payment-history-card {
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  min-width: 0;
+  padding: 14px;
+}
+
+.measurement-card {
+  display: grid;
+  gap: 14px;
+}
+
+.measurement-top {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.measurement-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.measurement-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.measurement-1 {
+  background: #f2f4f7;
+  color: #344054;
+}
+
+.measurement-2 {
+  background: #fef0c7;
+  color: #93370d;
+}
+
+.measurement-3 {
+  background: #dcfae6;
+  color: #067647;
+}
+
+.measurement-4 {
+  background: #fee4e2;
+  color: #b42318;
+}
+
+.payment-modal-backdrop {
+  align-items: center;
+  background: rgb(15 23 42 / 0.52);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  padding: 16px;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 20;
+}
+
+.measurement-modal {
+  background: var(--surface);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  max-height: calc(100vh - 32px);
+  max-width: 560px;
+  overflow-y: auto;
+  padding: 18px;
+  width: min(560px, calc(100vw - 32px));
+}
+
+.measurement-modal header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.measurement-modal h2 {
+  margin: 0;
+}
+
+.measurement-balance {
+  background: var(--surface-muted);
+  border-radius: 6px;
+  color: var(--muted);
+  margin: 0;
+  padding: 10px;
+}
+
+.measurement-balance strong {
+  color: var(--text);
+}
+
+@media (max-width: 980px) {
+  .summary-grid,
+  .content-grid,
+  .measurement-summary,
+  .measurement-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-header {
+    align-items: stretch;
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .page-header a,
+  .actions-card button,
+  .finance-actions button,
+  .contract-status button,
+  .upload-box button,
+  .section-heading button,
+  .measurement-actions button,
+  .measurement-modal button {
+    width: 100%;
+  }
+
+  .section-heading,
+  .measurement-top,
+  .measurement-modal header {
+    display: grid;
+  }
+
+  .payment-history-card {
+    grid-template-columns: 1fr;
+  }
+
+  h1 {
+    font-size: 22px;
+    overflow-wrap: anywhere;
+  }
+
+  .summary-grid,
+  .actions-card,
+  .panel {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 390px) {
+  .summary-grid,
+  .actions-card,
+  .panel,
+  .page-header {
+    padding: 14px;
+  }
+}

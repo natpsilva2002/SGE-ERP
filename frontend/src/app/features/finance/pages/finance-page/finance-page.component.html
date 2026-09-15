@@ -1,0 +1,120 @@
+<section class="page-header">
+  <div>
+    <span class="eyebrow">Financeiro</span>
+    <h1>Fila financeira</h1>
+  </div>
+  <button type="button" (click)="load()">Atualizar</button>
+</section>
+
+<section class="summary-grid">
+  <article>
+    <span>Aguardando aprovacao</span>
+    <strong>{{ pendingApprovalCount() }}</strong>
+  </article>
+  <article>
+    <span>Autorizadas</span>
+    <strong>{{ approvedForPaymentCount() }}</strong>
+  </article>
+  <article>
+    <span>Parcialmente pagas</span>
+    <strong>{{ partiallyPaidCount() }}</strong>
+  </article>
+  <article>
+    <span>Pagas</span>
+    <strong>{{ paidCount() }}</strong>
+  </article>
+</section>
+
+<section class="toolbar">
+  <label>
+    <span>Buscar</span>
+    <input type="search" [formControl]="searchControl" placeholder="Numero OC, fornecedor ou obra">
+  </label>
+
+  <label>
+    <span>Status financeiro</span>
+    <select [formControl]="statusControl">
+      <option value="all">Todos</option>
+      <option [ngValue]="1">Aguardando aprovacao / Autorizadas</option>
+      <option [ngValue]="2">Parcialmente pago</option>
+      <option [ngValue]="3">Pago</option>
+    </select>
+  </label>
+</section>
+
+<section class="table-card">
+  <div *ngIf="loading()" class="state">Carregando fila financeira...</div>
+  <div *ngIf="!loading() && error()" class="state error">{{ error() }}</div>
+  <div *ngIf="!loading() && !error() && filteredOrders().length === 0" class="state">
+    Nenhuma ordem de compra em etapa financeira.
+  </div>
+
+  <div class="table-wrap desktop-list" *ngIf="!loading() && !error() && filteredOrders().length > 0">
+    <table>
+      <thead>
+        <tr>
+          <th>Numero OC</th>
+          <th>Fornecedor</th>
+          <th>Obra</th>
+          <th>Valor total</th>
+          <th>Valor pago</th>
+          <th>Saldo pendente</th>
+          <th>Status financeiro</th>
+          <th>Data</th>
+          <th>Acao</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let order of filteredOrders()">
+          <td>
+            <a class="table-link" [routerLink]="['/app/ordens-compra', order.id]">{{ order.number }}</a>
+          </td>
+          <td>{{ order.supplierName || 'Nao informado' }}</td>
+          <td>{{ order.workName || 'Nao informada' }}</td>
+          <td>{{ money(order.totalValue) }}</td>
+          <td>{{ money(order.amountPaid) }}</td>
+          <td>{{ money(order.amountPending) }}</td>
+          <td><span class="badge payment-{{ order.paymentStatus }}">{{ financialStatusLabel(order) }}</span></td>
+          <td>{{ order.issueDate | date: 'dd/MM/yyyy HH:mm' }}</td>
+          <td><a class="action-link" [routerLink]="['/app/ordens-compra', order.id]">Abrir</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mobile-list" *ngIf="!loading() && !error() && filteredOrders().length > 0">
+    <article class="queue-card" *ngFor="let order of filteredOrders()">
+      <div class="card-top">
+        <a class="table-link" [routerLink]="['/app/ordens-compra', order.id]">{{ order.number }}</a>
+        <span class="badge payment-{{ order.paymentStatus }}">{{ financialStatusLabel(order) }}</span>
+      </div>
+      <div class="card-meta">
+        <span>Fornecedor</span>
+        <strong>{{ order.supplierName || 'Nao informado' }}</strong>
+      </div>
+      <div class="card-meta">
+        <span>Obra</span>
+        <strong>{{ order.workName || 'Nao informada' }}</strong>
+      </div>
+      <div class="card-grid">
+        <div>
+          <span>Total</span>
+          <strong>{{ money(order.totalValue) }}</strong>
+        </div>
+        <div>
+          <span>Pago</span>
+          <strong>{{ money(order.amountPaid) }}</strong>
+        </div>
+        <div>
+          <span>Pendente</span>
+          <strong>{{ money(order.amountPending) }}</strong>
+        </div>
+        <div>
+          <span>Status OC</span>
+          <strong>{{ orderStatusLabel(order.status) }}</strong>
+        </div>
+      </div>
+      <a class="card-action" [routerLink]="['/app/ordens-compra', order.id]">Abrir</a>
+    </article>
+  </div>
+</section>

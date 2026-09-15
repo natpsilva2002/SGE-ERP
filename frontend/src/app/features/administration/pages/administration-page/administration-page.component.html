@@ -1,0 +1,181 @@
+<section class="page-header">
+  <div>
+    <span class="eyebrow">Administracao</span>
+    <h1>Usuarios e Perfis</h1>
+  </div>
+</section>
+
+<div class="tabs" role="tablist" aria-label="Administracao">
+  <button type="button" [class.active]="activeTab() === 'users'" (click)="setTab('users')">
+    Usuarios
+  </button>
+  <button type="button" [class.active]="activeTab() === 'roles'" (click)="setTab('roles')">
+    Perfis
+  </button>
+</div>
+
+<div *ngIf="loading()" class="state">Carregando administracao...</div>
+<div *ngIf="!loading() && error()" class="state error">{{ error() }}</div>
+
+<ng-container *ngIf="!loading() && !error()">
+  <section class="content-card" *ngIf="activeTab() === 'users'">
+    <div class="section-title">
+      <div>
+        <h2>Usuarios cadastrados</h2>
+        <p>Gerencie perfil e status de acesso.</p>
+      </div>
+      <button type="button" (click)="openCreate()">+ Adicionar usuario</button>
+    </div>
+
+    <form class="user-form" *ngIf="formOpen()" [formGroup]="userForm" (ngSubmit)="saveUser()">
+      <h3>{{ editingUserId() ? 'Editar usuario' : 'Novo usuario' }}</h3>
+
+      <div class="form-grid">
+        <label>
+          <span>Nome</span>
+          <input type="text" formControlName="firstName">
+        </label>
+
+        <label>
+          <span>Sobrenome</span>
+          <input type="text" formControlName="lastName">
+        </label>
+
+        <label>
+          <span>E-mail</span>
+          <input type="email" formControlName="email">
+        </label>
+
+        <label>
+          <span>Telefone</span>
+          <input type="text" formControlName="phoneNumber">
+        </label>
+
+        <label *ngIf="!editingUserId()">
+          <span>Senha inicial</span>
+          <input type="password" formControlName="password">
+        </label>
+
+        <label>
+          <span>Perfil</span>
+          <select formControlName="roleId">
+            <option value="">Selecione</option>
+            <option *ngFor="let role of sortedRoles()" [value]="role.id">
+              {{ role.name }}
+            </option>
+          </select>
+        </label>
+
+        <label class="check-field">
+          <input type="checkbox" formControlName="isActive">
+          <span>Usuario ativo</span>
+        </label>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" [disabled]="saving()">
+          {{ saving() ? 'Salvando...' : 'Salvar usuario' }}
+        </button>
+        <button type="button" class="secondary" (click)="cancelForm()">Cancelar</button>
+      </div>
+    </form>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th>Telefone</th>
+            <th>Perfil</th>
+            <th>Status</th>
+            <th>Acoes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users()">
+            <td>{{ user.firstName }} {{ user.lastName }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.phoneNumber || '-' }}</td>
+            <td>{{ user.role || roleName(user.roleId) }}</td>
+            <td>
+              <span class="badge" [class.inactive]="!user.isActive">
+                {{ user.isActive ? 'Ativo' : 'Inativo' }}
+              </span>
+            </td>
+            <td class="actions">
+              <button type="button" (click)="openEdit(user)">Editar</button>
+              <button
+                type="button"
+                class="danger"
+                [disabled]="!user.isActive"
+                (click)="deactivate(user)">
+                Inativar
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mobile-list">
+      <article class="user-card" *ngFor="let user of users()">
+        <header>
+          <strong>{{ user.firstName }} {{ user.lastName }}</strong>
+          <span class="badge" [class.inactive]="!user.isActive">
+            {{ user.isActive ? 'Ativo' : 'Inativo' }}
+          </span>
+        </header>
+        <p>{{ user.email }}</p>
+        <p>{{ user.phoneNumber || 'Telefone nao informado' }}</p>
+        <p>Perfil: {{ user.role || roleName(user.roleId) }}</p>
+        <div class="card-actions">
+          <button type="button" (click)="openEdit(user)">Editar</button>
+          <button
+            type="button"
+            class="danger"
+            [disabled]="!user.isActive"
+            (click)="deactivate(user)">
+            Inativar
+          </button>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="content-card" *ngIf="activeTab() === 'roles'">
+    <div class="section-title">
+      <div>
+        <h2>Perfis do sistema</h2>
+        <p>Referencia das permissoes principais configuradas no backend.</p>
+      </div>
+    </div>
+
+    <div class="roles-grid">
+      <article class="role-card" *ngFor="let role of sortedRoles()">
+        <strong>{{ role.name }}</strong>
+        <p>{{ roleDescription(role.name) }}</p>
+      </article>
+    </div>
+
+    <div class="matrix-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Acao</th>
+            <th *ngFor="let role of roleOrder">{{ role }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of permissionRows">
+            <td>{{ row.action }}</td>
+            <td *ngFor="let role of roleOrder">
+              <span class="check" *ngIf="row.roles.includes(role)">Sim</span>
+              <span class="dash" *ngIf="!row.roles.includes(role)">-</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</ng-container>

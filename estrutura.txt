@@ -1,0 +1,841 @@
+Listagem de caminhos de pasta para o volume OS
+O número de série do volume é 0000003C A205:E2F1
+C:.
+¦   estrutura.txt
+¦   
++---backend
+¦   ¦   SGE.slnx
+¦   ¦   
+¦   +---SGE.API
+¦   ¦   ¦   appsettings.Development.json
+¦   ¦   ¦   appsettings.json
+¦   ¦   ¦   Program.cs
+¦   ¦   ¦   SGE.API.csproj
+¦   ¦   ¦   SGE.API.http
+¦   ¦   ¦   
+¦   ¦   +---bin
+¦   ¦   ¦   +---Debug
+¦   ¦   ¦       +---net10.0
+¦   ¦   ¦           ¦   appsettings.Development.json
+¦   ¦   ¦           ¦   appsettings.json
+¦   ¦   ¦           ¦   AutoMapper.dll
+¦   ¦   ¦           ¦   AutoMapper.Extensions.Microsoft.DependencyInjection.dll
+¦   ¦   ¦           ¦   FluentValidation.AspNetCore.dll
+¦   ¦   ¦           ¦   FluentValidation.DependencyInjectionExtensions.dll
+¦   ¦   ¦           ¦   FluentValidation.dll
+¦   ¦   ¦           ¦   Humanizer.dll
+¦   ¦   ¦           ¦   Microsoft.AspNetCore.Authentication.JwtBearer.dll
+¦   ¦   ¦           ¦   Microsoft.AspNetCore.OpenApi.dll
+¦   ¦   ¦           ¦   Microsoft.Bcl.Cryptography.dll
+¦   ¦   ¦           ¦   Microsoft.Build.Framework.dll
+¦   ¦   ¦           ¦   Microsoft.CodeAnalysis.CSharp.dll
+¦   ¦   ¦           ¦   Microsoft.CodeAnalysis.CSharp.Workspaces.dll
+¦   ¦   ¦           ¦   Microsoft.CodeAnalysis.dll
+¦   ¦   ¦           ¦   Microsoft.CodeAnalysis.ExternalAccess.RazorCompiler.dll
+¦   ¦   ¦           ¦   Microsoft.CodeAnalysis.Workspaces.dll
+¦   ¦   ¦           ¦   Microsoft.CodeAnalysis.Workspaces.MSBuild.dll
+¦   ¦   ¦           ¦   Microsoft.EntityFrameworkCore.Abstractions.dll
+¦   ¦   ¦           ¦   Microsoft.EntityFrameworkCore.Design.dll
+¦   ¦   ¦           ¦   Microsoft.EntityFrameworkCore.dll
+¦   ¦   ¦           ¦   Microsoft.EntityFrameworkCore.Relational.dll
+¦   ¦   ¦           ¦   Microsoft.Extensions.DependencyModel.dll
+¦   ¦   ¦           ¦   Microsoft.IdentityModel.Abstractions.dll
+¦   ¦   ¦           ¦   Microsoft.IdentityModel.JsonWebTokens.dll
+¦   ¦   ¦           ¦   Microsoft.IdentityModel.Logging.dll
+¦   ¦   ¦           ¦   Microsoft.IdentityModel.Protocols.dll
+¦   ¦   ¦           ¦   Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+¦   ¦   ¦           ¦   Microsoft.IdentityModel.Tokens.dll
+¦   ¦   ¦           ¦   Microsoft.OpenApi.dll
+¦   ¦   ¦           ¦   Microsoft.VisualStudio.SolutionPersistence.dll
+¦   ¦   ¦           ¦   Mono.TextTemplating.dll
+¦   ¦   ¦           ¦   Newtonsoft.Json.dll
+¦   ¦   ¦           ¦   Npgsql.dll
+¦   ¦   ¦           ¦   Npgsql.EntityFrameworkCore.PostgreSQL.dll
+¦   ¦   ¦           ¦   SGE.API.deps.json
+¦   ¦   ¦           ¦   SGE.API.dll
+¦   ¦   ¦           ¦   SGE.API.exe
+¦   ¦   ¦           ¦   SGE.API.pdb
+¦   ¦   ¦           ¦   SGE.API.runtimeconfig.json
+¦   ¦   ¦           ¦   SGE.API.staticwebassets.endpoints.json
+¦   ¦   ¦           ¦   SGE.Application.dll
+¦   ¦   ¦           ¦   SGE.Application.pdb
+¦   ¦   ¦           ¦   SGE.Domain.dll
+¦   ¦   ¦           ¦   SGE.Domain.pdb
+¦   ¦   ¦           ¦   SGE.Infrastructure.dll
+¦   ¦   ¦           ¦   SGE.Infrastructure.pdb
+¦   ¦   ¦           ¦   SGE.Persistence.dll
+¦   ¦   ¦           ¦   SGE.Persistence.pdb
+¦   ¦   ¦           ¦   Swashbuckle.AspNetCore.Swagger.dll
+¦   ¦   ¦           ¦   Swashbuckle.AspNetCore.SwaggerGen.dll
+¦   ¦   ¦           ¦   Swashbuckle.AspNetCore.SwaggerUI.dll
+¦   ¦   ¦           ¦   System.CodeDom.dll
+¦   ¦   ¦           ¦   System.Composition.AttributedModel.dll
+¦   ¦   ¦           ¦   System.Composition.Convention.dll
+¦   ¦   ¦           ¦   System.Composition.Hosting.dll
+¦   ¦   ¦           ¦   System.Composition.Runtime.dll
+¦   ¦   ¦           ¦   System.Composition.TypedParts.dll
+¦   ¦   ¦           ¦   System.IdentityModel.Tokens.Jwt.dll
+¦   ¦   ¦           ¦   
+¦   ¦   ¦           +---BuildHost-net472
+¦   ¦   ¦           ¦   ¦   Microsoft.Build.Locator.dll
+¦   ¦   ¦           ¦   ¦   Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.exe
+¦   ¦   ¦           ¦   ¦   Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.exe.config
+¦   ¦   ¦           ¦   ¦   Microsoft.IO.Redist.dll
+¦   ¦   ¦           ¦   ¦   Newtonsoft.Json.dll
+¦   ¦   ¦           ¦   ¦   System.Buffers.dll
+¦   ¦   ¦           ¦   ¦   System.Collections.Immutable.dll
+¦   ¦   ¦           ¦   ¦   System.CommandLine.dll
+¦   ¦   ¦           ¦   ¦   System.Memory.dll
+¦   ¦   ¦           ¦   ¦   System.Numerics.Vectors.dll
+¦   ¦   ¦           ¦   ¦   System.Runtime.CompilerServices.Unsafe.dll
+¦   ¦   ¦           ¦   ¦   System.Threading.Tasks.Extensions.dll
+¦   ¦   ¦           ¦   ¦   
+¦   ¦   ¦           ¦   +---cs
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---de
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---es
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---fr
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---it
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---ja
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---ko
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---pl
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---pt-BR
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---ru
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---tr
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---zh-Hans
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---zh-Hant
+¦   ¦   ¦           ¦           System.CommandLine.resources.dll
+¦   ¦   ¦           ¦           
+¦   ¦   ¦           +---BuildHost-netcore
+¦   ¦   ¦           ¦   ¦   Microsoft.Build.Locator.dll
+¦   ¦   ¦           ¦   ¦   Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json
+¦   ¦   ¦           ¦   ¦   Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll
+¦   ¦   ¦           ¦   ¦   Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.runtimeconfig.json
+¦   ¦   ¦           ¦   ¦   Newtonsoft.Json.dll
+¦   ¦   ¦           ¦   ¦   System.Collections.Immutable.dll
+¦   ¦   ¦           ¦   ¦   System.CommandLine.dll
+¦   ¦   ¦           ¦   ¦   
+¦   ¦   ¦           ¦   +---cs
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---de
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---es
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---fr
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---it
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---ja
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---ko
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---pl
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---pt-BR
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---ru
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---tr
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---zh-Hans
+¦   ¦   ¦           ¦   ¦       System.CommandLine.resources.dll
+¦   ¦   ¦           ¦   ¦       
+¦   ¦   ¦           ¦   +---zh-Hant
+¦   ¦   ¦           ¦           System.CommandLine.resources.dll
+¦   ¦   ¦           ¦           
+¦   ¦   ¦           +---cs
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.resources.dll
+¦   ¦   ¦           ¦       
+¦   ¦   ¦           +---de
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.resources.dll
+¦   ¦   ¦           ¦       
+¦   ¦   ¦           +---es
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.resources.dll
+¦   ¦   ¦           ¦       
+¦   ¦   ¦           +---fr
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.resources.dll
+¦   ¦   ¦           ¦       
+¦   ¦   ¦           +---it
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.resources.dll
+¦   ¦   ¦           ¦       
+¦   ¦   ¦           +---ja
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.resources.dll
+¦   ¦   ¦           ¦       
+¦   ¦   ¦           +---ko
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.resources.dll
+¦   ¦   ¦           ¦       
+¦   ¦   ¦           +---pl
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.resources.dll
+¦   ¦   ¦           ¦       
+¦   ¦   ¦           +---pt-BR
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.resources.dll
+¦   ¦   ¦           ¦       
+¦   ¦   ¦           +---ru
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.resources.dll
+¦   ¦   ¦           ¦       
+¦   ¦   ¦           +---tr
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.resources.dll
+¦   ¦   ¦           ¦       
+¦   ¦   ¦           +---zh-Hans
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
+¦   ¦   ¦           ¦       Microsoft.CodeAnalysis.Workspaces.resources.dll
+¦   ¦   ¦           ¦       
+¦   ¦   ¦           +---zh-Hant
+¦   ¦   ¦                   Microsoft.CodeAnalysis.CSharp.resources.dll
+¦   ¦   ¦                   Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+¦   ¦   ¦                   Microsoft.CodeAnalysis.resources.dll
+¦   ¦   ¦                   Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
+¦   ¦   ¦                   Microsoft.CodeAnalysis.Workspaces.resources.dll
+¦   ¦   ¦                   
+¦   ¦   +---Configurations
+¦   ¦   +---Controllers
+¦   ¦   ¦   +---Administration
+¦   ¦   ¦   ¦       RoleController.cs
+¦   ¦   ¦   ¦       UserController.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Catalog
+¦   ¦   ¦   ¦       CategoryController.cs
+¦   ¦   ¦   ¦       ItemController.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Companies
+¦   ¦   ¦   ¦       CompanyController.cs
+¦   ¦   ¦   ¦       SupplierController.cs
+¦   ¦   ¦   ¦       WorkController.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Finance
+¦   ¦   ¦   +---PurchaseOrder
+¦   ¦   ¦   ¦       PurchaseOrderController.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---PurchaseRequest
+¦   ¦   ¦   ¦       PurchaseRequestController.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Quotation
+¦   ¦   ¦   ¦       QuotationController.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Receipt
+¦   ¦   +---DependencyInjection
+¦   ¦   +---Extensions
+¦   ¦   ¦       DependencyInjection.cs
+¦   ¦   ¦       
+¦   ¦   +---Filters
+¦   ¦   +---Middlewares
+¦   ¦   +---obj
+¦   ¦   ¦   ¦   project.assets.json
+¦   ¦   ¦   ¦   project.nuget.cache
+¦   ¦   ¦   ¦   SGE.API.csproj.nuget.dgspec.json
+¦   ¦   ¦   ¦   SGE.API.csproj.nuget.g.props
+¦   ¦   ¦   ¦   SGE.API.csproj.nuget.g.targets
+¦   ¦   ¦   ¦   
+¦   ¦   ¦   +---Debug
+¦   ¦   ¦       +---net10.0
+¦   ¦   ¦           ¦   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+¦   ¦   ¦           ¦   apphost.exe
+¦   ¦   ¦           ¦   rjsmcshtml.dswa.cache.json
+¦   ¦   ¦           ¦   rjsmrazor.dswa.cache.json
+¦   ¦   ¦           ¦   rpswa.dswa.cache.json
+¦   ¦   ¦           ¦   SGE.API.AssemblyInfo.cs
+¦   ¦   ¦           ¦   SGE.API.AssemblyInfoInputs.cache
+¦   ¦   ¦           ¦   SGE.API.assets.cache
+¦   ¦   ¦           ¦   SGE.API.csproj.AssemblyReference.cache
+¦   ¦   ¦           ¦   SGE.API.csproj.CoreCompileInputs.cache
+¦   ¦   ¦           ¦   SGE.API.csproj.FileListAbsolute.txt
+¦   ¦   ¦           ¦   SGE.API.csproj.Up2Date
+¦   ¦   ¦           ¦   SGE.API.dll
+¦   ¦   ¦           ¦   SGE.API.GeneratedMSBuildEditorConfig.editorconfig
+¦   ¦   ¦           ¦   SGE.API.genruntimeconfig.cache
+¦   ¦   ¦           ¦   SGE.API.GlobalUsings.g.cs
+¦   ¦   ¦           ¦   SGE.API.MvcApplicationPartsAssemblyInfo.cache
+¦   ¦   ¦           ¦   SGE.API.MvcApplicationPartsAssemblyInfo.cs
+¦   ¦   ¦           ¦   SGE.API.pdb
+¦   ¦   ¦           ¦   staticwebassets.build.endpoints.json
+¦   ¦   ¦           ¦   staticwebassets.build.json
+¦   ¦   ¦           ¦   staticwebassets.build.json.cache
+¦   ¦   ¦           ¦   swae.build.ex.cache
+¦   ¦   ¦           ¦   
+¦   ¦   ¦           +---ref
+¦   ¦   ¦           ¦       SGE.API.dll
+¦   ¦   ¦           ¦       
+¦   ¦   ¦           +---refint
+¦   ¦   ¦           ¦       SGE.API.dll
+¦   ¦   ¦           ¦       
+¦   ¦   ¦           +---staticwebassets
+¦   ¦   +---Properties
+¦   ¦           launchSettings.json
+¦   ¦           
+¦   +---SGE.Application
+¦   ¦   ¦   SGE.Application.csproj
+¦   ¦   ¦   
+¦   ¦   +---Behaviors
+¦   ¦   +---bin
+¦   ¦   ¦   +---Debug
+¦   ¦   ¦       +---net10.0
+¦   ¦   ¦               SGE.Application.deps.json
+¦   ¦   ¦               SGE.Application.dll
+¦   ¦   ¦               SGE.Application.pdb
+¦   ¦   ¦               SGE.Domain.dll
+¦   ¦   ¦               SGE.Domain.pdb
+¦   ¦   ¦               
+¦   ¦   +---DTOs
+¦   ¦   ¦   +---Category
+¦   ¦   ¦   ¦       CategoryDto.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Company
+¦   ¦   ¦   ¦       CompanyDto.cs
+¦   ¦   ¦   ¦       CreateCompanyDto.cs
+¦   ¦   ¦   ¦       UpdateCompanyDto.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Item
+¦   ¦   ¦   ¦       ItemDto.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---PurchaseOrder
+¦   ¦   ¦   ¦       PurchaseOrderDto.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---PurchaseRequest
+¦   ¦   ¦   ¦       PurchaseRequestDto.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Quotation
+¦   ¦   ¦   ¦       QuotationDto.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Role
+¦   ¦   ¦   ¦       RoleDto.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Supplier
+¦   ¦   ¦   ¦       SupplierDto.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---User
+¦   ¦   ¦   ¦       CreateUserDto.cs
+¦   ¦   ¦   ¦       LoginDto.cs
+¦   ¦   ¦   ¦       UserDto.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Work
+¦   ¦   ¦           WorkDto.cs
+¦   ¦   ¦           
+¦   ¦   +---Features
+¦   ¦   ¦   +---Administration
+¦   ¦   ¦   +---Catalog
+¦   ¦   ¦   +---Companies
+¦   ¦   ¦   +---Finance
+¦   ¦   ¦   +---PurchaseOrder
+¦   ¦   ¦   +---PurchaseRequest
+¦   ¦   ¦   +---Quotation
+¦   ¦   ¦   +---Receipt
+¦   ¦   +---Interfaces
+¦   ¦   ¦   +---Repositories
+¦   ¦   ¦   ¦   +---Administration
+¦   ¦   ¦   ¦   ¦       IRoleRepository.cs
+¦   ¦   ¦   ¦   ¦       IUserRepository.cs
+¦   ¦   ¦   ¦   ¦       
+¦   ¦   ¦   ¦   +---Base
+¦   ¦   ¦   ¦   ¦       IGenericRepository.cs
+¦   ¦   ¦   ¦   ¦       
+¦   ¦   ¦   ¦   +---Catalog
+¦   ¦   ¦   ¦   ¦       ICategoryRepository.cs
+¦   ¦   ¦   ¦   ¦       IItemRepository.cs
+¦   ¦   ¦   ¦   ¦       
+¦   ¦   ¦   ¦   +---Companies
+¦   ¦   ¦   ¦   ¦       ICompanyRepository.cs
+¦   ¦   ¦   ¦   ¦       ISupplierRepository.cs
+¦   ¦   ¦   ¦   ¦       IWorkRepository.cs
+¦   ¦   ¦   ¦   ¦       
+¦   ¦   ¦   ¦   +---Finance
+¦   ¦   ¦   ¦   +---Purchasing
+¦   ¦   ¦   ¦   ¦       IApprovalHistoryRepository.cs
+¦   ¦   ¦   ¦   ¦       IApprovalRepository.cs
+¦   ¦   ¦   ¦   ¦       IPurchaseOrderRepository.cs
+¦   ¦   ¦   ¦   ¦       IPurchaseRequestRepository.cs
+¦   ¦   ¦   ¦   ¦       IQuotationRepository.cs
+¦   ¦   ¦   ¦   ¦       
+¦   ¦   ¦   ¦   +---Receipt
+¦   ¦   ¦   +---Services
+¦   ¦   ¦       +---Administration
+¦   ¦   ¦       ¦       IRoleService.cs
+¦   ¦   ¦       ¦       IUserService.cs
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---Catalog
+¦   ¦   ¦       ¦       ICategoryService.cs
+¦   ¦   ¦       ¦       IItemService.cs
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---Companies
+¦   ¦   ¦       ¦       ICompanyService.cs
+¦   ¦   ¦       ¦       ISupplierService.cs
+¦   ¦   ¦       ¦       IWorkService.cs
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---Finance
+¦   ¦   ¦       +---Purchasing
+¦   ¦   ¦       ¦       IApprovalHistoryService.cs
+¦   ¦   ¦       ¦       IApprovalService.cs
+¦   ¦   ¦       ¦       IPurchaseOrderService.cs
+¦   ¦   ¦       ¦       IPurchaseRequestService.cs
+¦   ¦   ¦       ¦       IQuotationService.cs
+¦   ¦   ¦       ¦       
+¦   ¦   ¦       +---Receipt
+¦   ¦   +---Mappings
+¦   ¦   +---obj
+¦   ¦   ¦   ¦   project.assets.json
+¦   ¦   ¦   ¦   project.nuget.cache
+¦   ¦   ¦   ¦   SGE.Application.csproj.nuget.dgspec.json
+¦   ¦   ¦   ¦   SGE.Application.csproj.nuget.g.props
+¦   ¦   ¦   ¦   SGE.Application.csproj.nuget.g.targets
+¦   ¦   ¦   ¦   
+¦   ¦   ¦   +---Debug
+¦   ¦   ¦       +---net10.0
+¦   ¦   ¦           ¦   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+¦   ¦   ¦           ¦   SGE.Appl.2AD58D19.Up2Date
+¦   ¦   ¦           ¦   SGE.Application.AssemblyInfo.cs
+¦   ¦   ¦           ¦   SGE.Application.AssemblyInfoInputs.cache
+¦   ¦   ¦           ¦   SGE.Application.assets.cache
+¦   ¦   ¦           ¦   SGE.Application.csproj.AssemblyReference.cache
+¦   ¦   ¦           ¦   SGE.Application.csproj.CoreCompileInputs.cache
+¦   ¦   ¦           ¦   SGE.Application.csproj.FileListAbsolute.txt
+¦   ¦   ¦           ¦   SGE.Application.dll
+¦   ¦   ¦           ¦   SGE.Application.GeneratedMSBuildEditorConfig.editorconfig
+¦   ¦   ¦           ¦   SGE.Application.GlobalUsings.g.cs
+¦   ¦   ¦           ¦   SGE.Application.pdb
+¦   ¦   ¦           ¦   
+¦   ¦   ¦           +---ref
+¦   ¦   ¦           ¦       SGE.Application.dll
+¦   ¦   ¦           ¦       
+¦   ¦   ¦           +---refint
+¦   ¦   ¦                   SGE.Application.dll
+¦   ¦   ¦                   
+¦   ¦   +---Services
+¦   ¦   ¦   +---Administration
+¦   ¦   ¦   ¦       RoleService.cs
+¦   ¦   ¦   ¦       UserService.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Catalog
+¦   ¦   ¦   ¦       CategoryService.cs
+¦   ¦   ¦   ¦       ItemService.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Companies
+¦   ¦   ¦   ¦       CompanyService.cs
+¦   ¦   ¦   ¦       SupplierService.cs
+¦   ¦   ¦   ¦       WorkService.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Finance
+¦   ¦   ¦   +---Purchasing
+¦   ¦   ¦   ¦       PurchaseOrderService.cs
+¦   ¦   ¦   ¦       PurchaseRequestService.cs
+¦   ¦   ¦   ¦       QuotationService.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Receipt
+¦   ¦   +---UseCases
+¦   ¦   +---Validators
+¦   +---SGE.Domain
+¦   ¦   ¦   SGE.Domain.csproj
+¦   ¦   ¦   
+¦   ¦   +---bin
+¦   ¦   ¦   +---Debug
+¦   ¦   ¦       +---net10.0
+¦   ¦   ¦               SGE.Domain.deps.json
+¦   ¦   ¦               SGE.Domain.dll
+¦   ¦   ¦               SGE.Domain.pdb
+¦   ¦   ¦               
+¦   ¦   +---Common
+¦   ¦   ¦       BaseAuditableEntity.cs
+¦   ¦   ¦       BaseEntity.cs
+¦   ¦   ¦       BaseSoftDeleteEntity.cs
+¦   ¦   ¦       
+¦   ¦   +---Entities
+¦   ¦   ¦   +---Administration
+¦   ¦   ¦   ¦       Role.cs
+¦   ¦   ¦   ¦       User.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Catalog
+¦   ¦   ¦   ¦       Category.cs
+¦   ¦   ¦   ¦       Item.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Companies
+¦   ¦   ¦   ¦       Company.cs
+¦   ¦   ¦   ¦       Supplier.cs
+¦   ¦   ¦   ¦       Work.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Finance
+¦   ¦   ¦   +---Purchasing
+¦   ¦   ¦   ¦       Approval.cs
+¦   ¦   ¦   ¦       ApprovalHistory.cs
+¦   ¦   ¦   ¦       PurchaseOrder.cs
+¦   ¦   ¦   ¦       PurchaseOrderItem.cs
+¦   ¦   ¦   ¦       PurchaseRequest.cs
+¦   ¦   ¦   ¦       PurchaseRequestItem.cs
+¦   ¦   ¦   ¦       Quotation.cs
+¦   ¦   ¦   ¦       QuotationItem.cs
+¦   ¦   ¦   ¦       
+¦   ¦   ¦   +---Receipt
+¦   ¦   +---Enums
+¦   ¦   ¦       PurchaseRequestStatus.cs
+¦   ¦   ¦       
+¦   ¦   +---Events
+¦   ¦   +---Exceptions
+¦   ¦   +---obj
+¦   ¦   ¦   ¦   project.assets.json
+¦   ¦   ¦   ¦   project.nuget.cache
+¦   ¦   ¦   ¦   SGE.Domain.csproj.nuget.dgspec.json
+¦   ¦   ¦   ¦   SGE.Domain.csproj.nuget.g.props
+¦   ¦   ¦   ¦   SGE.Domain.csproj.nuget.g.targets
+¦   ¦   ¦   ¦   
+¦   ¦   ¦   +---Debug
+¦   ¦   ¦       +---net10.0
+¦   ¦   ¦           ¦   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+¦   ¦   ¦           ¦   SGE.Domain.AssemblyInfo.cs
+¦   ¦   ¦           ¦   SGE.Domain.AssemblyInfoInputs.cache
+¦   ¦   ¦           ¦   SGE.Domain.assets.cache
+¦   ¦   ¦           ¦   SGE.Domain.csproj.CoreCompileInputs.cache
+¦   ¦   ¦           ¦   SGE.Domain.csproj.FileListAbsolute.txt
+¦   ¦   ¦           ¦   SGE.Domain.dll
+¦   ¦   ¦           ¦   SGE.Domain.GeneratedMSBuildEditorConfig.editorconfig
+¦   ¦   ¦           ¦   SGE.Domain.GlobalUsings.g.cs
+¦   ¦   ¦           ¦   SGE.Domain.pdb
+¦   ¦   ¦           ¦   
+¦   ¦   ¦           +---ref
+¦   ¦   ¦           ¦       SGE.Domain.dll
+¦   ¦   ¦           ¦       
+¦   ¦   ¦           +---refint
+¦   ¦   ¦                   SGE.Domain.dll
+¦   ¦   ¦                   
+¦   ¦   +---Specifications
+¦   ¦   +---ValueObjects
+¦   +---SGE.Infrastructure
+¦   ¦   ¦   SGE.Infrastructure.csproj
+¦   ¦   ¦   
+¦   ¦   +---Authentication
+¦   ¦   +---bin
+¦   ¦   ¦   +---Debug
+¦   ¦   ¦       +---net10.0
+¦   ¦   ¦               SGE.Application.dll
+¦   ¦   ¦               SGE.Application.pdb
+¦   ¦   ¦               SGE.Domain.dll
+¦   ¦   ¦               SGE.Domain.pdb
+¦   ¦   ¦               SGE.Infrastructure.deps.json
+¦   ¦   ¦               SGE.Infrastructure.dll
+¦   ¦   ¦               SGE.Infrastructure.pdb
+¦   ¦   ¦               SGE.Persistence.dll
+¦   ¦   ¦               SGE.Persistence.pdb
+¦   ¦   ¦               
+¦   ¦   +---Email
+¦   ¦   +---Notifications
+¦   ¦   +---obj
+¦   ¦   ¦   ¦   project.assets.json
+¦   ¦   ¦   ¦   project.nuget.cache
+¦   ¦   ¦   ¦   SGE.Infrastructure.csproj.nuget.dgspec.json
+¦   ¦   ¦   ¦   SGE.Infrastructure.csproj.nuget.g.props
+¦   ¦   ¦   ¦   SGE.Infrastructure.csproj.nuget.g.targets
+¦   ¦   ¦   ¦   
+¦   ¦   ¦   +---Debug
+¦   ¦   ¦       +---net10.0
+¦   ¦   ¦           ¦   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+¦   ¦   ¦           ¦   SGE.Infr.9229B0D7.Up2Date
+¦   ¦   ¦           ¦   SGE.Infrastructure.AssemblyInfo.cs
+¦   ¦   ¦           ¦   SGE.Infrastructure.AssemblyInfoInputs.cache
+¦   ¦   ¦           ¦   SGE.Infrastructure.assets.cache
+¦   ¦   ¦           ¦   SGE.Infrastructure.csproj.AssemblyReference.cache
+¦   ¦   ¦           ¦   SGE.Infrastructure.csproj.CoreCompileInputs.cache
+¦   ¦   ¦           ¦   SGE.Infrastructure.csproj.FileListAbsolute.txt
+¦   ¦   ¦           ¦   SGE.Infrastructure.dll
+¦   ¦   ¦           ¦   SGE.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+¦   ¦   ¦           ¦   SGE.Infrastructure.GlobalUsings.g.cs
+¦   ¦   ¦           ¦   SGE.Infrastructure.pdb
+¦   ¦   ¦           ¦   
+¦   ¦   ¦           +---ref
+¦   ¦   ¦           ¦       SGE.Infrastructure.dll
+¦   ¦   ¦           ¦       
+¦   ¦   ¦           +---refint
+¦   ¦   ¦                   SGE.Infrastructure.dll
+¦   ¦   ¦                   
+¦   ¦   +---Services
+¦   ¦   +---Storage
+¦   +---SGE.Persistence
+¦       ¦   SGE.Persistence.csproj
+¦       ¦   
+¦       +---bin
+¦       ¦   +---Debug
+¦       ¦       +---net10.0
+¦       ¦           ¦   SGE.Application.dll
+¦       ¦           ¦   SGE.Application.pdb
+¦       ¦           ¦   SGE.Domain.dll
+¦       ¦           ¦   SGE.Domain.pdb
+¦       ¦           ¦   SGE.Persistence.deps.json
+¦       ¦           ¦   SGE.Persistence.dll
+¦       ¦           ¦   SGE.Persistence.pdb
+¦       ¦           ¦   SGE.Persistence.runtimeconfig.json
+¦       ¦           ¦   
+¦       ¦           +---BuildHost-net472
+¦       ¦           ¦   ¦   Microsoft.Build.Locator.dll
+¦       ¦           ¦   ¦   Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.exe
+¦       ¦           ¦   ¦   Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.exe.config
+¦       ¦           ¦   ¦   Microsoft.IO.Redist.dll
+¦       ¦           ¦   ¦   Newtonsoft.Json.dll
+¦       ¦           ¦   ¦   System.Buffers.dll
+¦       ¦           ¦   ¦   System.Collections.Immutable.dll
+¦       ¦           ¦   ¦   System.CommandLine.dll
+¦       ¦           ¦   ¦   System.Memory.dll
+¦       ¦           ¦   ¦   System.Numerics.Vectors.dll
+¦       ¦           ¦   ¦   System.Runtime.CompilerServices.Unsafe.dll
+¦       ¦           ¦   ¦   System.Threading.Tasks.Extensions.dll
+¦       ¦           ¦   ¦   
+¦       ¦           ¦   +---cs
+¦       ¦           ¦   ¦       System.CommandLine.resources.dll
+¦       ¦           ¦   ¦       
+¦       ¦           ¦   +---de
+¦       ¦           ¦   ¦       System.CommandLine.resources.dll
+¦       ¦           ¦   ¦       
+¦       ¦           ¦   +---es
+¦       ¦           ¦   ¦       System.CommandLine.resources.dll
+¦       ¦           ¦   ¦       
+¦       ¦           ¦   +---fr
+¦       ¦           ¦   ¦       System.CommandLine.resources.dll
+¦       ¦           ¦   ¦       
+¦       ¦           ¦   +---it
+¦       ¦           ¦   ¦       System.CommandLine.resources.dll
+¦       ¦           ¦   ¦       
+¦       ¦           ¦   +---ja
+¦       ¦           ¦   ¦       System.CommandLine.resources.dll
+¦       ¦           ¦   ¦       
+¦       ¦           ¦   +---ko
+¦       ¦           ¦   ¦       System.CommandLine.resources.dll
+¦       ¦           ¦   ¦       
+¦       ¦           ¦   +---pl
+¦       ¦           ¦   ¦       System.CommandLine.resources.dll
+¦       ¦           ¦   ¦       
+¦       ¦           ¦   +---pt-BR
+¦       ¦           ¦   ¦       System.CommandLine.resources.dll
+¦       ¦           ¦   ¦       
+¦       ¦           ¦   +---ru
+¦       ¦           ¦   ¦       System.CommandLine.resources.dll
+¦       ¦           ¦   ¦       
+¦       ¦           ¦   +---tr
+¦       ¦           ¦   ¦       System.CommandLine.resources.dll
+¦       ¦           ¦   ¦       
+¦       ¦           ¦   +---zh-Hans
+¦       ¦           ¦   ¦       System.CommandLine.resources.dll
+¦       ¦           ¦   ¦       
+¦       ¦           ¦   +---zh-Hant
+¦       ¦           ¦           System.CommandLine.resources.dll
+¦       ¦           ¦           
+¦       ¦           +---BuildHost-netcore
+¦       ¦               ¦   Microsoft.Build.Locator.dll
+¦       ¦               ¦   Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json
+¦       ¦               ¦   Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll
+¦       ¦               ¦   Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.runtimeconfig.json
+¦       ¦               ¦   Newtonsoft.Json.dll
+¦       ¦               ¦   System.Collections.Immutable.dll
+¦       ¦               ¦   System.CommandLine.dll
+¦       ¦               ¦   
+¦       ¦               +---cs
+¦       ¦               ¦       System.CommandLine.resources.dll
+¦       ¦               ¦       
+¦       ¦               +---de
+¦       ¦               ¦       System.CommandLine.resources.dll
+¦       ¦               ¦       
+¦       ¦               +---es
+¦       ¦               ¦       System.CommandLine.resources.dll
+¦       ¦               ¦       
+¦       ¦               +---fr
+¦       ¦               ¦       System.CommandLine.resources.dll
+¦       ¦               ¦       
+¦       ¦               +---it
+¦       ¦               ¦       System.CommandLine.resources.dll
+¦       ¦               ¦       
+¦       ¦               +---ja
+¦       ¦               ¦       System.CommandLine.resources.dll
+¦       ¦               ¦       
+¦       ¦               +---ko
+¦       ¦               ¦       System.CommandLine.resources.dll
+¦       ¦               ¦       
+¦       ¦               +---pl
+¦       ¦               ¦       System.CommandLine.resources.dll
+¦       ¦               ¦       
+¦       ¦               +---pt-BR
+¦       ¦               ¦       System.CommandLine.resources.dll
+¦       ¦               ¦       
+¦       ¦               +---ru
+¦       ¦               ¦       System.CommandLine.resources.dll
+¦       ¦               ¦       
+¦       ¦               +---tr
+¦       ¦               ¦       System.CommandLine.resources.dll
+¦       ¦               ¦       
+¦       ¦               +---zh-Hans
+¦       ¦               ¦       System.CommandLine.resources.dll
+¦       ¦               ¦       
+¦       ¦               +---zh-Hant
+¦       ¦                       System.CommandLine.resources.dll
+¦       ¦                       
+¦       +---Configurations
+¦       ¦   +---Administration
+¦       ¦   ¦       RoleConfiguration.cs
+¦       ¦   ¦       UserConfiguration.cs
+¦       ¦   ¦       
+¦       ¦   +---Catalog
+¦       ¦   ¦       CategoryConfiguration.cs
+¦       ¦   ¦       ItemConfiguration.cs
+¦       ¦   ¦       
+¦       ¦   +---Companies
+¦       ¦   ¦       CompanyConfiguration.cs
+¦       ¦   ¦       SupplierConfiguration.cs
+¦       ¦   ¦       WorkConfiguration.cs
+¦       ¦   ¦       
+¦       ¦   +---Finance
+¦       ¦   ¦       PaymentConfiguration.cs
+¦       ¦   ¦       
+¦       ¦   +---Purchasing
+¦       ¦   ¦       ApprovalConfiguration.cs
+¦       ¦   ¦       ApprovalHistoryConfiguration.cs
+¦       ¦   ¦       PurchaseOrderConfiguration.cs
+¦       ¦   ¦       PurchaseOrderItemConfiguration.cs
+¦       ¦   ¦       PurchaseRequestConfiguration.cs
+¦       ¦   ¦       PurchaseRequestItemConfiguration.cs
+¦       ¦   ¦       QuotationConfiguration.cs
+¦       ¦   ¦       QuotationItemConfiguration.cs
+¦       ¦   ¦       
+¦       ¦   +---Receipt
+¦       ¦           ReceiptConfiguration.cs
+¦       ¦           ReceiptItemConfiguration.cs
+¦       ¦           
+¦       +---Contexts
+¦       ¦       SgeDbContext.cs
+¦       ¦       
+¦       +---Migrations
+¦       ¦       20260810131404_InitialCreate.cs
+¦       ¦       20260810131404_InitialCreate.Designer.cs
+¦       ¦       SgeDbContextModelSnapshot.cs
+¦       ¦       
+¦       +---obj
+¦       ¦   ¦   project.assets.json
+¦       ¦   ¦   project.nuget.cache
+¦       ¦   ¦   SGE.Persistence.csproj.nuget.dgspec.json
+¦       ¦   ¦   SGE.Persistence.csproj.nuget.g.props
+¦       ¦   ¦   SGE.Persistence.csproj.nuget.g.targets
+¦       ¦   ¦   
+¦       ¦   +---Debug
+¦       ¦       +---net10.0
+¦       ¦           ¦   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+¦       ¦           ¦   SGE.Pers.CA123B2D.Up2Date
+¦       ¦           ¦   SGE.Persistence.AssemblyInfo.cs
+¦       ¦           ¦   SGE.Persistence.AssemblyInfoInputs.cache
+¦       ¦           ¦   SGE.Persistence.assets.cache
+¦       ¦           ¦   SGE.Persistence.csproj.AssemblyReference.cache
+¦       ¦           ¦   SGE.Persistence.csproj.CoreCompileInputs.cache
+¦       ¦           ¦   SGE.Persistence.csproj.FileListAbsolute.txt
+¦       ¦           ¦   SGE.Persistence.dll
+¦       ¦           ¦   SGE.Persistence.GeneratedMSBuildEditorConfig.editorconfig
+¦       ¦           ¦   SGE.Persistence.genruntimeconfig.cache
+¦       ¦           ¦   SGE.Persistence.GlobalUsings.g.cs
+¦       ¦           ¦   SGE.Persistence.pdb
+¦       ¦           ¦   
+¦       ¦           +---ref
+¦       ¦           ¦       SGE.Persistence.dll
+¦       ¦           ¦       
+¦       ¦           +---refint
+¦       ¦                   SGE.Persistence.dll
+¦       ¦                   
+¦       +---Repositories
+¦       ¦   +---Administration
+¦       ¦   ¦       RoleRepository.cs
+¦       ¦   ¦       UserRepository.cs
+¦       ¦   ¦       
+¦       ¦   +---Base
+¦       ¦   ¦       GenericRepository.cs
+¦       ¦   ¦       
+¦       ¦   +---Catalog
+¦       ¦   ¦       CategoryRepository.cs
+¦       ¦   ¦       ItemRepository.cs
+¦       ¦   ¦       
+¦       ¦   +---Companies
+¦       ¦   ¦       CompanyRepository.cs
+¦       ¦   ¦       SupplierRepository.cs
+¦       ¦   ¦       WorkRepository.cs
+¦       ¦   ¦       
+¦       ¦   +---Finance
+¦       ¦   +---Purchasing
+¦       ¦   ¦       ApprovalHistoryRepository.cs
+¦       ¦   ¦       ApprovalRepository.cs
+¦       ¦   ¦       PurchaseOrderRepository.cs
+¦       ¦   ¦       PurchaseRequestRepository.cs
+¦       ¦   ¦       QuotationRepository.cs
+¦       ¦   ¦       
+¦       ¦   +---Receipt
+¦       +---Seed
++---database
++---docs
++---frontend

@@ -1,0 +1,338 @@
+<section class="page-header">
+  <div>
+    <span class="eyebrow">Cotacoes</span>
+    <h1>{{ quotation()?.number || 'Cotacao' }}</h1>
+  </div>
+  <a routerLink="/app/cotacoes">Voltar</a>
+</section>
+
+<div *ngIf="loading()" class="state">Carregando cotacao...</div>
+<div *ngIf="!loading() && error()" class="state error">{{ error() }}</div>
+
+<ng-container *ngIf="!loading() && !error() && quotation() as current">
+  <section class="summary-grid">
+    <div>
+      <span>Cotacao</span>
+      <strong>{{ current.number || current.id }}</strong>
+    </div>
+    <div>
+      <span>Status</span>
+      <strong class="badge status-{{ current.status }}">{{ statusLabel(current.status) }}</strong>
+    </div>
+    <div>
+      <span>Solicitacao</span>
+      <strong>{{ purchaseRequest()?.number || 'Nao encontrada' }}</strong>
+    </div>
+    <div>
+      <span>Obra</span>
+      <strong>{{ purchaseRequest() ? workLabel(purchaseRequest()!.workId) : 'Nao informada' }}</strong>
+    </div>
+    <div>
+      <span>Data</span>
+      <strong>{{ current.quotationDate | date: 'dd/MM/yyyy HH:mm' }}</strong>
+    </div>
+  </section>
+
+  <section class="content-card request-card" *ngIf="purchaseRequest() as request">
+    <div class="section-title">
+      <h2>Solicitacao</h2>
+    </div>
+    <div class="request-grid">
+      <div>
+        <span>Numero da solicitacao</span>
+        <strong>{{ request.number || '-' }}</strong>
+      </div>
+      <div>
+        <span>Descricao da solicitacao</span>
+        <strong>{{ request.description || '-' }}</strong>
+      </div>
+      <div>
+        <span>Data da solicitacao</span>
+        <strong>{{ request.createdAt | date: 'dd/MM/yyyy HH:mm' }}</strong>
+      </div>
+      <div>
+        <span>Solicitado por</span>
+        <strong>{{ request.requestedByUserName || '-' }}</strong>
+      </div>
+      <div>
+        <span>Obra</span>
+        <strong>{{ workLabel(request.workId) }}</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="content-card">
+    <div class="section-title">
+      <h2>Aprovacoes da cotacao</h2>
+    </div>
+    <div class="request-grid">
+      <div>
+        <span>1a aprovacao</span>
+        <strong>{{ approverName(current.firstApprovedByUserName) }}</strong>
+        <small>{{ current.firstApprovedAt ? (current.firstApprovedAt | date: 'dd/MM/yyyy HH:mm') : 'Aguardando' }}</small>
+      </div>
+      <div>
+        <span>2a aprovacao</span>
+        <strong>{{ approverName(current.secondApprovedByUserName) }}</strong>
+        <small>{{ current.secondApprovedAt ? (current.secondApprovedAt | date: 'dd/MM/yyyy HH:mm') : 'Aguardando' }}</small>
+      </div>
+    </div>
+  </section>
+
+  <section class="content-card">
+    <div class="section-title">
+      <h2>Materiais da solicitacao</h2>
+      <span>{{ itemGroups().length }} material(is)</span>
+    </div>
+
+    <div class="materials-list">
+      <article class="material-row" *ngFor="let group of itemGroups()">
+        <strong>{{ itemLabel(group.requestItem) }}</strong>
+        <span>Quantidade: {{ group.requestItem.quantity }} {{ group.requestItem.unit }}</span>
+      </article>
+    </div>
+  </section>
+
+  <section class="content-card budgets-card">
+    <div class="section-title">
+      <h2>Orcamentos</h2>
+      <span>{{ budgetGroups().length }} fornecedor(es)</span>
+    </div>
+
+    <section class="budget-form" *ngIf="canManageDraft()">
+      <div class="subsection-title">
+        <h3>{{ editingBudgetSupplierId() ? 'Editar orcamento' : 'Novo orcamento' }}</h3>
+      </div>
+
+      <label class="supplier-field">
+        <span>Fornecedor</span>
+        <select
+          [value]="budgetDraft().supplierId"
+          [disabled]="!!editingBudgetSupplierId()"
+          (change)="updateBudgetDraft({ supplierId: $any($event.target).value })">
+          <option value="">Selecione</option>
+          <option *ngFor="let supplier of activeSuppliers()" [value]="supplier.id">
+            {{ supplier.tradeName || supplier.corporateName }} - {{ formatCnpj(supplier.document) }}
+          </option>
+        </select>
+      </label>
+
+      <div class="quoted-materials">
+        <div class="quoted-materials-header">
+          <strong>Materiais cotados</strong>
+          <span>Marque os materiais que este fornecedor cotou.</span>
+        </div>
+
+        <article class="quoted-material-row" *ngFor="let group of itemGroups()">
+          <label class="check-line">
+            <input
+              type="checkbox"
+              [checked]="draftItemIncluded(group.requestItem.id)"
+              (change)="toggleBudgetItem(group.requestItem.id, $any($event.target).checked)">
+            <span>
+              <strong>{{ itemLabel(group.requestItem) }}</strong>
+              <small>{{ group.requestItem.quantity }} {{ group.requestItem.unit }}</small>
+            </span>
+          </label>
+
+          <label>
+            <span>Observacao</span>
+            <input
+              type="text"
+              [disabled]="!draftItemIncluded(group.requestItem.id)"
+              [value]="draftItemObservation(group.requestItem.id)"
+              (input)="updateItemObservation(group.requestItem.id, $any($event.target).value)"
+              placeholder="Prego galvanizado 18x27">
+          </label>
+
+          <label>
+            <span>Preco total</span>
+            <input
+              type="text"
+              inputmode="decimal"
+              placeholder="R$ 0,00"
+              [disabled]="!draftItemIncluded(group.requestItem.id)"
+              [value]="draftItemPriceText(group.requestItem.id)"
+              (input)="updateTotalPrice(group.requestItem.id, $any($event.target).value)"
+              (blur)="formatTotalPrice(group.requestItem.id)">
+          </label>
+        </article>
+      </div>
+
+      <div class="commercial-grid">
+        <label>
+          <span>Prazo de entrega</span>
+          <div class="days-field">
+            <input
+              type="number"
+              min="0"
+              step="1"
+              [value]="budgetDraft().deliveryDays"
+              (input)="updateBudgetDraft({ deliveryDays: +$any($event.target).value })">
+            <strong>dias</strong>
+          </div>
+        </label>
+
+        <label>
+          <span>Condicao de pagamento</span>
+          <select
+            [value]="budgetDraft().paymentCondition"
+            (change)="updateBudgetDraft({ paymentCondition: $any($event.target).value })">
+            <option value="">Selecione</option>
+            <option *ngFor="let option of paymentConditionOptions" [value]="option">
+              {{ option }}
+            </option>
+          </select>
+        </label>
+
+        <label>
+          <span>Quantidade de parcelas</span>
+          <input
+            type="number"
+            min="1"
+            step="1"
+            [value]="budgetDraft().installmentCount || 1"
+            (input)="updateBudgetDraft({ installmentCount: +$any($event.target).value })">
+        </label>
+      </div>
+
+      <label *ngIf="budgetDraft().paymentCondition === 'Outro'">
+        <span>Especifique a condicao de pagamento</span>
+        <input
+          type="text"
+          [value]="budgetDraft().paymentConditionOther"
+          (input)="updateBudgetDraft({ paymentConditionOther: $any($event.target).value })"
+          placeholder="30 dias, 30/60, 50% entrada + 50% entrega">
+      </label>
+
+      <div class="budget-total">
+        <span>Total do orcamento</span>
+        <strong>{{ money(budgetTotal()) }}</strong>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" [disabled]="saving()" (click)="saveBudget()">
+          {{ editingBudgetSupplierId() ? 'Salvar orcamento' : 'Adicionar orcamento' }}
+        </button>
+        <button
+          *ngIf="editingBudgetSupplierId()"
+          type="button"
+          class="secondary"
+          (click)="cancelBudgetEdit()">
+          Cancelar
+        </button>
+      </div>
+    </section>
+
+    <section class="registered-budgets">
+      <div class="subsection-title">
+        <h3>Orcamentos cadastrados</h3>
+      </div>
+
+      <div class="state compact" *ngIf="budgetGroups().length === 0">
+        Nenhum orcamento cadastrado.
+      </div>
+
+      <article class="budget-card" *ngFor="let budget of budgetGroups()">
+        <header class="budget-header">
+          <div>
+            <strong>{{ budget.supplierName }}</strong>
+            <span>{{ budget.supplierDocument }}</span>
+          </div>
+          <div class="budget-total-inline">
+            <span>Total</span>
+            <strong>{{ money(budget.total) }}</strong>
+          </div>
+        </header>
+
+        <div class="budget-items">
+          <article class="budget-item" *ngFor="let item of budget.items" [class.selected-card]="item.selected">
+            <div>
+              <strong>{{ itemLabelByRequestItemId(item.purchaseRequestItemId) }}</strong>
+            <span *ngIf="requestItemById(item.purchaseRequestItemId) as requestItem">
+              {{ requestItem.quantity }} {{ requestItem.unit }}
+            </span>
+            <small *ngIf="item.observation">Observacao: {{ item.observation }}</small>
+          </div>
+          <strong>{{ itemTotal(item) }}</strong>
+            <span *ngIf="item.selected" class="winner-badge">Vencedor</span>
+          </article>
+        </div>
+
+        <div class="budget-meta">
+          <div>
+            <span>Prazo</span>
+            <strong>{{ delivery(budget.deliveryDays) }}</strong>
+          </div>
+          <div>
+            <span>Pagamento</span>
+            <strong>{{ budget.paymentCondition || '-' }}</strong>
+          </div>
+          <div>
+            <span>Parcelas</span>
+            <strong>{{ formatInstallments(budget.installmentCount) }}</strong>
+          </div>
+        </div>
+
+        <div class="card-actions" *ngIf="canManageDraft()">
+          <button type="button" (click)="editBudget(budget)">Editar orcamento</button>
+          <button type="button" class="danger" (click)="deleteBudget(budget)">Excluir orcamento</button>
+        </div>
+
+        <div class="card-actions" *ngIf="canSelectWinner()">
+          <span *ngIf="budgetSelected(budget)" class="winner-badge budget-selected">
+            Orcamento selecionado
+          </span>
+          <button
+            *ngIf="!budgetSelected(budget)"
+            type="button"
+            [disabled]="!budgetComplete(budget)"
+            (click)="selectBudget(budget)">
+            Selecionar orcamento
+          </button>
+          <span *ngIf="!budgetComplete(budget)" class="incomplete-note">
+            Este fornecedor nao cotou todos os materiais da solicitacao.
+          </span>
+        </div>
+      </article>
+    </section>
+  </section>
+
+  <section class="actions-card bottom-actions">
+    <p *ngIf="approvalPendingForBuyer()" class="approval-note">
+      Aguardando aprovacao.
+    </p>
+    <p *ngIf="waitingForOtherApprover()" class="approval-note">
+      Aguardando aprovacao de outro aprovador.
+    </p>
+    <button *ngIf="canSubmit()" type="button" (click)="submitForApproval()">Enviar Cotacao para Aprovacao</button>
+    <button *ngIf="canApprove()" type="button" (click)="approve()">Aprovar cotacao</button>
+    <button *ngIf="canSecondApprove()" type="button" (click)="approve()">Aprovar como segundo aprovador</button>
+    <button *ngIf="canApprove()" type="button" class="danger" (click)="reject()">Rejeitar cotacao</button>
+    <button *ngIf="canSecondApprove()" type="button" class="danger" (click)="reject()">Rejeitar cotacao</button>
+  </section>
+
+  <section class="content-card" *ngIf="generatedOrders().length > 0">
+    <div class="section-title">
+      <h2>Ordens de Compra geradas</h2>
+      <span>{{ generatedOrders().length }} ordem(ns)</span>
+    </div>
+
+    <div class="orders-grid">
+      <article class="order-card" *ngFor="let order of generatedOrders()">
+        <span>Ordem de Compra</span>
+        <strong>{{ order.number }}</strong>
+        <p>{{ supplierLabel(order.supplierId) }}</p>
+        <div>
+          <span>Valor total</span>
+          <strong>{{ money(order.totalValue) }}</strong>
+        </div>
+        <div>
+          <span>Itens</span>
+          <strong>{{ orderItemsTotal(order) }}</strong>
+        </div>
+        <a [routerLink]="['/app/ordens-compra', order.id]">Abrir OC</a>
+      </article>
+    </div>
+  </section>
+</ng-container>

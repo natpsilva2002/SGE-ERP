@@ -1,0 +1,564 @@
+<section class="page-header">
+  <div>
+    <span class="eyebrow">Ordem de Servico</span>
+    <h1>{{ serviceOrder()?.number || 'Detalhes' }}</h1>
+  </div>
+  <a routerLink="/app/ordens-servico">Voltar</a>
+</section>
+
+<div *ngIf="loading()" class="state">Carregando ordem de servico...</div>
+<div *ngIf="!loading() && error()" class="state error">{{ error() }}</div>
+
+<ng-container *ngIf="!loading() && !error() && serviceOrder() as order">
+  <section class="summary-grid">
+    <div>
+      <span>Execucao</span>
+      <strong class="badge status-{{ order.executionStatus }}">{{ executionLabel(order) }}</strong>
+    </div>
+    <div>
+      <span>Financeiro</span>
+      <strong class="badge payment-{{ order.paymentStatus }}">{{ paymentLabel(order) }}</strong>
+    </div>
+    <div>
+      <span>Prestador</span>
+      <strong>{{ order.supplierName }}</strong>
+    </div>
+    <div>
+      <span>CNPJ</span>
+      <strong>{{ order.supplierDocument }}</strong>
+    </div>
+  </section>
+
+  <section class="actions-card">
+    <button *ngIf="canRelease(order)" type="button" (click)="release()" [disabled]="saving()">
+      Liberar para execucao
+    </button>
+  </section>
+
+  <section class="content-grid">
+    <article class="panel">
+      <h2>Dados do servico</h2>
+      <div class="info-list">
+        <div>
+          <span>Servico</span>
+          <strong>{{ order.serviceDescription }}</strong>
+        </div>
+        <div *ngIf="order.serviceSpecification">
+          <span>Especificacao</span>
+          <strong>{{ order.serviceSpecification }}</strong>
+        </div>
+        <div>
+          <span>Obra</span>
+          <strong>{{ order.workName }}</strong>
+        </div>
+        <div>
+          <span>Solicitacao origem</span>
+          <strong>{{ order.purchaseRequestNumber || '-' }}</strong>
+        </div>
+        <div *ngIf="order.estimatedQuantity">
+          <span>Quantidade prevista</span>
+          <strong>{{ order.estimatedQuantity }} {{ order.unit }}</strong>
+        </div>
+      </div>
+    </article>
+
+    <article class="panel">
+      <h2>Financeiro</h2>
+      <div class="info-list">
+        <div>
+          <span>Valor contratado</span>
+          <strong>{{ money(order.contractedValue) }}</strong>
+        </div>
+        <div>
+          <span>Medido aprovado</span>
+          <strong>{{ money(order.approvedMeasuredAmount) }}</strong>
+        </div>
+        <div>
+          <span>Valor pago</span>
+          <strong>{{ money(order.amountPaid) }}</strong>
+        </div>
+        <div>
+          <span>Disponivel por medicao</span>
+          <strong>{{ money(order.availableMeasuredToPay) }}</strong>
+        </div>
+        <div>
+          <span>Disponivel por antecipacao</span>
+          <strong>{{ money(order.availableAdvanceToPay) }}</strong>
+        </div>
+        <div>
+          <span>Total disponivel para pagamento</span>
+          <strong>{{ money(order.availableToPay) }}</strong>
+        </div>
+        <div>
+          <span>Saldo nao medido</span>
+          <strong>{{ money(order.unmeasuredBalance) }}</strong>
+        </div>
+        <div>
+          <span>Status financeiro</span>
+          <strong class="badge payment-{{ order.paymentStatus }}">{{ paymentLabel(order) }}</strong>
+        </div>
+        <div>
+          <span>Condicao de pagamento</span>
+          <strong>{{ order.paymentCondition || '-' }}</strong>
+        </div>
+        <div>
+          <span>Parcelas</span>
+          <strong>{{ order.installmentCount ? order.installmentCount + 'x' : '-' }}</strong>
+        </div>
+      </div>
+
+      <div class="finance-actions" *ngIf="canRegisterPayment(order)">
+        <button type="button" [disabled]="saving()" (click)="openPaymentDialog(order)">
+          Registrar pagamento
+        </button>
+      </div>
+
+      <div class="finance-actions" *ngIf="canRequestAdvance(order)">
+        <button type="button" class="secondary" [disabled]="saving()" (click)="openAdvanceDialog(order)">
+          Solicitar antecipacao
+        </button>
+      </div>
+    </article>
+  </section>
+
+  <section class="panel">
+    <h2>Antecipacoes</h2>
+
+    <div *ngIf="order.advancePaymentRequests.length === 0" class="state inline">
+      Nenhuma antecipacao solicitada.
+    </div>
+
+    <div class="payment-history" *ngIf="order.advancePaymentRequests.length > 0">
+      <article class="payment-history-card" *ngFor="let advance of order.advancePaymentRequests">
+        <div>
+          <span>Status</span>
+          <strong class="badge advance-{{ advance.status }}">{{ advanceStatusLabel(advance.status) }}</strong>
+        </div>
+        <div>
+          <span>Valor</span>
+          <strong>{{ money(advance.amount) }}</strong>
+        </div>
+        <div>
+          <span>Pago</span>
+          <strong>{{ money(advance.amountPaid) }}</strong>
+        </div>
+        <div>
+          <span>Saldo</span>
+          <strong>{{ money(advance.amountPending) }}</strong>
+        </div>
+        <div>
+          <span>Solicitado por</span>
+          <strong>{{ advance.requestedByUserName || '-' }}</strong>
+        </div>
+        <div>
+          <span>Solicitado em</span>
+          <strong>{{ date(advance.requestedAt) }}</strong>
+        </div>
+        <div *ngIf="advance.approvedAt">
+          <span>Aprovado por</span>
+          <strong>{{ advance.approvedByUserName || '-' }}</strong>
+        </div>
+        <div *ngIf="advance.rejectedAt">
+          <span>Rejeitado por</span>
+          <strong>{{ advance.rejectedByUserName || '-' }}</strong>
+        </div>
+        <div *ngIf="advance.observation">
+          <span>Observacao</span>
+          <strong>{{ advance.observation }}</strong>
+        </div>
+        <div *ngIf="advance.rejectionReason">
+          <span>Motivo</span>
+          <strong>{{ advance.rejectionReason }}</strong>
+        </div>
+
+        <div class="measurement-actions" *ngIf="advance.status === ServiceAdvancePaymentStatus.WaitingApproval && canApproveAdvance()">
+          <button type="button" (click)="approveAdvancePayment(order, advance)" [disabled]="saving()">Aprovar</button>
+          <button type="button" class="danger" (click)="openRejectAdvance(advance)" [disabled]="saving()">Rejeitar</button>
+        </div>
+
+        <div class="measurement-actions" *ngIf="canPayAdvance(advance)">
+          <button type="button" (click)="openAdvancePaymentDialog(advance)" [disabled]="saving()">
+            Pagar antecipacao
+          </button>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Historico de pagamentos</h2>
+
+    <div *ngIf="order.payments.length === 0" class="state inline">
+      Nenhum pagamento registrado.
+    </div>
+
+    <div class="payment-history" *ngIf="order.payments.length > 0">
+      <article class="payment-history-card" *ngFor="let payment of order.payments">
+        <div>
+          <span>Data</span>
+          <strong>{{ payment.paymentDate | date: 'dd/MM/yyyy HH:mm' }}</strong>
+        </div>
+        <div>
+          <span>Valor</span>
+          <strong>{{ money(payment.amount) }}</strong>
+        </div>
+        <div>
+          <span>Forma</span>
+          <strong>{{ paymentMethodLabel(payment.paymentMethod) }}</strong>
+        </div>
+        <div>
+          <span>Origem</span>
+          <strong>{{ payment.advancePaymentRequestId ? 'Antecipacao' : 'Medicao aprovada' }}</strong>
+        </div>
+        <div>
+          <span>Responsavel</span>
+          <strong>{{ payment.paidByUserName || '-' }}</strong>
+        </div>
+        <div *ngIf="payment.observation">
+          <span>Observacao</span>
+          <strong>{{ payment.observation }}</strong>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Contrato</h2>
+
+    <div class="contract-status" *ngIf="order.contractFileName; else pendingContract">
+      <div>
+        <span>Arquivo</span>
+        <strong>{{ order.contractFileName }}</strong>
+      </div>
+      <div>
+        <span>Anexado em</span>
+        <strong>{{ date(order.contractUploadedAt) }}</strong>
+      </div>
+      <div>
+        <span>Anexado por</span>
+        <strong>{{ order.contractUploadedByUserName || '-' }}</strong>
+      </div>
+      <button *ngIf="canDownloadContract()" type="button" class="secondary" (click)="downloadContract()">
+        Baixar contrato
+      </button>
+    </div>
+
+    <ng-template #pendingContract>
+      <div class="state inline">Contrato pendente.</div>
+    </ng-template>
+
+    <div class="upload-box" *ngIf="canUploadContract()">
+      <label>
+        <span>Arquivo PDF, DOC ou DOCX</span>
+        <input type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" (change)="onFileSelected($event)">
+      </label>
+      <div class="selected-file" *ngIf="selectedFile() as file">
+        {{ file.name }}
+      </div>
+      <button type="button" (click)="uploadContract()" [disabled]="!selectedFile() || saving()">
+        {{ saving() ? 'Enviando...' : 'Anexar contrato' }}
+      </button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Anexos da OS</h2>
+
+    <div *ngIf="order.attachments.length === 0" class="state inline">
+      Nenhum anexo registrado.
+    </div>
+
+    <div class="payment-history" *ngIf="order.attachments.length > 0">
+      <article class="payment-history-card" *ngFor="let attachment of order.attachments">
+        <div>
+          <span>Tipo</span>
+          <strong>{{ attachmentTypeLabel(attachment.type) }}</strong>
+        </div>
+        <div>
+          <span>Arquivo</span>
+          <strong>{{ attachment.originalFileName }}</strong>
+        </div>
+        <div>
+          <span>Anexado em</span>
+          <strong>{{ date(attachment.uploadedAt) }}</strong>
+        </div>
+        <div>
+          <span>Anexado por</span>
+          <strong>{{ attachment.uploadedByUserName || '-' }}</strong>
+        </div>
+        <div class="measurement-actions">
+          <button *ngIf="canDownloadAttachment()" type="button" class="secondary" (click)="downloadAttachment(order, attachment)">
+            Baixar
+          </button>
+          <button *ngIf="canManageAttachments()" type="button" class="danger" (click)="deleteAttachment(order, attachment)">
+            Excluir
+          </button>
+        </div>
+      </article>
+    </div>
+
+    <div class="upload-box" *ngIf="canManageAttachments()" [formGroup]="attachmentForm">
+      <label>
+        <span>Tipo do anexo</span>
+        <select formControlName="type">
+          <option *ngFor="let type of attachmentTypes" [ngValue]="type">
+            {{ attachmentTypeLabel(type) }}
+          </option>
+        </select>
+      </label>
+      <label>
+        <span>Arquivos PDF, JPG, JPEG ou PNG</span>
+        <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" (change)="onAttachmentFilesSelected($event)">
+      </label>
+      <div class="selected-file" *ngIf="selectedAttachmentFiles().length > 0">
+        {{ selectedAttachmentFiles().length }} arquivo(s) selecionado(s)
+      </div>
+      <button type="button" (click)="uploadAttachments(order)" [disabled]="selectedAttachmentFiles().length === 0 || saving()">
+        {{ saving() ? 'Enviando...' : 'Enviar anexos' }}
+      </button>
+    </div>
+  </section>
+
+  <section class="panel muted-panel">
+    <div class="section-heading">
+      <div>
+        <h2>Medicoes do servico</h2>
+        <p>Acompanhe valores medidos e aprovados da execucao.</p>
+      </div>
+      <button *ngIf="canCreateMeasurement(order)" type="button" (click)="openCreateMeasurement()">
+        + Nova Medicao
+      </button>
+    </div>
+
+    <div class="measurement-summary">
+      <div>
+        <span>Valor contratado</span>
+        <strong>{{ money(order.contractedValue) }}</strong>
+      </div>
+      <div>
+        <span>Medido aprovado</span>
+        <strong>{{ money(order.approvedMeasuredAmount) }}</strong>
+      </div>
+      <div>
+        <span>Comprometido</span>
+        <strong>{{ money(order.committedMeasuredAmount) }}</strong>
+      </div>
+      <div>
+        <span>Saldo disponivel</span>
+        <strong>{{ money(order.remainingToMeasure) }}</strong>
+      </div>
+      <div>
+        <span>Execucao</span>
+        <strong>{{ order.executionPercentage }}%</strong>
+      </div>
+    </div>
+
+    <div *ngIf="order.measurements.length === 0" class="state inline">
+      Nenhuma medicao registrada.
+    </div>
+
+    <div class="measurement-list" *ngIf="order.measurements.length > 0">
+      <article class="measurement-card" *ngFor="let measurement of order.measurements">
+        <div class="measurement-top">
+          <div>
+            <span>Numero</span>
+            <strong>{{ measurement.measurementNumber }}</strong>
+          </div>
+          <strong class="badge measurement-{{ measurement.status }}">
+            {{ measurementStatusLabel(measurement.status) }}
+          </strong>
+        </div>
+
+        <div class="measurement-grid">
+          <div>
+            <span>Data</span>
+            <strong>{{ measurement.measurementDate | date: 'dd/MM/yyyy' }}</strong>
+          </div>
+          <div>
+            <span>Valor</span>
+            <strong>{{ money(measurement.amount) }}</strong>
+          </div>
+          <div>
+            <span>Criado por</span>
+            <strong>{{ measurement.createdByUserName || '-' }}</strong>
+          </div>
+          <div>
+            <span>Aprovado por</span>
+            <strong>{{ measurement.approvedByUserName || '-' }}</strong>
+          </div>
+        </div>
+
+        <div class="measurement-description">
+          <span>Descricao</span>
+          <strong>{{ measurement.description }}</strong>
+        </div>
+
+        <div class="measurement-description" *ngIf="measurement.observation">
+          <span>Observacao</span>
+          <strong>{{ measurement.observation }}</strong>
+        </div>
+
+        <div class="measurement-description" *ngIf="measurement.status === ServiceMeasurementStatus.Rejected">
+          <span>Motivo da rejeicao</span>
+          <strong>{{ measurement.rejectionReason || '-' }}</strong>
+        </div>
+
+        <div class="measurement-actions" *ngIf="canManageMeasurements()">
+          <ng-container *ngIf="measurement.status === ServiceMeasurementStatus.Draft">
+            <button type="button" class="secondary" (click)="openEditMeasurement(measurement)">Editar</button>
+            <button type="button" class="secondary" (click)="submitMeasurement(measurement)" [disabled]="saving()">Enviar para aprovacao</button>
+            <button type="button" class="danger" (click)="deleteMeasurement(measurement)" [disabled]="saving()">Excluir</button>
+          </ng-container>
+          <ng-container *ngIf="measurement.status === ServiceMeasurementStatus.WaitingApproval">
+            <button type="button" (click)="approveMeasurement(measurement)" [disabled]="saving()">Aprovar</button>
+            <button type="button" class="danger" (click)="openRejectMeasurement(measurement)" [disabled]="saving()">Rejeitar</button>
+          </ng-container>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <div class="payment-modal-backdrop" *ngIf="showMeasurementDialog()" (click)="closeMeasurementDialog()">
+    <form class="measurement-modal" [formGroup]="measurementForm" (ngSubmit)="submitMeasurementForm()" (click)="$event.stopPropagation()">
+      <header>
+        <h2>{{ editingMeasurement() ? 'Editar medicao' : 'Nova medicao' }}</h2>
+        <button type="button" class="secondary" (click)="closeMeasurementDialog()">Fechar</button>
+      </header>
+
+      <p class="measurement-balance">
+        Saldo disponivel para medicao:
+        <strong>{{ money(availableBalanceForForm(order, editingMeasurement())) }}</strong>
+      </p>
+
+      <label>
+        <span>Data</span>
+        <input type="date" formControlName="measurementDate">
+      </label>
+
+      <label>
+        <span>Descricao</span>
+        <textarea rows="3" formControlName="description"></textarea>
+      </label>
+
+      <label>
+        <span>Valor medido</span>
+        <input type="number" min="0.01" step="0.01" formControlName="amount">
+      </label>
+
+      <label>
+        <span>Observacao</span>
+        <textarea rows="3" formControlName="observation"></textarea>
+      </label>
+
+      <button type="submit" [disabled]="measurementForm.invalid || saving()">
+        {{ saving() ? 'Salvando...' : 'Salvar medicao' }}
+      </button>
+    </form>
+  </div>
+
+  <div class="payment-modal-backdrop" *ngIf="showPaymentDialog()" (click)="closePaymentDialog()">
+    <form class="measurement-modal" [formGroup]="paymentForm" (ngSubmit)="submitPayment(order)" (click)="$event.stopPropagation()">
+      <header>
+        <h2>Registrar pagamento</h2>
+        <button type="button" class="secondary" (click)="closePaymentDialog()">Fechar</button>
+      </header>
+
+      <p class="measurement-balance">
+        Disponivel para pagamento:
+        <strong>{{ money(paymentAdvanceRequest()?.amountPending || order.availableMeasuredToPay) }}</strong>
+      </p>
+
+      <label>
+        <span>Valor pago</span>
+        <input type="number" min="0.01" step="0.01" formControlName="amount">
+      </label>
+
+      <label>
+        <span>Data do pagamento</span>
+        <input type="date" formControlName="paymentDate">
+      </label>
+
+      <label>
+        <span>Forma de pagamento</span>
+        <select formControlName="paymentMethod">
+          <option *ngFor="let method of paymentMethods" [ngValue]="method">
+            {{ paymentMethodLabel(method) }}
+          </option>
+        </select>
+      </label>
+
+      <label>
+        <span>Observacao</span>
+        <textarea rows="3" formControlName="observation"></textarea>
+      </label>
+
+      <button type="submit" [disabled]="paymentForm.invalid || saving()">
+        {{ saving() ? 'Salvando...' : 'Registrar pagamento' }}
+      </button>
+    </form>
+  </div>
+
+  <div class="payment-modal-backdrop" *ngIf="showAdvanceDialog()" (click)="closeAdvanceDialog()">
+    <form class="measurement-modal" [formGroup]="advanceForm" (ngSubmit)="requestAdvancePayment(order)" (click)="$event.stopPropagation()">
+      <header>
+        <h2>Solicitar antecipacao</h2>
+        <button type="button" class="secondary" (click)="closeAdvanceDialog()">Fechar</button>
+      </header>
+
+      <p class="measurement-balance">
+        Saldo contratado pendente:
+        <strong>{{ money(order.amountPending) }}</strong>
+      </p>
+
+      <label>
+        <span>Valor da antecipacao</span>
+        <input type="number" min="0.01" step="0.01" formControlName="amount">
+      </label>
+
+      <label>
+        <span>Observacao</span>
+        <textarea rows="3" formControlName="observation"></textarea>
+      </label>
+
+      <button type="submit" [disabled]="advanceForm.invalid || saving()">
+        {{ saving() ? 'Enviando...' : 'Solicitar antecipacao' }}
+      </button>
+    </form>
+  </div>
+
+  <div class="payment-modal-backdrop" *ngIf="rejectingAdvance()" (click)="closeRejectAdvance()">
+    <form class="measurement-modal" [formGroup]="rejectAdvanceForm" (ngSubmit)="rejectAdvancePayment()" (click)="$event.stopPropagation()">
+      <header>
+        <h2>Rejeitar antecipacao</h2>
+        <button type="button" class="secondary" (click)="closeRejectAdvance()">Fechar</button>
+      </header>
+
+      <label>
+        <span>Motivo da rejeicao</span>
+        <textarea rows="4" formControlName="rejectionReason"></textarea>
+      </label>
+
+      <button type="submit" class="danger" [disabled]="rejectAdvanceForm.invalid || saving()">
+        {{ saving() ? 'Rejeitando...' : 'Rejeitar antecipacao' }}
+      </button>
+    </form>
+  </div>
+
+  <div class="payment-modal-backdrop" *ngIf="rejectingMeasurement()" (click)="closeRejectMeasurement()">
+    <form class="measurement-modal" [formGroup]="rejectForm" (ngSubmit)="rejectMeasurement()" (click)="$event.stopPropagation()">
+      <header>
+        <h2>Rejeitar medicao</h2>
+        <button type="button" class="secondary" (click)="closeRejectMeasurement()">Fechar</button>
+      </header>
+
+      <label>
+        <span>Motivo da rejeicao</span>
+        <textarea rows="4" formControlName="rejectionReason"></textarea>
+      </label>
+
+      <button type="submit" class="danger" [disabled]="rejectForm.invalid || saving()">
+        {{ saving() ? 'Rejeitando...' : 'Rejeitar medicao' }}
+      </button>
+    </form>
+  </div>
+</ng-container>

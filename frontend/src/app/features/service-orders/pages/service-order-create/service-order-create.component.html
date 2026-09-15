@@ -1,0 +1,91 @@
+<section class="page-header">
+  <div>
+    <span class="eyebrow">Servicos</span>
+    <h1>Gerar Ordem de Servico</h1>
+  </div>
+  <a routerLink="/app/ordens-servico">Voltar</a>
+</section>
+
+<section class="form-card">
+  <div *ngIf="loading()" class="state">Carregando dados...</div>
+  <div *ngIf="!loading() && error()" class="state error">{{ error() }}</div>
+  <div *ngIf="!loading() && !error() && availableRequests().length === 0 && !selectedExistingOrder()" class="state">
+    Nenhuma solicitacao de servico aprovada encontrada.
+  </div>
+
+  <section *ngIf="!loading() && selectedExistingOrder() as existingOrder" class="preview">
+    <div>
+      <span>Ordem de servico existente</span>
+      <strong>{{ existingOrder.number }}</strong>
+    </div>
+    <a [routerLink]="['/app/ordens-servico', existingOrder.id]">Abrir OS existente</a>
+  </section>
+
+  <form *ngIf="!loading() && availableRequests().length > 0 && !selectedExistingOrder()" [formGroup]="form" (ngSubmit)="submit()">
+    <label>
+      <span>Solicitacao de servico</span>
+      <select formControlName="purchaseRequestId">
+        <option value="">Selecione</option>
+        <option *ngFor="let request of availableRequests()" [value]="request.id">
+          {{ request.number }} - {{ request.description }}
+        </option>
+      </select>
+    </label>
+
+    <section class="preview" *ngIf="selectedRequest() as request">
+      <div>
+        <span>Servico</span>
+        <strong>{{ request.description }}</strong>
+      </div>
+      <div *ngIf="request.serviceSpecification">
+        <span>Especificacao</span>
+        <strong>{{ request.serviceSpecification }}</strong>
+      </div>
+      <div *ngIf="request.serviceQuantity">
+        <span>Quantidade prevista</span>
+        <strong>{{ request.serviceQuantity }} {{ request.serviceUnit }}</strong>
+      </div>
+    </section>
+
+    <label>
+      <span>Prestador</span>
+      <select formControlName="supplierId">
+        <option value="">Selecione</option>
+        <option *ngFor="let supplier of suppliers()" [value]="supplier.id">
+          {{ supplierLabel(supplier) }}
+        </option>
+      </select>
+    </label>
+
+    <label>
+      <span>Valor contratado</span>
+      <input type="number" min="0.01" step="0.01" formControlName="contractedValue">
+    </label>
+
+    <div class="form-grid">
+      <label>
+        <span>Condicao de pagamento</span>
+        <select formControlName="paymentCondition" (change)="updatePaymentCondition()">
+          <option value="">Selecione</option>
+          <option *ngFor="let option of paymentConditionOptions" [value]="option">
+            {{ option }}
+          </option>
+        </select>
+      </label>
+
+      <label>
+        <span>Quantidade de parcelas</span>
+        <input type="number" min="1" step="1" formControlName="installmentCount">
+      </label>
+    </div>
+
+    <label *ngIf="form.controls.paymentCondition.value === 'Outro'">
+      <span>Especifique a condicao de pagamento</span>
+      <textarea rows="3" formControlName="paymentConditionOther"></textarea>
+    </label>
+
+    <button type="submit" [disabled]="form.invalid || saving()">
+      {{ saving() ? 'Gerando...' : 'Gerar Ordem de Servico' }}
+    </button>
+  </form>
+</section>

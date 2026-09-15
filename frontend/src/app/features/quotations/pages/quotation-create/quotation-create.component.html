@@ -1,0 +1,38 @@
+<section class="page-header">
+  <div>
+    <span class="eyebrow">Cotacoes</span>
+    <h1>Nova cotacao</h1>
+  </div>
+  <a routerLink="/app/cotacoes">Voltar</a>
+</section>
+
+<section class="form-card">
+  <div *ngIf="loading()" class="state">Carregando solicitacoes...</div>
+  <div *ngIf="error()" class="state error">{{ error() }}</div>
+  <div *ngIf="!loading() && !error() && availableRequests().length === 0" class="state">
+    Nenhuma solicitacao aguardando cotacao encontrada.
+  </div>
+
+  <form *ngIf="!loading() && !error() && selectedRequest()" [formGroup]="form" (ngSubmit)="submit()">
+    <section class="request-context" *ngIf="selectedRequest() as request">
+      <div>
+        <span>Solicitacao</span>
+        <strong>{{ request.number }}</strong>
+      </div>
+      <div>
+        <span>Descricao</span>
+        <strong>{{ request.description }}</strong>
+      </div>
+      <div>
+        <span>Itens solicitados</span>
+        <ul>
+          <li *ngFor="let item of selectedRequestItems()">{{ itemLabel(item) }}</li>
+        </ul>
+      </div>
+    </section>
+
+    <button type="submit" [disabled]="form.invalid || saving()">
+      {{ saving() ? 'Criando...' : 'Criar cotacao' }}
+    </button>
+  </form>
+</section>

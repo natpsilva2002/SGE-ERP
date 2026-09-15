@@ -1,0 +1,83 @@
+<section class="page-header">
+  <div>
+    <span class="eyebrow">Servicos</span>
+    <h1>Ordens de Servico</h1>
+  </div>
+  <a *ngIf="canCreate()" class="primary-action" routerLink="/app/ordens-servico/nova">
+    Gerar OS
+  </a>
+</section>
+
+<section class="toolbar">
+  <label>
+    <span>Buscar</span>
+    <input type="search" [formControl]="searchControl" placeholder="Numero, servico ou prestador">
+  </label>
+  <button type="button" (click)="load()">Atualizar</button>
+</section>
+
+<section class="table-card">
+  <div *ngIf="loading()" class="state">Carregando ordens de servico...</div>
+  <div *ngIf="!loading() && error()" class="state error">{{ error() }}</div>
+  <div *ngIf="!loading() && !error() && filteredOrders().length === 0" class="state">
+    Nenhuma ordem de servico encontrada.
+  </div>
+
+  <div class="table-wrap desktop-list" *ngIf="!loading() && !error() && filteredOrders().length > 0">
+    <table>
+      <thead>
+        <tr>
+          <th>Numero</th>
+          <th>Servico</th>
+          <th>Prestador</th>
+          <th>Valor</th>
+          <th>Execucao</th>
+          <th>Financeiro</th>
+          <th>Contrato</th>
+          <th>Acoes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let order of filteredOrders()">
+          <td><a class="table-link" [routerLink]="['/app/ordens-servico', order.id]">{{ order.number }}</a></td>
+          <td>{{ order.serviceDescription }}</td>
+          <td>{{ order.supplierName }}</td>
+          <td>{{ money(order.contractedValue) }}</td>
+          <td><span class="badge status-{{ order.executionStatus }}">{{ executionLabel(order) }}</span></td>
+          <td><span class="badge payment-{{ order.paymentStatus }}">{{ paymentLabel(order) }}</span></td>
+          <td>{{ order.contractFileName || 'Pendente' }}</td>
+          <td><a class="action-link" [routerLink]="['/app/ordens-servico', order.id]">Abrir</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mobile-list" *ngIf="!loading() && !error() && filteredOrders().length > 0">
+    <article class="order-card" *ngFor="let order of filteredOrders()">
+      <div class="card-top">
+        <a class="table-link" [routerLink]="['/app/ordens-servico', order.id]">{{ order.number }}</a>
+        <span class="badge status-{{ order.executionStatus }}">{{ executionLabel(order) }}</span>
+      </div>
+      <p>{{ order.serviceDescription }}</p>
+      <div class="card-meta">
+        <span>Prestador</span>
+        <strong>{{ order.supplierName }}</strong>
+      </div>
+      <div class="card-grid">
+        <div>
+          <span>Valor</span>
+          <strong>{{ money(order.contractedValue) }}</strong>
+        </div>
+        <div>
+          <span>Financeiro</span>
+          <strong>{{ paymentLabel(order) }}</strong>
+        </div>
+      </div>
+      <div class="card-meta">
+        <span>Contrato</span>
+        <strong>{{ order.contractFileName || 'Pendente' }}</strong>
+      </div>
+      <a class="action-link" [routerLink]="['/app/ordens-servico', order.id]">Abrir</a>
+    </article>
+  </div>
+</section>

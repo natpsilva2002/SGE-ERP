@@ -1,0 +1,85 @@
+<div class="app-shell">
+  <header class="mobile-header">
+    <a class="mobile-brand" routerLink="/app" aria-label="SGE ERP">
+      <span class="brand-mark">SGE</span>
+      <span class="brand-name">ERP</span>
+    </a>
+
+    <button class="menu-button" type="button" aria-label="Abrir menu principal" (click)="openDrawer()">
+      <span aria-hidden="true">☰</span>
+    </button>
+  </header>
+
+  <aside class="sidebar" aria-label="Menu principal">
+    <a class="brand" routerLink="/app" aria-label="SGE ERP">
+      <span class="brand-mark">SGE</span>
+      <span class="brand-name">ERP</span>
+    </a>
+
+    <nav class="nav" aria-label="Menu principal">
+      <a
+        *ngFor="let item of visibleMenuItems$ | async"
+        class="nav-link"
+        [routerLink]="item.route"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: item.route === '/app' }">
+        {{ item.label }}
+      </a>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title">SGE-ERP</div>
+
+      <div class="user-area" *ngIf="user$ | async as user">
+        <div class="user-meta">
+          <span class="user-name">{{ user.name }}</span>
+          <span class="user-role">{{ user.role }}</span>
+        </div>
+        <button class="logout-button" type="button" (click)="logout()">Sair</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+<div class="drawer-overlay" *ngIf="drawerOpen" (click)="closeDrawer()"></div>
+
+<aside class="mobile-drawer" *ngIf="drawerOpen" aria-label="Menu principal mobile">
+  <div class="drawer-header">
+    <a class="mobile-brand" routerLink="/app" aria-label="SGE ERP" (click)="closeDrawer()">
+      <span class="brand-mark">SGE</span>
+      <span class="brand-name">ERP</span>
+    </a>
+
+    <button class="close-button" type="button" aria-label="Fechar menu principal" (click)="closeDrawer()">
+      ×
+    </button>
+  </div>
+
+  <div class="drawer-user" *ngIf="user$ | async as user">
+    <span>{{ user.name }}</span>
+    <strong>{{ user.role }}</strong>
+  </div>
+
+  <nav class="drawer-nav" aria-label="Navegacao mobile">
+    <a
+      *ngFor="let item of visibleMenuItems$ | async"
+      class="drawer-link"
+      [routerLink]="item.route"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: item.route === '/app' }"
+      (click)="closeDrawer()">
+      {{ item.label }}
+    </a>
+  </nav>
+
+  <button class="drawer-logout" type="button" (click)="logout()">Sair</button>
+</aside>
+
+<app-confirm-dialog />
+<app-toast />

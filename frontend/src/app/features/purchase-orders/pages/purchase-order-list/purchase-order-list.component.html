@@ -1,0 +1,117 @@
+<section class="page-header">
+  <div>
+    <span class="eyebrow">Compras</span>
+    <h1>Ordens de Compra</h1>
+  </div>
+</section>
+
+<section class="toolbar">
+  <label>
+    <span>Buscar</span>
+    <input type="search" [formControl]="searchControl" placeholder="Numero, fornecedor ou obra">
+  </label>
+
+  <label>
+    <span>Status</span>
+    <select [formControl]="statusControl">
+      <option value="all">Todos</option>
+      <option *ngFor="let status of statusOptions" [ngValue]="status">
+        {{ statusLabel(status) }}
+      </option>
+    </select>
+  </label>
+  <label>
+    <span>Data inicial</span>
+    <input type="date" [formControl]="startDateControl">
+  </label>
+  <label>
+    <span>Data final</span>
+    <input type="date" [formControl]="endDateControl">
+  </label>
+  <button type="button" class="secondary" (click)="clearFilters()">Limpar filtros</button>
+
+  <button type="button" (click)="load()">Atualizar</button>
+</section>
+
+<section class="table-card">
+  <div *ngIf="loading()" class="state">Carregando ordens de compra...</div>
+  <div *ngIf="!loading() && error()" class="state error">{{ error() }}</div>
+  <div *ngIf="!loading() && !error() && filteredOrders().length === 0" class="state">
+    Nenhuma ordem de compra encontrada.
+  </div>
+
+  <div class="table-wrap desktop-list" *ngIf="!loading() && !error() && filteredOrders().length > 0">
+    <table>
+      <thead>
+        <tr>
+          <th>Numero</th>
+          <th>Fornecedor</th>
+          <th>Obra</th>
+          <th>Valor total</th>
+          <th>Status OC</th>
+          <th>Financeiro</th>
+          <th>Recebimento</th>
+          <th>Data</th>
+          <th>Acoes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let order of filteredOrders()">
+          <td>
+            <a class="table-link" [routerLink]="['/app/ordens-compra', order.id]">
+              {{ order.number }}
+            </a>
+          </td>
+          <td>{{ order.supplierName || 'Nao informado' }}</td>
+          <td>{{ order.workName || 'Nao informada' }}</td>
+          <td>{{ money(order.totalValue) }}</td>
+          <td><span class="badge status-{{ order.status }}">{{ statusLabel(order.status) }}</span></td>
+          <td><span class="badge payment-{{ order.paymentStatus }}">{{ financialStatusLabel(order) }}</span></td>
+          <td>{{ receivingStatusLabel(order) }}</td>
+          <td>{{ order.issueDate | date: 'dd/MM/yyyy HH:mm' }}</td>
+          <td>
+            <a class="action-link" [routerLink]="['/app/ordens-compra', order.id]">Abrir</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mobile-list" *ngIf="!loading() && !error() && filteredOrders().length > 0">
+    <article class="order-card" *ngFor="let order of filteredOrders()">
+      <div class="card-top">
+        <a class="table-link" [routerLink]="['/app/ordens-compra', order.id]">{{ order.number }}</a>
+        <span class="badge status-{{ order.status }}">{{ statusLabel(order.status) }}</span>
+      </div>
+
+      <div class="card-meta">
+        <span>Fornecedor</span>
+        <strong>{{ order.supplierName || 'Nao informado' }}</strong>
+      </div>
+      <div class="card-meta">
+        <span>Obra</span>
+        <strong>{{ order.workName || 'Nao informada' }}</strong>
+      </div>
+      <div class="card-grid">
+        <div>
+          <span>Valor</span>
+          <strong>{{ money(order.totalValue) }}</strong>
+        </div>
+        <div>
+          <span>Financeiro</span>
+          <strong>{{ financialStatusLabel(order) }}</strong>
+        </div>
+        <div>
+          <span>Recebimento</span>
+          <strong>{{ receivingStatusLabel(order) }}</strong>
+        </div>
+      </div>
+      <div class="card-meta">
+        <span>Data</span>
+        <strong>{{ order.issueDate | date: 'dd/MM/yyyy HH:mm' }}</strong>
+      </div>
+
+      <a class="card-action" [routerLink]="['/app/ordens-compra', order.id]">Abrir</a>
+    </article>
+  </div>
+</section>

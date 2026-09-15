@@ -1,0 +1,129 @@
+<section class="page-header">
+  <div>
+    <span class="eyebrow">Compras</span>
+    <h1>Solicitacoes de Compra</h1>
+  </div>
+  <a *ngIf="canCreate()" class="primary-action" routerLink="/app/solicitacoes/nova">
+    Nova solicitacao
+  </a>
+</section>
+
+<section class="toolbar">
+  <label>
+    <span>Buscar</span>
+    <input type="search" [formControl]="searchControl" placeholder="Numero ou descricao">
+  </label>
+  <label>
+    <span>Status</span>
+    <select [formControl]="statusControl">
+      <option value="all">Todos</option>
+      <option *ngFor="let option of statusOptions" [ngValue]="option.value">
+        {{ option.label }}
+      </option>
+    </select>
+  </label>
+  <label>
+    <span>Data inicial</span>
+    <input type="date" [formControl]="startDateControl">
+  </label>
+  <label>
+    <span>Data final</span>
+    <input type="date" [formControl]="endDateControl">
+  </label>
+  <button type="button" class="secondary" (click)="clearFilters()">Limpar filtros</button>
+  <button type="button" (click)="load()">Atualizar</button>
+</section>
+
+<section class="table-card">
+  <div *ngIf="loading()" class="state">Carregando solicitacoes...</div>
+  <div *ngIf="!loading() && error()" class="state error">{{ error() }}</div>
+  <div *ngIf="!loading() && !error() && filteredRequests().length === 0" class="state">
+    Nenhuma solicitacao encontrada.
+  </div>
+
+  <div class="table-wrap desktop-list" *ngIf="!loading() && !error() && filteredRequests().length > 0">
+    <table>
+      <thead>
+        <tr>
+          <th>Numero</th>
+          <th>Tipo</th>
+          <th>Descricao</th>
+          <th>Solicitante</th>
+          <th>Data</th>
+          <th>Status</th>
+          <th>Acoes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let request of filteredRequests()">
+          <td><a class="table-link" [routerLink]="['/app/solicitacoes', request.id]">{{ request.number }}</a></td>
+          <td><span class="badge type-badge">{{ typeLabel(request.type) }}</span></td>
+          <td>{{ request.description }}</td>
+          <td>{{ requesterLabel(request) }}</td>
+          <td>{{ request.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+          <td><span class="badge status-{{ request.status }}">{{ statusLabel(request.status) }}</span></td>
+          <td>
+            <div class="row-actions">
+              <a [routerLink]="['/app/solicitacoes', request.id]">Abrir</a>
+              <button *ngIf="canSubmit(request)" type="button" (click)="submitForApproval(request)">Enviar</button>
+              <button *ngIf="canApprove(request)" type="button" (click)="approve(request)">Aprovar</button>
+              <button *ngIf="canApprove(request)" type="button" (click)="reject(request)">Rejeitar</button>
+              <button *ngIf="canSendToQuotation(request)" type="button" (click)="sendToQuotation(request)">Cotacao</button>
+              <button *ngIf="canCreateQuotation(request)" type="button" (click)="createQuotation(request)">
+                Criar cotacao
+              </button>
+              <a *ngIf="canCreateServiceOrder(request)" [routerLink]="['/app/ordens-servico/nova']" [queryParams]="{ purchaseRequestId: request.id }">
+                Gerar OS
+              </a>
+              <a *ngIf="serviceOrderForRequest(request) as serviceOrder" [routerLink]="['/app/ordens-servico', serviceOrder.id]">
+                Abrir OS
+              </a>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mobile-list" *ngIf="!loading() && !error() && filteredRequests().length > 0">
+    <article class="request-card" *ngFor="let request of filteredRequests()">
+      <div class="card-top">
+        <a class="table-link" [routerLink]="['/app/solicitacoes', request.id]">
+          {{ request.number }}
+        </a>
+        <span class="badge status-{{ request.status }}">{{ statusLabel(request.status) }}</span>
+      </div>
+
+      <span class="badge type-badge">{{ typeLabel(request.type) }}</span>
+
+      <p>{{ request.description }}</p>
+
+      <div class="card-meta">
+        <span>Solicitante</span>
+        <strong>{{ requesterLabel(request) }}</strong>
+      </div>
+
+      <div class="card-meta">
+        <span>Data</span>
+        <strong>{{ request.createdAt | date: 'dd/MM/yyyy HH:mm' }}</strong>
+      </div>
+
+      <div class="card-actions">
+        <a [routerLink]="['/app/solicitacoes', request.id]">Abrir</a>
+        <button *ngIf="canSubmit(request)" type="button" (click)="submitForApproval(request)">Enviar</button>
+        <button *ngIf="canApprove(request)" type="button" (click)="approve(request)">Aprovar</button>
+        <button *ngIf="canApprove(request)" type="button" (click)="reject(request)">Rejeitar</button>
+        <button *ngIf="canSendToQuotation(request)" type="button" (click)="sendToQuotation(request)">Cotacao</button>
+        <button *ngIf="canCreateQuotation(request)" type="button" (click)="createQuotation(request)">
+          Criar cotacao
+        </button>
+        <a *ngIf="canCreateServiceOrder(request)" [routerLink]="['/app/ordens-servico/nova']" [queryParams]="{ purchaseRequestId: request.id }">
+          Gerar OS
+        </a>
+        <a *ngIf="serviceOrderForRequest(request) as serviceOrder" [routerLink]="['/app/ordens-servico', serviceOrder.id]">
+          Abrir OS
+        </a>
+      </div>
+    </article>
+  </div>
+</section>
