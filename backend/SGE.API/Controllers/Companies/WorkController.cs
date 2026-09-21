@@ -19,7 +19,7 @@ public class WorkController : ControllerBase
     }
 
     // GET: api/Work
-    [Authorize(Roles = AppRoles.Requester + "," + AppRoles.Approver + "," + AppRoles.Buyer + "," + AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.Buyer + "," + AppRoles.Warehouse + "," + AppRoles.Finance + "," + AppRoles.Admin)]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<WorkDto>>> GetAll()
     {
@@ -29,7 +29,7 @@ public class WorkController : ControllerBase
     }
 
     // GET: api/Work/{id}
-    [Authorize(Roles = AppRoles.Requester + "," + AppRoles.Approver + "," + AppRoles.Buyer + "," + AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.Buyer + "," + AppRoles.Warehouse + "," + AppRoles.Finance + "," + AppRoles.Admin)]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<WorkDto>> GetById(Guid id)
     {
@@ -42,7 +42,7 @@ public class WorkController : ControllerBase
     }
 
     // POST: api/Work
-    [Authorize(Roles = AppRoles.ApproverOrAdmin)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost]
     public async Task<ActionResult<WorkDto>> Create(
         [FromBody] CreateWorkDto dto)
@@ -66,7 +66,7 @@ public class WorkController : ControllerBase
     }
 
     // PUT: api/Work/{id}
-    [Authorize(Roles = AppRoles.ApproverOrAdmin)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<WorkDto>> Update(
         Guid id,
@@ -81,7 +81,7 @@ public class WorkController : ControllerBase
     }
 
     // DELETE: api/Work/{id}
-    [Authorize(Roles = AppRoles.ApproverOrAdmin)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

@@ -14,6 +14,10 @@ public class ServiceMeasurementDto
 
     public string Description { get; set; } = string.Empty;
 
+    public decimal QuantityMeasured { get; set; }
+
+    public string Unit { get; set; } = string.Empty;
+
     public decimal Amount { get; set; }
 
     public string? Observation { get; set; }
@@ -39,4 +43,6 @@ public class ServiceMeasurementDto
     public string? RejectedByUserName { get; set; }
 
     public string? RejectionReason { get; set; }
+
+    public List<ServiceMeasurementAttachmentDto> Attachments { get; set; } = new();
 }

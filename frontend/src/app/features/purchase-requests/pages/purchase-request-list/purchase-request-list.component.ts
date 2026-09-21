@@ -81,7 +81,6 @@ export class PurchaseRequestListComponent implements OnInit {
     this.error.set('');
 
     const canReadServiceOrders = this.authService.hasRole([
-      AppRoles.Approver,
       AppRoles.Finance,
       AppRoles.Admin
     ]);
@@ -103,7 +102,7 @@ export class PurchaseRequestListComponent implements OnInit {
   canCreate(): boolean {
     return this.authService.hasRole([
       AppRoles.Warehouse,
-      AppRoles.Approver,
+      AppRoles.Buyer,
       AppRoles.Admin
     ]);
   }
@@ -118,7 +117,7 @@ export class PurchaseRequestListComponent implements OnInit {
     }
 
     if (request.type === PurchaseRequestType.Service) {
-      return this.authService.hasRole([AppRoles.Approver, AppRoles.Admin]);
+      return this.authService.hasRole([AppRoles.Warehouse, AppRoles.Buyer, AppRoles.Admin]);
     }
 
     return false;
@@ -127,7 +126,7 @@ export class PurchaseRequestListComponent implements OnInit {
   canApprove(request: PurchaseRequest): boolean {
     return request.type === PurchaseRequestType.Service &&
       request.status === PurchaseRequestStatus.WaitingApproval &&
-      this.authService.hasRole([AppRoles.Approver, AppRoles.Admin]);
+      this.authService.hasRole([AppRoles.Admin]);
   }
 
   canSendToQuotation(request: PurchaseRequest): boolean {
@@ -135,17 +134,17 @@ export class PurchaseRequestListComponent implements OnInit {
   }
 
   canCreateQuotation(request: PurchaseRequest): boolean {
-    return (request.status === PurchaseRequestStatus.WaitingQuotation ||
-      request.status === PurchaseRequestStatus.QuotationInProgress) &&
+    return !request.hasQuotation &&
+      request.status === PurchaseRequestStatus.WaitingQuotation &&
       request.type === PurchaseRequestType.Material &&
-      this.authService.hasRole([AppRoles.Buyer, AppRoles.Approver, AppRoles.Admin]);
+      this.authService.hasRole([AppRoles.Buyer, AppRoles.Admin]);
   }
 
   canCreateServiceOrder(request: PurchaseRequest): boolean {
     return request.status === PurchaseRequestStatus.Approved &&
       request.type === PurchaseRequestType.Service &&
       !this.serviceOrderForRequest(request) &&
-      this.authService.hasRole([AppRoles.Approver, AppRoles.Admin]);
+      this.authService.hasRole([AppRoles.Admin]);
   }
 
   serviceOrderForRequest(request: PurchaseRequest): ServiceOrder | null {
@@ -230,6 +229,10 @@ export class PurchaseRequestListComponent implements OnInit {
     return getPurchaseRequestStatusLabel(status);
   }
 
+  workflowLabel(request: PurchaseRequest): string {
+    return request.workflowStatus || this.statusLabel(request.status);
+  }
+
   typeLabel(type: PurchaseRequestType): string {
     return getPurchaseRequestTypeLabel(type);
   }
@@ -242,13 +245,7 @@ export class PurchaseRequestListComponent implements OnInit {
   }
 
   requesterLabel(request: PurchaseRequest): string {
-    const user = this.authService.getCurrentUser();
-
-    if (user?.id === request.requestedByUserId) {
-      return user.name;
-    }
-
-    return 'Nao informado';
+    return request.requestedByUserName || 'Nao informado';
   }
 
   private replaceRequest(updated: PurchaseRequest, message: string): void {

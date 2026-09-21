@@ -1,6 +1,7 @@
 using SGE.Application.DTOs.User;
 using SGE.Application.Interfaces.Repositories.Administration;
 using SGE.Application.Interfaces.Services.Authentication;
+using SGE.Application.Security;
 using SGE.Domain.Entities.Administration;
 
 namespace SGE.Application.Services.Authentication;
@@ -60,7 +61,7 @@ public class AuthService : IAuthService
             Name = $"{user.FirstName} {user.LastName}".Trim(),
             Email = user.Email,
             RoleId = user.RoleId,
-            Role = user.Role.Name
+            Role = AppRoles.Normalize(user.Role.Name)
         };
     }
 }

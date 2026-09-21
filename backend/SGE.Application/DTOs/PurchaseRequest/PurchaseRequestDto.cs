@@ -28,5 +28,11 @@ public class PurchaseRequestDto
 
     public string? ServiceUnit { get; set; }
 
+    public Guid? ServiceUnitOfMeasureId { get; set; }
+
     public PurchaseRequestStatus Status { get; set; }
+
+    public string? WorkflowStatus { get; set; }
+
+    public bool HasQuotation { get; set; }
 }

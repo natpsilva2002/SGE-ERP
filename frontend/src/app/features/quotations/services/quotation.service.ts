@@ -99,6 +99,21 @@ export class QuotationService {
     return this.http.get<Supplier[]>(`${this.apiUrl}/Supplier`);
   }
 
+  uploadQuotationAttachments(quotationId: string, supplierId: string, files: File[]): Observable<Quotation> {
+    const formData = new FormData();
+    formData.append('supplierId', supplierId);
+    files.forEach((file) => formData.append('files', file));
+    return this.http.post<Quotation>(`${this.apiUrl}/Quotation/${quotationId}/attachments`, formData);
+  }
+
+  downloadQuotationAttachment(quotationId: string, attachmentId: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/Quotation/${quotationId}/attachments/${attachmentId}`, { responseType: 'blob' });
+  }
+
+  deleteQuotationAttachment(quotationId: string, attachmentId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/Quotation/${quotationId}/attachments/${attachmentId}`);
+  }
+
   getPurchaseOrders(): Observable<PurchaseOrder[]> {
     return this.http.get<PurchaseOrder[]>(`${this.apiUrl}/PurchaseOrder`);
   }

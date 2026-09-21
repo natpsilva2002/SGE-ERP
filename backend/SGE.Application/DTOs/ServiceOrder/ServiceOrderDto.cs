@@ -12,6 +12,8 @@ public class ServiceOrderDto
 
     public string PurchaseRequestNumber { get; set; } = string.Empty;
 
+    public string? RequestedByUserName { get; set; }
+
     public Guid WorkId { get; set; }
 
     public string WorkName { get; set; } = string.Empty;
@@ -68,11 +70,21 @@ public class ServiceOrderDto
 
     public decimal ExecutionPercentage { get; set; }
 
+    public decimal MeasuredQuantity { get; set; }
+
+    public decimal RemainingQuantity { get; set; }
+
+    public decimal PhysicalPercentage { get; set; }
+
+    public decimal FinancialPercentage { get; set; }
+
     public IEnumerable<ServiceMeasurementDto> Measurements { get; set; } =
         Enumerable.Empty<ServiceMeasurementDto>();
 
     public IEnumerable<ServiceOrderPaymentDto> Payments { get; set; } =
         Enumerable.Empty<ServiceOrderPaymentDto>();
+
+    public Guid? LastPaymentId { get; set; }
 
     public IEnumerable<ServiceAdvancePaymentRequestDto> AdvancePaymentRequests { get; set; } =
         Enumerable.Empty<ServiceAdvancePaymentRequestDto>();

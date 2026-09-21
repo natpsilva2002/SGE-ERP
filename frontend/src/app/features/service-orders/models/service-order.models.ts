@@ -49,6 +49,7 @@ export interface ServiceOrder {
   number: string;
   purchaseRequestId: string;
   purchaseRequestNumber: string;
+  requestedByUserName?: string | null;
   workId: string;
   workName: string;
   supplierId: string;
@@ -77,8 +78,13 @@ export interface ServiceOrder {
   committedMeasuredAmount: number;
   remainingToMeasure: number;
   executionPercentage: number;
+  measuredQuantity: number;
+  remainingQuantity: number;
+  physicalPercentage: number;
+  financialPercentage: number;
   measurements: ServiceMeasurement[];
   payments: ServiceOrderPayment[];
+  lastPaymentId?: string | null;
   advancePaymentRequests: ServiceAdvancePaymentRequest[];
   attachments: ServiceOrderAttachment[];
 }
@@ -104,6 +110,8 @@ export interface ServiceMeasurement {
   measurementNumber: string;
   measurementDate: string;
   description: string;
+  quantityMeasured: number;
+  unit: string;
   amount: number;
   observation?: string | null;
   status: ServiceMeasurementStatus;
@@ -117,6 +125,17 @@ export interface ServiceMeasurement {
   rejectedByUserId?: string | null;
   rejectedByUserName?: string | null;
   rejectionReason?: string | null;
+  attachments: ServiceMeasurementAttachment[];
+}
+
+export interface ServiceMeasurementAttachment {
+  id: string;
+  serviceMeasurementId: string;
+  originalFileName: string;
+  contentType: string;
+  fileSizeBytes: number;
+  uploadedByUserId: string;
+  uploadedAt: string;
 }
 
 export interface ServiceOrderPayment {
@@ -130,6 +149,17 @@ export interface ServiceOrderPayment {
   paymentMethod: PaymentMethod;
   observation?: string | null;
   status: number;
+  attachments: ServiceOrderPaymentAttachment[];
+}
+
+export interface ServiceOrderPaymentAttachment {
+  id: string;
+  serviceOrderPaymentId: string;
+  originalFileName: string;
+  contentType: string;
+  fileSizeBytes: number;
+  uploadedByUserId: string;
+  uploadedAt: string;
 }
 
 export interface PayServiceOrder {
@@ -184,6 +214,8 @@ export interface ServiceOrderAttachment {
 export interface CreateServiceMeasurement {
   measurementDate: string;
   description: string;
+  quantityMeasured: number;
+  unit?: string | null;
   amount: number;
   observation?: string | null;
 }

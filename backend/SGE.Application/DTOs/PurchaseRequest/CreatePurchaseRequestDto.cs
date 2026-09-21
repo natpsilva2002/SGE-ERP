@@ -4,8 +4,6 @@ namespace SGE.Application.DTOs.PurchaseRequest;
 
 public class CreatePurchaseRequestDto
 {
-    public Guid? CompanyId { get; set; }
-
     public Guid WorkId { get; set; }
 
     public Guid? RequestedByUserId { get; set; }
@@ -21,6 +19,8 @@ public class CreatePurchaseRequestDto
     public decimal? ServiceQuantity { get; set; }
 
     public string? ServiceUnit { get; set; }
+
+    public Guid? ServiceUnitOfMeasureId { get; set; }
 
     public IEnumerable<CreatePurchaseRequestMaterialItemDto> Items { get; set; } =
         Enumerable.Empty<CreatePurchaseRequestMaterialItemDto>();

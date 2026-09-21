@@ -34,6 +34,8 @@ public class Payment : BaseEntity
 
     public User PaidByUser { get; private set; } = null!;
 
+    public ICollection<PaymentAttachment> Attachments { get; private set; } = new List<PaymentAttachment>();
+
     private Payment()
     {
     }

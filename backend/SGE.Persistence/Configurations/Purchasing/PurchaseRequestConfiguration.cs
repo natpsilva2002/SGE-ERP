@@ -32,12 +32,20 @@ public class PurchaseRequestConfiguration : IEntityTypeConfiguration<PurchaseReq
         builder.Property(x => x.ServiceUnit)
             .HasMaxLength(20);
 
+        builder.HasIndex(x => x.ServiceUnitOfMeasureId);
+
         builder.Property(x => x.Status)
             .HasConversion<int>();
 
         builder.HasOne(x => x.Company)
             .WithMany()
             .HasForeignKey(x => x.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<SGE.Domain.Entities.Catalog.UnitOfMeasure>()
+            .WithMany()
+            .HasForeignKey(x => x.ServiceUnitOfMeasureId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(x => x.Work)

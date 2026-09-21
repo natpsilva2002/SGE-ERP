@@ -25,6 +25,8 @@ public class PurchaseRequest : BaseSoftDeleteEntity
 
     public string? ServiceUnit { get; private set; }
 
+    public Guid? ServiceUnitOfMeasureId { get; private set; }
+
     public PurchaseRequestStatus Status { get; private set; }
 
     public Company Company { get; private set; } = null!;
@@ -48,7 +50,8 @@ public class PurchaseRequest : BaseSoftDeleteEntity
         PurchaseRequestType type = PurchaseRequestType.Material,
         string? serviceSpecification = null,
         decimal? serviceQuantity = null,
-        string? serviceUnit = null)
+        string? serviceUnit = null,
+        Guid? serviceUnitOfMeasureId = null)
     {
         CompanyId = companyId;
         WorkId = workId;
@@ -67,7 +70,7 @@ public class PurchaseRequest : BaseSoftDeleteEntity
             throw new ArgumentException(
                 "A descricao do servico e obrigatoria.");
 
-        SetServiceData(serviceSpecification, serviceQuantity, serviceUnit);
+        SetServiceData(serviceSpecification, serviceQuantity, serviceUnit, serviceUnitOfMeasureId);
         Status = PurchaseRequestStatus.Draft;
     }
 
@@ -113,9 +116,10 @@ public class PurchaseRequest : BaseSoftDeleteEntity
             throw new InvalidOperationException(
                 "Apenas solicitacoes de material podem ser enviadas para cotacao.");
 
-        if (Status != PurchaseRequestStatus.Approved)
+        if (Status != PurchaseRequestStatus.Draft &&
+            Status != PurchaseRequestStatus.Approved)
             throw new InvalidOperationException(
-                "Apenas solicitacoes aprovadas podem ser enviadas para cotacao.");
+                "Apenas solicitacoes em rascunho ou aprovadas podem ser enviadas para cotacao.");
 
         Status = PurchaseRequestStatus.WaitingQuotation;
     }
@@ -136,6 +140,14 @@ public class PurchaseRequest : BaseSoftDeleteEntity
                 "Apenas solicitacoes aguardando aprovacao podem ser rejeitadas.");
 
         Status = PurchaseRequestStatus.Rejected;
+    }
+
+    public void Cancel()
+    {
+        if (Status != PurchaseRequestStatus.Draft && Status != PurchaseRequestStatus.WaitingApproval)
+            throw new InvalidOperationException("A solicitacao de servico nao pode mais ser cancelada neste estado.");
+
+        Status = PurchaseRequestStatus.Cancelled;
     }
 
     public void Finish()
@@ -168,7 +180,8 @@ public class PurchaseRequest : BaseSoftDeleteEntity
         string description,
         string? serviceSpecification = null,
         decimal? serviceQuantity = null,
-        string? serviceUnit = null)
+        string? serviceUnit = null,
+        Guid? serviceUnitOfMeasureId = null)
     {
         if (Status != PurchaseRequestStatus.Draft &&
             (Type != PurchaseRequestType.Material ||
@@ -178,11 +191,10 @@ public class PurchaseRequest : BaseSoftDeleteEntity
 
         Number = number;
         Description = description;
-        SetServiceData(serviceSpecification, serviceQuantity, serviceUnit);
+        SetServiceData(serviceSpecification, serviceQuantity, serviceUnit, serviceUnitOfMeasureId);
     }
 
     public void UpdateMaterial(
-        Guid companyId,
         Guid workId,
         string description)
     {
@@ -199,22 +211,23 @@ public class PurchaseRequest : BaseSoftDeleteEntity
             throw new ArgumentException(
                 "A descricao da solicitacao de material e obrigatoria.");
 
-        CompanyId = companyId;
         WorkId = workId;
         Description = description.Trim();
-        SetServiceData(null, null, null);
+        SetServiceData(null, null, null, null);
     }
 
     private void SetServiceData(
         string? serviceSpecification,
         decimal? serviceQuantity,
-        string? serviceUnit)
+        string? serviceUnit,
+        Guid? serviceUnitOfMeasureId)
     {
         if (Type == PurchaseRequestType.Material)
         {
             ServiceSpecification = null;
             ServiceQuantity = null;
             ServiceUnit = null;
+            ServiceUnitOfMeasureId = null;
             return;
         }
 
@@ -229,5 +242,6 @@ public class PurchaseRequest : BaseSoftDeleteEntity
         ServiceSpecification = serviceSpecification;
         ServiceQuantity = serviceQuantity;
         ServiceUnit = serviceUnit;
+        ServiceUnitOfMeasureId = serviceUnitOfMeasureId;
     }
 }

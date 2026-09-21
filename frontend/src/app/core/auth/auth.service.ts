@@ -69,7 +69,7 @@ export class AuthService {
       return false;
     }
 
-    return roles.includes(user.role);
+    return roles.includes(this.normalizeRole(user.role));
   }
 
   getToken(): string | null {
@@ -87,8 +87,12 @@ export class AuthService {
   }
 
   private storeUser(user: AuthUser): void {
-    localStorage.setItem(userKey, JSON.stringify(user));
-    this.currentUserSubject.next(user);
+    const normalizedUser = {
+      ...user,
+      role: this.normalizeRole(user.role)
+    };
+    localStorage.setItem(userKey, JSON.stringify(normalizedUser));
+    this.currentUserSubject.next(normalizedUser);
   }
 
   private loadStoredUser(): AuthUser | null {
@@ -104,7 +108,8 @@ export class AuthService {
     }
 
     try {
-      return JSON.parse(value) as AuthUser;
+      const user = JSON.parse(value) as AuthUser;
+      return { ...user, role: this.normalizeRole(user.role) };
     } catch {
       this.clearStoredSession();
       return null;
@@ -125,5 +130,20 @@ export class AuthService {
     localStorage.removeItem(tokenKey);
     localStorage.removeItem(userKey);
     localStorage.removeItem(expiresAtKey);
+  }
+
+  private normalizeRole(role: string | null | undefined): string {
+    const normalized = (role ?? '').trim().toLowerCase();
+    return normalized === 'administrador' || normalized === 'admin'
+      ? 'Administrador'
+      : normalized === 'compras' || normalized === 'buyer'
+        ? 'Compras'
+        : normalized === 'almoxarife' || normalized === 'warehouse' || normalized === 'requester'
+          ? 'Almoxarife'
+          : normalized === 'financeiro' || normalized === 'finance'
+            ? 'Financeiro'
+            : normalized === 'approver'
+              ? 'Administrador'
+              : role?.trim() ?? '';
   }
 }

@@ -17,6 +17,7 @@ public class PurchaseRequestService : IPurchaseRequestService
     private readonly IWorkRepository _workRepository;
     private readonly IUserRepository _userRepository;
     private readonly IItemRepository _itemRepository;
+    private readonly IUnitOfMeasureRepository _unitOfMeasureRepository;
     private readonly IPurchaseRequestItemRepository _purchaseRequestItemRepository;
     private readonly IQuotationRepository _quotationRepository;
     private readonly IApprovalRepository _approvalRepository;
@@ -28,6 +29,7 @@ public class PurchaseRequestService : IPurchaseRequestService
         IWorkRepository workRepository,
         IUserRepository userRepository,
         IItemRepository itemRepository,
+        IUnitOfMeasureRepository unitOfMeasureRepository,
         IPurchaseRequestItemRepository purchaseRequestItemRepository,
         IQuotationRepository quotationRepository,
         IApprovalRepository approvalRepository,
@@ -38,6 +40,7 @@ public class PurchaseRequestService : IPurchaseRequestService
         _workRepository = workRepository;
         _userRepository = userRepository;
         _itemRepository = itemRepository;
+        _unitOfMeasureRepository = unitOfMeasureRepository;
         _purchaseRequestItemRepository = purchaseRequestItemRepository;
         _quotationRepository = quotationRepository;
         _approvalRepository = approvalRepository;
@@ -47,8 +50,14 @@ public class PurchaseRequestService : IPurchaseRequestService
     public async Task<IEnumerable<PurchaseRequestDto>> GetAllAsync()
     {
         var purchaseRequests = await _repository.GetAllWithDetailsAsync();
+        var quotations = await _quotationRepository.GetAllWithApprovalsAsync();
+        var quotationStatuses = quotations
+            .GroupBy(x => x.PurchaseRequestId)
+            .ToDictionary(x => x.Key, x => x.OrderByDescending(y => y.QuotationDate).First().Status);
+        var quotationRequestIds = quotations.Select(x => x.PurchaseRequestId).ToHashSet();
 
-        return purchaseRequests.Select(MapToDto);
+        return purchaseRequests.OrderByDescending(x => x.CreatedAt)
+            .Select(x => MapToDto(x, quotationStatuses.GetValueOrDefault(x.Id), quotationRequestIds.Contains(x.Id)));
     }
 
     public async Task<PurchaseRequestDto?> GetByIdAsync(Guid id)
@@ -58,7 +67,12 @@ public class PurchaseRequestService : IPurchaseRequestService
         if (purchaseRequest == null)
             return null;
 
-        return MapToDto(purchaseRequest);
+        var quotation = (await _quotationRepository.GetAllWithApprovalsAsync())
+            .Where(x => x.PurchaseRequestId == id)
+            .OrderByDescending(x => x.QuotationDate)
+            .FirstOrDefault();
+
+        return MapToDto(purchaseRequest, quotation?.Status, quotation != null);
     }
 
     public async Task<PurchaseRequestDto> CreateAsync(CreatePurchaseRequestDto dto)
@@ -68,12 +82,7 @@ public class PurchaseRequestService : IPurchaseRequestService
         if (work == null)
             throw new ArgumentException("A obra informada nao existe.");
 
-        var companyId = dto.CompanyId ?? work.CompanyId;
-
-        var company = await _companyRepository.GetByIdAsync(companyId);
-
-        if (company == null)
-            throw new ArgumentException("A empresa vinculada a obra nao existe.");
+        var company = await FindStructuralCompanyAsync();
 
         if (!dto.RequestedByUserId.HasValue)
             throw new ArgumentException("O usuario solicitante nao foi identificado.");
@@ -97,8 +106,9 @@ public class PurchaseRequestService : IPurchaseRequestService
             throw new ArgumentException(
                 "A descricao do servico e obrigatoria.");
 
+        var serviceUnit = await ResolveServiceUnitAsync(dto.ServiceUnitOfMeasureId, dto.ServiceUnit);
         var purchaseRequest = new PurchaseRequest(
-            companyId,
+            company.Id,
             dto.WorkId,
             dto.RequestedByUserId.Value,
             number,
@@ -106,7 +116,8 @@ public class PurchaseRequestService : IPurchaseRequestService
             dto.Type,
             dto.ServiceSpecification,
             dto.ServiceQuantity,
-            dto.ServiceUnit);
+            serviceUnit.Code,
+            serviceUnit.Id);
 
         if (purchaseRequest.Type == PurchaseRequestType.Material)
         {
@@ -116,7 +127,6 @@ public class PurchaseRequestService : IPurchaseRequestService
                 throw new ArgumentException(
                     "Adicione pelo menos um material a solicitacao.");
 
-            purchaseRequest.RequestMaterial();
             await _repository.AddAsync(purchaseRequest);
 
             foreach (var materialItem in materialItems)
@@ -148,13 +158,13 @@ public class PurchaseRequestService : IPurchaseRequestService
 
             await _repository.SaveChangesAsync();
 
-            return MapToDto(purchaseRequest);
+            return await GetByIdAsync(purchaseRequest.Id) ?? MapToDto(purchaseRequest);
         }
 
         await _repository.AddAsync(purchaseRequest);
         await _repository.SaveChangesAsync();
 
-        return MapToDto(purchaseRequest);
+        return await GetByIdAsync(purchaseRequest.Id) ?? MapToDto(purchaseRequest);
     }
 
     public async Task<PurchaseRequestDto?> UpdateAsync(
@@ -179,15 +189,7 @@ public class PurchaseRequestService : IPurchaseRequestService
             if (work == null)
                 throw new ArgumentException("A obra informada nao existe.");
 
-            var company = await _companyRepository.GetByIdAsync(work.CompanyId);
-
-            if (company == null)
-                throw new ArgumentException("A empresa vinculada a obra nao existe.");
-
-            purchaseRequest.UpdateMaterial(
-                work.CompanyId,
-                work.Id,
-                dto.Description);
+            purchaseRequest.UpdateMaterial(work.Id, dto.Description);
 
             _repository.Update(purchaseRequest);
             await _repository.SaveChangesAsync();
@@ -200,12 +202,13 @@ public class PurchaseRequestService : IPurchaseRequestService
             dto.Description,
             dto.ServiceSpecification,
             dto.ServiceQuantity,
-            dto.ServiceUnit);
+            (await ResolveServiceUnitAsync(dto.ServiceUnitOfMeasureId, dto.ServiceUnit)).Code,
+            dto.ServiceUnitOfMeasureId);
 
         _repository.Update(purchaseRequest);
         await _repository.SaveChangesAsync();
 
-        return MapToDto(purchaseRequest);
+        return await GetByIdAsync(purchaseRequest.Id) ?? MapToDto(purchaseRequest);
     }
 
     public async Task<PurchaseRequestDto?> SendToApprovalAsync(Guid id)
@@ -229,7 +232,7 @@ public class PurchaseRequestService : IPurchaseRequestService
         _repository.Update(purchaseRequest);
         await _repository.SaveChangesAsync();
 
-        return MapToDto(purchaseRequest);
+        return await GetByIdAsync(purchaseRequest.Id) ?? MapToDto(purchaseRequest);
     }
 
     public async Task<PurchaseRequestDto?> SendToQuotationAsync(Guid id)
@@ -244,7 +247,7 @@ public class PurchaseRequestService : IPurchaseRequestService
         _repository.Update(purchaseRequest);
         await _repository.SaveChangesAsync();
 
-        return MapToDto(purchaseRequest);
+        return await GetByIdAsync(purchaseRequest.Id) ?? MapToDto(purchaseRequest);
     }
 
     public async Task<PurchaseRequestDto?> ApproveAsync(
@@ -322,6 +325,13 @@ public class PurchaseRequestService : IPurchaseRequestService
         if (purchaseRequest == null)
             return false;
 
+        if (purchaseRequest.Status == PurchaseRequestStatus.Approved ||
+            purchaseRequest.Status == PurchaseRequestStatus.Rejected ||
+            purchaseRequest.Status == PurchaseRequestStatus.PurchaseOrderGenerated ||
+            purchaseRequest.Status == PurchaseRequestStatus.Finished ||
+            purchaseRequest.Status == PurchaseRequestStatus.Cancelled)
+            throw new InvalidOperationException("Solicitacoes aprovadas ou finalizadas nao podem ser excluidas.");
+
         if (purchaseRequest.Type == PurchaseRequestType.Material &&
             await _quotationRepository.ExistsForPurchaseRequestAsync(purchaseRequest.Id))
             throw new InvalidOperationException(
@@ -333,7 +343,22 @@ public class PurchaseRequestService : IPurchaseRequestService
         return true;
     }
 
-    private static PurchaseRequestDto MapToDto(PurchaseRequest purchaseRequest)
+    public async Task<PurchaseRequestDto?> CancelAsync(Guid id)
+    {
+        var request = await _repository.GetByIdAsync(id);
+        if (request == null) return null;
+        if (request.Type != PurchaseRequestType.Service)
+            throw new InvalidOperationException("Somente solicitacoes de servico podem ser canceladas neste fluxo.");
+        request.Cancel();
+        _repository.Update(request);
+        await _repository.SaveChangesAsync();
+        return await GetByIdAsync(id);
+    }
+
+    private static PurchaseRequestDto MapToDto(
+        PurchaseRequest purchaseRequest,
+        QuotationStatus? quotationStatus = null,
+        bool hasQuotation = false)
     {
         return new PurchaseRequestDto
         {
@@ -349,7 +374,42 @@ public class PurchaseRequestService : IPurchaseRequestService
             ServiceSpecification = purchaseRequest.ServiceSpecification,
             ServiceQuantity = purchaseRequest.ServiceQuantity,
             ServiceUnit = purchaseRequest.ServiceUnit,
+            ServiceUnitOfMeasureId = purchaseRequest.ServiceUnitOfMeasureId,
             Status = purchaseRequest.Status
+            ,WorkflowStatus = ResolveWorkflowStatus(purchaseRequest, quotationStatus)
+            ,HasQuotation = hasQuotation
+        };
+    }
+
+    private static string ResolveWorkflowStatus(
+        PurchaseRequest request,
+        QuotationStatus? quotationStatus)
+    {
+        if (request.Type == PurchaseRequestType.Service)
+        {
+            return request.Status switch
+            {
+                PurchaseRequestStatus.Draft => "Rascunho",
+                PurchaseRequestStatus.WaitingApproval => "Aguardando aprovação",
+                PurchaseRequestStatus.Approved => "Aprovada",
+                PurchaseRequestStatus.Cancelled => "Cancelada",
+                PurchaseRequestStatus.Rejected => "Rejeitada",
+                _ => request.Status.ToString()
+            };
+        }
+
+        return request.Status switch
+        {
+            PurchaseRequestStatus.Draft => "Rascunho",
+            PurchaseRequestStatus.WaitingQuotation => "Aguardando cotação",
+            PurchaseRequestStatus.QuotationInProgress when quotationStatus is QuotationStatus.Draft => "Cotação em andamento",
+            PurchaseRequestStatus.QuotationInProgress when quotationStatus is QuotationStatus.WaitingApproval or QuotationStatus.WaitingSecondApproval => "Cotação aguardando aprovação",
+            PurchaseRequestStatus.QuotationInProgress when quotationStatus is QuotationStatus.Approved => "Cotação aprovada",
+            PurchaseRequestStatus.PurchaseOrderGenerated => "Ordem de compra gerada",
+            PurchaseRequestStatus.Finished => "Finalizada",
+            PurchaseRequestStatus.Cancelled => "Cancelada",
+            PurchaseRequestStatus.Rejected => "Rejeitada",
+            _ => request.Status.ToString()
         };
     }
 
@@ -383,5 +443,34 @@ public class PurchaseRequestService : IPurchaseRequestService
     private static bool IsWholeNumber(decimal value)
     {
         return value == decimal.Truncate(value);
+    }
+
+    private async Task<(string? Code, Guid? Id)> ResolveServiceUnitAsync(Guid? unitId, string? legacyCode)
+    {
+        if (unitId.HasValue)
+        {
+            var unit = await _unitOfMeasureRepository.GetByIdAsync(unitId.Value);
+            if (unit == null || !unit.IsActive)
+                throw new ArgumentException("A unidade de medida informada nao existe ou esta inativa.");
+
+            return (unit.Code, unit.Id);
+        }
+
+        return (string.IsNullOrWhiteSpace(legacyCode) ? null : legacyCode.Trim(), null);
+    }
+
+    private async Task<SGE.Domain.Entities.Companies.Company> FindStructuralCompanyAsync()
+    {
+        var companies = await _companyRepository.FindAsync(company =>
+            company.TradeName == "Estrutural" ||
+            company.CorporateName == "Estrutural");
+
+        var company = companies.FirstOrDefault();
+
+        if (company == null)
+            throw new ArgumentException(
+                "A empresa Estrutural nao esta cadastrada. Cadastre-a antes de criar solicitacoes.");
+
+        return company;
     }
 }

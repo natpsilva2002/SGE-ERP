@@ -42,6 +42,40 @@ public class ServiceMeasurementService : IServiceMeasurementService
         return measurement == null ? null : MapToDto(measurement);
     }
 
+    public async Task<ServiceMeasurementDto?> AddAttachmentAsync(
+        Guid serviceOrderId,
+        Guid measurementId,
+        string originalFileName,
+        string storedRelativePath,
+        string contentType,
+        long fileSizeBytes,
+        Guid uploadedByUserId)
+    {
+        var measurement = await _repository.GetByServiceOrderAndIdAsync(serviceOrderId, measurementId);
+        if (measurement == null)
+            return null;
+
+        await EnsureUserExistsAsync(uploadedByUserId);
+        var attachment = new ServiceMeasurementAttachment(
+            measurementId, originalFileName, storedRelativePath, contentType, fileSizeBytes, uploadedByUserId);
+
+        measurement.Attachments.Add(attachment);
+        await _repository.AddAttachmentAsync(attachment);
+        await _repository.SaveChangesAsync();
+
+        return await GetByIdAsync(serviceOrderId, measurementId);
+    }
+
+    public async Task<(string FilePath, string FileName, string ContentType)?> GetAttachmentAsync(
+        Guid serviceOrderId, Guid measurementId, Guid attachmentId)
+    {
+        var measurement = await _repository.GetByServiceOrderAndIdAsync(serviceOrderId, measurementId);
+        var attachment = measurement?.Attachments.FirstOrDefault(x => x.Id == attachmentId);
+        return attachment == null
+            ? null
+            : (attachment.FilePath, attachment.OriginalFileName, attachment.ContentType);
+    }
+
     public async Task<ServiceMeasurementDto> CreateAsync(
         Guid serviceOrderId,
         CreateServiceMeasurementDto dto)
@@ -50,18 +84,22 @@ public class ServiceMeasurementService : IServiceMeasurementService
 
         EnsureCanCreateMeasurement(serviceOrder);
         await EnsureUserExistsAsync(dto.CreatedByUserId);
-        await EnsureAmountFitsCommittedBalanceAsync(serviceOrder, dto.Amount);
+        await EnsureMeasurementFitsAsync(serviceOrder, dto.QuantityMeasured, dto.Amount);
 
         var measurement = new ServiceMeasurement(
             serviceOrder.Id,
             await GenerateMeasurementNumberAsync(serviceOrder.Id),
             dto.MeasurementDate,
             dto.Description,
+            dto.QuantityMeasured,
+            dto.Unit ?? serviceOrder.Unit,
             dto.Amount,
             dto.CreatedByUserId,
             dto.Observation);
 
         serviceOrder.StartExecution();
+        var measuredAmount = await _repository.SumByServiceOrderAsync(serviceOrder.Id, ServiceMeasurementStatus.Approved);
+        serviceOrder.RefreshExecutionByApprovedAmount(measuredAmount + dto.Amount);
 
         await _repository.AddAsync(measurement);
         _serviceOrderRepository.Update(serviceOrder);
@@ -83,14 +121,17 @@ public class ServiceMeasurementService : IServiceMeasurementService
         if (measurement == null)
             return null;
 
-        await EnsureAmountFitsCommittedBalanceAsync(
+        await EnsureMeasurementFitsAsync(
             serviceOrder,
+            dto.QuantityMeasured,
             dto.Amount,
             measurement.Id);
 
         measurement.Update(
             dto.MeasurementDate,
             dto.Description,
+            dto.QuantityMeasured,
+            dto.Unit ?? serviceOrder.Unit,
             dto.Amount,
             dto.Observation);
 
@@ -131,13 +172,13 @@ public class ServiceMeasurementService : IServiceMeasurementService
         if (measurement == null)
             return null;
 
-        await EnsureAmountFitsCommittedBalanceAsync(
+        await EnsureMeasurementFitsAsync(
             serviceOrder,
+            measurement.QuantityMeasured,
             measurement.Amount,
             measurement.Id);
 
         measurement.Submit();
-
         _repository.Update(measurement);
         await _repository.SaveChangesAsync();
 
@@ -236,11 +277,15 @@ public class ServiceMeasurementService : IServiceMeasurementService
             throw new ArgumentException("O usuario informado nao existe.");
     }
 
-    private async Task EnsureAmountFitsCommittedBalanceAsync(
+    private async Task EnsureMeasurementFitsAsync(
         ServiceOrder serviceOrder,
+        decimal quantity,
         decimal amount,
         Guid? ignoredMeasurementId = null)
     {
+        if (quantity <= 0)
+            throw new ArgumentException("A quantidade medida deve ser maior que zero.");
+
         if (amount <= 0)
             throw new ArgumentException("O valor medido deve ser maior que zero.");
 
@@ -253,6 +298,16 @@ public class ServiceMeasurementService : IServiceMeasurementService
         if (committedAmount + amount > serviceOrder.ContractedValue)
             throw new InvalidOperationException(
                 "O valor medido ultrapassa o saldo disponivel da ordem de servico.");
+
+        if (serviceOrder.EstimatedQuantity.HasValue)
+        {
+            var committedQuantity = measurements
+                .Where(x => x.Id != ignoredMeasurementId && x.Status != ServiceMeasurementStatus.Rejected)
+                .Sum(x => x.QuantityMeasured);
+
+            if (committedQuantity + quantity > serviceOrder.EstimatedQuantity.Value)
+                throw new InvalidOperationException("A quantidade medida ultrapassa a quantidade contratada da ordem de servico.");
+        }
     }
 
     private async Task EnsureApprovedAmountFitsContractAsync(
@@ -292,6 +347,8 @@ public class ServiceMeasurementService : IServiceMeasurementService
                 : measurement.MeasurementNumber,
             MeasurementDate = measurement.MeasurementDate,
             Description = measurement.Description,
+            QuantityMeasured = measurement.QuantityMeasured,
+            Unit = measurement.Unit,
             Amount = measurement.Amount,
             Observation = measurement.Observation,
             Status = measurement.Status,
@@ -304,7 +361,17 @@ public class ServiceMeasurementService : IServiceMeasurementService
             RejectedAt = measurement.RejectedAt,
             RejectedByUserId = measurement.RejectedByUserId,
             RejectedByUserName = FormatUserName(measurement.RejectedByUser),
-            RejectionReason = measurement.RejectionReason
+            RejectionReason = measurement.RejectionReason,
+            Attachments = measurement.Attachments.OrderBy(x => x.UploadedAt).Select(x => new ServiceMeasurementAttachmentDto
+            {
+                Id = x.Id,
+                ServiceMeasurementId = x.ServiceMeasurementId,
+                OriginalFileName = x.OriginalFileName,
+                ContentType = x.ContentType,
+                FileSizeBytes = x.FileSizeBytes,
+                UploadedByUserId = x.UploadedByUserId,
+                UploadedAt = x.UploadedAt
+            }).ToList()
         };
     }
 

@@ -43,5 +43,16 @@ public interface IServiceOrderService
 
     Task<(bool Deleted, string? FilePath)> DeleteAttachmentAsync(Guid id, Guid attachmentId);
 
+    Task<ServiceOrderDto?> AddPaymentAttachmentAsync(
+        Guid serviceOrderId,
+        Guid paymentId,
+        string originalFileName,
+        string storedRelativePath,
+        string contentType,
+        long fileSizeBytes,
+        Guid uploadedByUserId);
+
+    Task<(string FilePath, string FileName, string ContentType)?> GetPaymentAttachmentAsync(Guid serviceOrderId, Guid paymentId, Guid attachmentId);
+
     Task<(string FilePath, string FileName)?> GetContractAsync(Guid id);
 }

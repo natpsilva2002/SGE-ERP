@@ -27,6 +27,7 @@ public class SgeDbContext : DbContext
     // Catalog
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Item> Items => Set<Item>();
+    public DbSet<UnitOfMeasure> UnitOfMeasures => Set<UnitOfMeasure>();
 
     // Purchasing
     public DbSet<PurchaseRequest> PurchaseRequests => Set<PurchaseRequest>();
@@ -45,6 +46,10 @@ public class SgeDbContext : DbContext
     public DbSet<ServiceOrderPayment> ServiceOrderPayments => Set<ServiceOrderPayment>();
     public DbSet<ServiceAdvancePaymentRequest> ServiceAdvancePaymentRequests => Set<ServiceAdvancePaymentRequest>();
     public DbSet<ServiceOrderAttachment> ServiceOrderAttachments => Set<ServiceOrderAttachment>();
+    public DbSet<PaymentAttachment> PaymentAttachments => Set<PaymentAttachment>();
+    public DbSet<QuotationAttachment> QuotationAttachments => Set<QuotationAttachment>();
+    public DbSet<ServiceOrderPaymentAttachment> ServiceOrderPaymentAttachments => Set<ServiceOrderPaymentAttachment>();
+    public DbSet<ServiceMeasurementAttachment> ServiceMeasurementAttachments => Set<ServiceMeasurementAttachment>();
 
     public DbSet<Approval> Approvals => Set<Approval>();
     public DbSet<ApprovalHistory> ApprovalHistories => Set<ApprovalHistory>();

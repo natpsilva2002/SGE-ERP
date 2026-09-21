@@ -41,7 +41,7 @@ public class PurchaseRequestItemController : ControllerBase
     }
 
     // POST: api/PurchaseRequestItem
-    [Authorize(Roles = AppRoles.RequesterOrAdmin)]
+    [Authorize(Roles = AppRoles.PurchaseRequestCreators)]
     [HttpPost]
     public async Task<ActionResult<PurchaseRequestItemDto>> Create(
         [FromBody] CreatePurchaseRequestItemDto dto)
@@ -72,7 +72,7 @@ public class PurchaseRequestItemController : ControllerBase
     }
 
     // PUT: api/PurchaseRequestItem/{id}
-    [Authorize(Roles = AppRoles.RequesterOrAdmin)]
+    [Authorize(Roles = AppRoles.PurchaseRequestCreators)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<PurchaseRequestItemDto>> Update(
         Guid id,
@@ -104,7 +104,7 @@ public class PurchaseRequestItemController : ControllerBase
     }
 
     // DELETE: api/PurchaseRequestItem/{id}
-    [Authorize(Roles = AppRoles.RequesterOrAdmin)]
+    [Authorize(Roles = AppRoles.PurchaseRequestCreators)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

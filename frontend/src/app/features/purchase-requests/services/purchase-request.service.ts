@@ -14,6 +14,7 @@ import {
   UpdatePurchaseRequestItem,
   Work
 } from '../models/purchase-request.models';
+import { UnitOfMeasure } from '../../../shared/models/unit-of-measure.models';
 
 @Injectable({
   providedIn: 'root'
@@ -40,6 +41,10 @@ export class PurchaseRequestService {
 
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/PurchaseRequest/${id}`);
+  }
+
+  cancel(id: string): Observable<PurchaseRequest> {
+    return this.http.post<PurchaseRequest>(`${this.apiUrl}/PurchaseRequest/${id}/cancel`, {});
   }
 
   submitForApproval(id: string): Observable<PurchaseRequest> {
@@ -96,5 +101,11 @@ export class PurchaseRequestService {
 
   getWorks(): Observable<Work[]> {
     return this.http.get<Work[]>(`${this.apiUrl}/Work`);
+  }
+
+  getActiveUnits(): Observable<UnitOfMeasure[]> {
+    return this.http.get<UnitOfMeasure[]>(`${this.apiUrl}/UnitOfMeasure`, {
+      params: { activeOnly: true }
+    });
   }
 }

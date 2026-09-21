@@ -39,21 +39,19 @@ export class AdministrationPageComponent implements OnInit {
   readonly editingUserId = signal<string | null>(null);
 
   readonly roleOrder: string[] = [
-    AppRoles.Requester,
-    AppRoles.Buyer,
-    AppRoles.Approver,
+    AppRoles.Admin,
     AppRoles.Warehouse,
+    AppRoles.Buyer,
     AppRoles.Finance,
-    AppRoles.Admin
   ];
 
   readonly permissionRows: PermissionRow[] = [
-    { action: 'Criar solicitacao', roles: [AppRoles.Requester, AppRoles.Warehouse, AppRoles.Admin] },
+    { action: 'Criar solicitacao', roles: [AppRoles.Warehouse, AppRoles.Buyer, AppRoles.Admin] },
     { action: 'Criar cotacao', roles: [AppRoles.Buyer, AppRoles.Admin] },
     { action: 'Cadastrar orcamento', roles: [AppRoles.Buyer, AppRoles.Admin] },
     { action: 'Enviar cotacao para aprovacao', roles: [AppRoles.Buyer, AppRoles.Admin] },
-    { action: 'Escolher vencedor', roles: [AppRoles.Approver, AppRoles.Admin] },
-    { action: 'Aprovar cotacao', roles: [AppRoles.Approver, AppRoles.Admin] },
+    { action: 'Escolher vencedor', roles: [AppRoles.Admin] },
+    { action: 'Aprovar cotacao', roles: [AppRoles.Admin] },
     { action: 'Receber material', roles: [AppRoles.Warehouse, AppRoles.Admin] },
     { action: 'Registrar pagamento', roles: [AppRoles.Finance, AppRoles.Admin] }
   ];
@@ -195,12 +193,10 @@ export class AdministrationPageComponent implements OnInit {
 
   roleDescription(roleName: string): string {
     const descriptions: Record<string, string> = {
-      [AppRoles.Requester]: 'Pode criar solicitacoes de material.',
+      [AppRoles.Warehouse]: 'Cria solicitacoes e registra recebimentos.',
       [AppRoles.Buyer]: 'Gerencia cotacoes e orcamentos.',
-      [AppRoles.Approver]: 'Analisa cotacoes e seleciona fornecedores vencedores.',
-      [AppRoles.Warehouse]: 'Responsavel pelo recebimento de materiais.',
+      [AppRoles.Admin]: 'Acesso total e aprovacoes operacionais.',
       [AppRoles.Finance]: 'Responsavel por pagamentos.',
-      [AppRoles.Admin]: 'Acesso administrativo ao sistema.'
     };
 
     return descriptions[roleName] ?? 'Perfil do sistema.';

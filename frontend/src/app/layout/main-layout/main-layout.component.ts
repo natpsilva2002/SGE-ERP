@@ -42,8 +42,6 @@ export class MainLayoutComponent {
       label: 'Inicio',
       route: '/app',
       roles: [
-        AppRoles.Requester,
-        AppRoles.Approver,
         AppRoles.Buyer,
         AppRoles.Warehouse,
         AppRoles.Finance,
@@ -53,27 +51,27 @@ export class MainLayoutComponent {
     {
       label: 'Solicitacoes',
       route: '/app/solicitacoes',
-      roles: [AppRoles.Requester, AppRoles.Approver, AppRoles.Buyer, AppRoles.Warehouse, AppRoles.Admin]
+      roles: [AppRoles.Buyer, AppRoles.Warehouse, AppRoles.Finance, AppRoles.Admin]
     },
     {
       label: 'Cotacoes',
       route: '/app/cotacoes',
-      roles: [AppRoles.Approver, AppRoles.Buyer, AppRoles.Admin]
+      roles: [AppRoles.Buyer, AppRoles.Finance, AppRoles.Admin]
     },
     {
       label: 'Ordens de Compra',
       route: '/app/ordens-compra',
-      roles: [AppRoles.Approver, AppRoles.Buyer, AppRoles.Warehouse, AppRoles.Finance, AppRoles.Admin]
+      roles: [AppRoles.Buyer, AppRoles.Warehouse, AppRoles.Finance, AppRoles.Admin]
     },
     {
       label: 'Ordens de Servico',
       route: '/app/ordens-servico',
-      roles: [AppRoles.Approver, AppRoles.Finance, AppRoles.Admin]
+      roles: [AppRoles.Finance, AppRoles.Admin]
     },
     {
       label: 'Recebimentos',
       route: '/app/recebimentos',
-      roles: [AppRoles.Warehouse, AppRoles.Admin]
+      roles: [AppRoles.Buyer, AppRoles.Warehouse, AppRoles.Finance, AppRoles.Admin]
     },
     {
       label: 'Financeiro',

@@ -46,6 +46,9 @@ public class ServiceMeasurement : BaseEntity
 
     public User? RejectedByUser { get; private set; }
 
+    public ICollection<ServiceMeasurementAttachment> Attachments { get; private set; } =
+        new List<ServiceMeasurementAttachment>();
+
     private ServiceMeasurement()
     {
     }
@@ -55,6 +58,8 @@ public class ServiceMeasurement : BaseEntity
         string measurementNumber,
         DateTime measurementDate,
         string description,
+        decimal quantityMeasured,
+        string? unit,
         decimal amount,
         Guid createdByUserId,
         string? observation)
@@ -68,22 +73,27 @@ public class ServiceMeasurement : BaseEntity
         if (amount <= 0)
             throw new ArgumentException("O valor medido deve ser maior que zero.");
 
+        if (quantityMeasured <= 0)
+            throw new ArgumentException("A quantidade medida deve ser maior que zero.");
+
         ServiceOrderId = serviceOrderId;
         MeasurementNumber = measurementNumber.Trim();
         MeasurementDate = NormalizeDate(measurementDate);
         Description = description.Trim();
-        QuantityMeasured = 1;
-        Unit = "VB";
+        QuantityMeasured = quantityMeasured;
+        Unit = string.IsNullOrWhiteSpace(unit) ? "VB" : unit.Trim();
         Amount = amount;
         CreatedByUserId = createdByUserId;
         Observation = string.IsNullOrWhiteSpace(observation) ? null : observation.Trim();
         CreatedAt = DateTime.UtcNow;
-        Status = ServiceMeasurementStatus.Draft;
+        Status = ServiceMeasurementStatus.Approved;
     }
 
     public void Update(
         DateTime measurementDate,
         string description,
+        decimal quantityMeasured,
+        string? unit,
         decimal amount,
         string? observation)
     {
@@ -95,8 +105,13 @@ public class ServiceMeasurement : BaseEntity
         if (amount <= 0)
             throw new ArgumentException("O valor medido deve ser maior que zero.");
 
+        if (quantityMeasured <= 0)
+            throw new ArgumentException("A quantidade medida deve ser maior que zero.");
+
         MeasurementDate = NormalizeDate(measurementDate);
         Description = description.Trim();
+        QuantityMeasured = quantityMeasured;
+        Unit = string.IsNullOrWhiteSpace(unit) ? Unit : unit.Trim();
         Amount = amount;
         Observation = string.IsNullOrWhiteSpace(observation) ? null : observation.Trim();
     }

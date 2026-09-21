@@ -33,6 +33,12 @@ public class Quotation : BaseSoftDeleteEntity
     public ICollection<QuotationItem> Items { get; private set; } =
         new List<QuotationItem>();
 
+    public ICollection<QuotationAttachment> Attachments { get; private set; } =
+        new List<QuotationAttachment>();
+
+    public bool IsEditable => Status != QuotationStatus.Approved &&
+        Status != QuotationStatus.Completed;
+
     private Quotation()
     {
     }
@@ -52,9 +58,9 @@ public class Quotation : BaseSoftDeleteEntity
 
     public void Update(string? observation)
     {
-        if (Status != QuotationStatus.Draft)
+        if (!IsEditable)
             throw new InvalidOperationException(
-                "So e possivel alterar cotacoes em rascunho.");
+                "So e possivel alterar cotacoes antes da aprovacao efetiva.");
 
         Observation = observation;
     }

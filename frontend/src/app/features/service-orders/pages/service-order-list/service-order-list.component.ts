@@ -58,7 +58,7 @@ export class ServiceOrderListComponent implements OnInit {
   }
 
   canCreate(): boolean {
-    return this.authService.hasRole([AppRoles.Approver, AppRoles.Admin]);
+    return this.authService.hasRole([AppRoles.Admin]);
   }
 
   executionLabel(order: ServiceOrder): string {
@@ -71,5 +71,9 @@ export class ServiceOrderListComponent implements OnInit {
 
   money(value: number): string {
     return formatCurrency(value);
+  }
+
+  hasPendingAdvance(order: ServiceOrder): boolean {
+    return order.advancePaymentRequests.some((request) => request.status === 1);
   }
 }

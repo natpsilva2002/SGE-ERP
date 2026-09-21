@@ -48,7 +48,7 @@ public class QuotationService : IQuotationService
     {
         var quotations = await _repository.GetAllWithApprovalsAsync();
 
-        return quotations.Select(MapToDto);
+        return quotations.OrderByDescending(x => x.QuotationDate).Select(MapToDto);
     }
 
     public async Task<QuotationDto?> GetByIdAsync(Guid id)
@@ -61,6 +61,41 @@ public class QuotationService : IQuotationService
         return MapToDto(quotation);
     }
 
+    public async Task<QuotationDto?> AddAttachmentAsync(Guid quotationId, Guid supplierId, string originalFileName, string filePath, string contentType, long fileSizeBytes, Guid uploadedByUserId)
+    {
+        var quotation = await _repository.GetByIdWithApprovalsAsync(quotationId);
+        if (quotation == null) return null;
+        if (!quotation.IsEditable) throw new InvalidOperationException("Anexos so podem ser alterados antes da aprovacao efetiva da cotacao.");
+        var items = (await _quotationItemRepository.GetAllAsync()).Where(x => x.QuotationId == quotationId && x.SupplierId == supplierId);
+        if (!items.Any()) throw new ArgumentException("O fornecedor informado nao possui orcamento nesta cotacao.");
+        var attachment = new QuotationAttachment(quotationId, supplierId, originalFileName, filePath, contentType, fileSizeBytes, uploadedByUserId);
+        quotation.Attachments.Add(attachment);
+        await _repository.AddAttachmentAsync(attachment);
+        await _repository.SaveChangesAsync();
+        return MapToDto(quotation);
+    }
+
+    public async Task<(string FilePath, string FileName, string ContentType)?> GetAttachmentAsync(Guid quotationId, Guid attachmentId)
+    {
+        var quotation = await _repository.GetByIdWithApprovalsAsync(quotationId);
+        var attachment = quotation?.Attachments.FirstOrDefault(x => x.Id == attachmentId);
+        return attachment == null ? null : (attachment.FilePath, attachment.OriginalFileName, attachment.ContentType);
+    }
+
+    public async Task<(bool Deleted, string? FilePath)> DeleteAttachmentAsync(Guid quotationId, Guid attachmentId)
+    {
+        var quotation = await _repository.GetByIdWithApprovalsAsync(quotationId);
+        if (quotation == null) return (false, null);
+        if (!quotation.IsEditable) throw new InvalidOperationException("Anexos so podem ser alterados antes da aprovacao efetiva da cotacao.");
+        var attachment = quotation.Attachments.FirstOrDefault(x => x.Id == attachmentId);
+        if (attachment == null) return (false, null);
+        var path = attachment.FilePath;
+        quotation.Attachments.Remove(attachment);
+        _repository.RemoveAttachment(attachment);
+        await _repository.SaveChangesAsync();
+        return (true, path);
+    }
+
     public async Task<QuotationDto> CreateAsync(CreateQuotationDto dto)
     {
         var purchaseRequest = await _purchaseRequestRepository
@@ -69,6 +104,9 @@ public class QuotationService : IQuotationService
         if (purchaseRequest == null)
             throw new ArgumentException(
                 "A solicitacao de compra informada nao existe.");
+
+        if (await _repository.ExistsForPurchaseRequestAsync(dto.PurchaseRequestId))
+            throw new InvalidOperationException("A solicitacao ja possui uma cotacao.");
 
         if (purchaseRequest.Type != PurchaseRequestType.Material)
             throw new InvalidOperationException(
@@ -114,6 +152,9 @@ public class QuotationService : IQuotationService
 
         if (quotation == null)
             return false;
+
+        if (!quotation.IsEditable)
+            throw new InvalidOperationException("Cotacoes aprovadas nao podem ser excluidas.");
 
         _repository.Remove(quotation);
         await _repository.SaveChangesAsync();
@@ -549,6 +590,7 @@ public class QuotationService : IQuotationService
             PurchaseRequestId = quotation.PurchaseRequestId,
             Number = quotation.Number,
             QuotationDate = quotation.QuotationDate,
+            CreatedByUserName = FormatUserName(quotation.PurchaseRequest?.RequestedByUser),
             Observation = quotation.Observation,
             Status = quotation.Status,
             FirstApprovedAt = quotation.FirstApprovedAt,
@@ -557,6 +599,13 @@ public class QuotationService : IQuotationService
             SecondApprovedAt = quotation.SecondApprovedAt,
             SecondApprovedByUserId = quotation.SecondApprovedByUserId,
             SecondApprovedByUserName = FormatUserName(quotation.SecondApprovedByUser)
+            ,Attachments = quotation.Attachments.OrderBy(x => x.UploadedAt).Select(x => new QuotationAttachmentDto
+            {
+                Id = x.Id, QuotationId = x.QuotationId, SupplierId = x.SupplierId,
+                OriginalFileName = x.OriginalFileName, ContentType = x.ContentType,
+                FileSizeBytes = x.FileSizeBytes, UploadedByUserId = x.UploadedByUserId,
+                UploadedAt = x.UploadedAt
+            }).ToList()
         };
     }
 
@@ -571,6 +620,8 @@ public class QuotationService : IQuotationService
                 purchaseOrder.Supplier?.CorporateName ??
                 string.Empty,
             SupplierDocument = purchaseOrder.Supplier?.Document ?? string.Empty,
+            SupplierEmail = purchaseOrder.Supplier?.Email ?? string.Empty,
+            SupplierPhone = purchaseOrder.Supplier?.Phone ?? string.Empty,
             PurchaseRequestId = purchaseOrder.Quotation?.PurchaseRequestId ?? Guid.Empty,
             PurchaseRequestNumber = purchaseOrder.Quotation?.PurchaseRequest?.Number ?? string.Empty,
             WorkId = purchaseOrder.Quotation?.PurchaseRequest?.WorkId ?? Guid.Empty,

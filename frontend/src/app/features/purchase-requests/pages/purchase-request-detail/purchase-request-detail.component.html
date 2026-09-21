@@ -21,7 +21,7 @@
     </div>
     <div>
       <span>Status</span>
-      <strong class="badge status-{{ current.status }}">{{ statusLabel(current.status) }}</strong>
+      <strong class="badge status-{{ current.status }}">{{ workflowLabel(current) }}</strong>
     </div>
     <div>
       <span>Tipo</span>
@@ -39,20 +39,6 @@
       <span>Obra</span>
       <strong>{{ workLabel(current.workId) }}</strong>
     </div>
-  </section>
-
-  <section class="actions-card">
-    <button *ngIf="canSubmitForApprovalCurrent()" type="button" (click)="submitForApproval()">Enviar para aprovacao</button>
-    <button *ngIf="canApproveCurrent()" type="button" (click)="approve()">Aprovar</button>
-    <button *ngIf="canApproveCurrent()" type="button" class="danger" (click)="reject()">Rejeitar</button>
-    <button *ngIf="isService(current) && canEditCurrent() && !editingRequest()" type="button" class="secondary" [disabled]="saving()" (click)="startRequestEdit()">Editar</button>
-    <button *ngIf="canDeleteCurrent()" type="button" class="danger" (click)="deleteRequest()">Excluir</button>
-    <a *ngIf="canCreateServiceOrderCurrent()" [routerLink]="['/app/ordens-servico/nova']" [queryParams]="{ purchaseRequestId: current.id }">
-      Gerar Ordem de Servico
-    </a>
-    <a *ngIf="isService(current) && serviceOrder() as currentServiceOrder" [routerLink]="['/app/ordens-servico', currentServiceOrder.id]">
-      Abrir Ordem de Servico
-    </a>
   </section>
 
   <section class="form-card">
@@ -107,7 +93,10 @@
           </label>
           <label>
             <span>Unidade de medicao</span>
-            <input type="text" formControlName="serviceUnit" [readonly]="!canEditRequestFields()">
+            <select formControlName="serviceUnitOfMeasureId" [attr.disabled]="!canEditRequestFields() ? true : null">
+              <option value="">Selecione uma unidade</option>
+              <option *ngFor="let unit of units()" [value]="unit.id">{{ unit.code }} — {{ unit.description }}</option>
+            </select>
           </label>
         </div>
       </ng-container>
@@ -254,5 +243,16 @@
         A Ordem de Servico deve ser gerada pelo fluxo especifico, sem cotacao.
       </p>
     </ng-template>
+  </section>
+
+  <section class="actions-card bottom-actions">
+    <button *ngIf="canApproveCurrent()" type="button" (click)="approve()">Aprovar</button>
+    <button *ngIf="canApproveCurrent()" type="button" class="danger" (click)="reject()">Rejeitar</button>
+    <button *ngIf="isService(current) && canEditCurrent() && !editingRequest()" type="button" class="secondary" [disabled]="saving()" (click)="startRequestEdit()">Editar</button>
+    <button *ngIf="canCancelCurrent()" type="button" class="danger" (click)="cancelRequest()">Cancelar</button>
+    <button *ngIf="canDeleteCurrent()" type="button" class="danger" (click)="deleteRequest()">Excluir</button>
+    <button *ngIf="canSubmitForApprovalCurrent()" type="button" (click)="submitForApproval()">Enviar solicitacao</button>
+    <a *ngIf="canCreateServiceOrderCurrent()" [routerLink]="['/app/ordens-servico/nova']" [queryParams]="{ purchaseRequestId: current.id }">Gerar Ordem de Servico</a>
+    <a *ngIf="isService(current) && serviceOrder() as currentServiceOrder" [routerLink]="['/app/ordens-servico', currentServiceOrder.id]">Abrir Ordem de Servico</a>
   </section>
 </ng-container>

@@ -40,7 +40,7 @@ public class ServiceOrderService : IServiceOrderService
     {
         var serviceOrders = await _repository.GetAllWithDetailsAsync();
 
-        return serviceOrders.Select(MapToDto);
+        return serviceOrders.OrderByDescending(x => x.CreatedAt).Select(MapToDto);
     }
 
     public async Task<ServiceOrderDto?> GetByIdAsync(Guid id)
@@ -193,7 +193,43 @@ public class ServiceOrderService : IServiceOrderService
         await _paymentRepository.AddAsync(payment);
         await _paymentRepository.SaveChangesAsync();
 
-        return await GetByIdAsync(id);
+        var result = await GetByIdAsync(id);
+        if (result != null)
+            result.LastPaymentId = payment.Id;
+
+        return result;
+    }
+
+    public async Task<ServiceOrderDto?> AddPaymentAttachmentAsync(
+        Guid serviceOrderId,
+        Guid paymentId,
+        string originalFileName,
+        string storedRelativePath,
+        string contentType,
+        long fileSizeBytes,
+        Guid uploadedByUserId)
+    {
+        var payment = await _paymentRepository.GetByServiceOrderAndIdWithAttachmentsAsync(serviceOrderId, paymentId);
+        if (payment == null)
+            return null;
+
+        var attachment = new ServiceOrderPaymentAttachment(
+            paymentId, originalFileName, storedRelativePath, contentType, fileSizeBytes, uploadedByUserId);
+        payment.Attachments.Add(attachment);
+        await _paymentRepository.AddAttachmentAsync(attachment);
+        await _paymentRepository.SaveChangesAsync();
+
+        return await GetByIdAsync(serviceOrderId);
+    }
+
+    public async Task<(string FilePath, string FileName, string ContentType)?> GetPaymentAttachmentAsync(
+        Guid serviceOrderId, Guid paymentId, Guid attachmentId)
+    {
+        var payment = await _paymentRepository.GetByServiceOrderAndIdWithAttachmentsAsync(serviceOrderId, paymentId);
+        var attachment = payment?.Attachments.FirstOrDefault(x => x.Id == attachmentId);
+        return attachment == null
+            ? null
+            : (attachment.FilePath, attachment.OriginalFileName, attachment.ContentType);
     }
 
     public async Task<ServiceOrderDto?> RequestAdvancePaymentAsync(
@@ -389,6 +425,7 @@ public class ServiceOrderService : IServiceOrderService
             Number = serviceOrder.Number,
             PurchaseRequestId = serviceOrder.PurchaseRequestId,
             PurchaseRequestNumber = serviceOrder.PurchaseRequest?.Number ?? string.Empty,
+            RequestedByUserName = FormatUserName(serviceOrder.PurchaseRequest?.RequestedByUser),
             WorkId = serviceOrder.WorkId,
             WorkName = serviceOrder.Work?.Name ?? string.Empty,
             SupplierId = serviceOrder.SupplierId,
@@ -419,6 +456,16 @@ public class ServiceOrderService : IServiceOrderService
             CommittedMeasuredAmount = GetCommittedMeasuredAmount(serviceOrder),
             RemainingToMeasure = Math.Max(serviceOrder.ContractedValue - GetCommittedMeasuredAmount(serviceOrder), 0),
             ExecutionPercentage = serviceOrder.ContractedValue <= 0
+                ? 0
+                : Math.Round(GetApprovedMeasuredAmount(serviceOrder) / serviceOrder.ContractedValue * 100, 2),
+            MeasuredQuantity = GetMeasuredQuantity(serviceOrder),
+            RemainingQuantity = serviceOrder.EstimatedQuantity.HasValue
+                ? Math.Max(serviceOrder.EstimatedQuantity.Value - GetMeasuredQuantity(serviceOrder), 0)
+                : 0,
+            PhysicalPercentage = serviceOrder.EstimatedQuantity is > 0
+                ? Math.Round(GetMeasuredQuantity(serviceOrder) / serviceOrder.EstimatedQuantity.Value * 100, 2)
+                : 0,
+            FinancialPercentage = serviceOrder.ContractedValue <= 0
                 ? 0
                 : Math.Round(GetApprovedMeasuredAmount(serviceOrder) / serviceOrder.ContractedValue * 100, 2),
             Measurements = serviceOrder.Measurements
@@ -453,7 +500,17 @@ public class ServiceOrderService : IServiceOrderService
             Amount = payment.Amount,
             PaymentMethod = payment.PaymentMethod,
             Observation = payment.Observation,
-            Status = payment.Status
+            Status = payment.Status,
+            Attachments = payment.Attachments.OrderBy(x => x.UploadedAt).Select(x => new ServiceOrderPaymentAttachmentDto
+            {
+                Id = x.Id,
+                ServiceOrderPaymentId = x.Id,
+                OriginalFileName = x.OriginalFileName,
+                ContentType = x.ContentType,
+                FileSizeBytes = x.FileSizeBytes,
+                UploadedByUserId = x.UploadedByUserId,
+                UploadedAt = x.UploadedAt
+            }).ToList()
         };
     }
 
@@ -515,6 +572,13 @@ public class ServiceOrderService : IServiceOrderService
         return serviceOrder.Measurements
             .Where(x => x.Status == ServiceMeasurementStatus.Approved)
             .Sum(x => x.Amount);
+    }
+
+    private static decimal GetMeasuredQuantity(ServiceOrder serviceOrder)
+    {
+        return serviceOrder.Measurements
+            .Where(x => x.Status == ServiceMeasurementStatus.Approved)
+            .Sum(x => x.QuantityMeasured);
     }
 
     private static decimal GetCommittedMeasuredAmount(ServiceOrder serviceOrder)

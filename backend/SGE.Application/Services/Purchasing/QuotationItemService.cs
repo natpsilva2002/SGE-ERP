@@ -220,9 +220,9 @@ public class QuotationItemService : IQuotationItemService
 
     private static void EnsureQuotationDraft(Quotation quotation)
     {
-        if (quotation.Status != QuotationStatus.Draft)
+        if (!quotation.IsEditable)
             throw new InvalidOperationException(
-                "Orcamentos so podem ser alterados enquanto a cotacao estiver em rascunho.");
+                "Orcamentos so podem ser alterados antes da aprovacao efetiva da cotacao.");
     }
 
     private static QuotationItemDto MapToDto(

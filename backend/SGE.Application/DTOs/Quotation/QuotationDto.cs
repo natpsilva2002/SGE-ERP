@@ -12,6 +12,8 @@ public class QuotationDto
 
     public DateTime QuotationDate { get; set; }
 
+    public string? CreatedByUserName { get; set; }
+
     public string? Observation { get; set; }
 
     public QuotationStatus Status { get; set; }
@@ -27,4 +29,6 @@ public class QuotationDto
     public Guid? SecondApprovedByUserId { get; set; }
 
     public string? SecondApprovedByUserName { get; set; }
+
+    public List<QuotationAttachmentDto> Attachments { get; set; } = new();
 }

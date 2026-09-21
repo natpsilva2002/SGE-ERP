@@ -22,7 +22,7 @@ public class SupplierService : ISupplierService
     {
         var suppliers = await _repository.GetAllAsync();
 
-        return suppliers.Select(MapToDto);
+        return suppliers.OrderByDescending(x => x.CreatedAt).Select(MapToDto);
     }
 
     public async Task<SupplierDto?> GetByIdAsync(Guid id)

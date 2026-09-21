@@ -24,4 +24,8 @@ public interface IQuotationService
     Task<QuotationApprovalResultDto?> ApproveAsync(Guid id, ApprovalDecisionDto dto);
 
     Task<QuotationDto?> RejectAsync(Guid id, ApprovalDecisionDto dto);
+
+    Task<QuotationDto?> AddAttachmentAsync(Guid quotationId, Guid supplierId, string originalFileName, string filePath, string contentType, long fileSizeBytes, Guid uploadedByUserId);
+    Task<(string FilePath, string FileName, string ContentType)?> GetAttachmentAsync(Guid quotationId, Guid attachmentId);
+    Task<(bool Deleted, string? FilePath)> DeleteAttachmentAsync(Guid quotationId, Guid attachmentId);
 }

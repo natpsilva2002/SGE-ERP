@@ -207,6 +207,9 @@ namespace SGE.Persistence.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
 
+                    b.Property<Guid?>("UnitOfMeasureId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -220,7 +223,54 @@ namespace SGE.Persistence.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
+                    b.HasIndex("UnitOfMeasureId");
+
                     b.ToTable("items", (string)null);
+                });
+
+            modelBuilder.Entity("SGE.Domain.Entities.Catalog.UnitOfMeasure", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("unit_of_measures", (string)null);
                 });
 
             modelBuilder.Entity("SGE.Domain.Entities.Companies.Company", b =>
@@ -423,7 +473,7 @@ namespace SGE.Persistence.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
-                    b.Property<Guid>("CompanyId")
+                    b.Property<Guid?>("CompanyId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
@@ -617,6 +667,48 @@ namespace SGE.Persistence.Migrations
                     b.HasIndex("PurchaseOrderId");
 
                     b.ToTable("Payments", (string)null);
+                });
+
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.PaymentAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("PaymentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentId");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.ToTable("PaymentAttachments", (string)null);
                 });
 
             modelBuilder.Entity("SGE.Domain.Entities.Purchasing.PurchaseOrder", b =>
@@ -824,6 +916,9 @@ namespace SGE.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<Guid?>("ServiceUnitOfMeasureId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -844,6 +939,8 @@ namespace SGE.Persistence.Migrations
                     b.HasIndex("CompanyId");
 
                     b.HasIndex("RequestedByUserId");
+
+                    b.HasIndex("ServiceUnitOfMeasureId");
 
                     b.HasIndex("WorkId");
 
@@ -953,6 +1050,53 @@ namespace SGE.Persistence.Migrations
                     b.HasIndex("SecondApprovedByUserId");
 
                     b.ToTable("quotations", (string)null);
+                });
+
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.QuotationAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("QuotationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuotationId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.ToTable("QuotationAttachments", (string)null);
                 });
 
             modelBuilder.Entity("SGE.Domain.Entities.Purchasing.QuotationItem", b =>
@@ -1216,6 +1360,48 @@ namespace SGE.Persistence.Migrations
                     b.ToTable("ServiceMeasurements", (string)null);
                 });
 
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.ServiceMeasurementAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("ServiceMeasurementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServiceMeasurementId");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.ToTable("ServiceMeasurementAttachments", (string)null);
+                });
+
             modelBuilder.Entity("SGE.Domain.Entities.Purchasing.ServiceOrder", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1410,6 +1596,48 @@ namespace SGE.Persistence.Migrations
                     b.ToTable("ServiceOrderPayments", (string)null);
                 });
 
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.ServiceOrderPaymentAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("ServiceOrderPaymentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServiceOrderPaymentId");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.ToTable("ServiceOrderPaymentAttachments", (string)null);
+                });
+
             modelBuilder.Entity("SGE.Domain.Entities.Administration.User", b =>
                 {
                     b.HasOne("SGE.Domain.Entities.Companies.Company", null)
@@ -1432,7 +1660,14 @@ namespace SGE.Persistence.Migrations
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("SGE.Domain.Entities.Catalog.UnitOfMeasure", "UnitOfMeasure")
+                        .WithMany()
+                        .HasForeignKey("UnitOfMeasureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Category");
+
+                    b.Navigation("UnitOfMeasure");
                 });
 
             modelBuilder.Entity("SGE.Domain.Entities.Companies.Supplier", b =>
@@ -1450,8 +1685,7 @@ namespace SGE.Persistence.Migrations
                     b.HasOne("SGE.Domain.Entities.Companies.Company", "Company")
                         .WithMany("Works")
                         .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Company");
                 });
@@ -1515,6 +1749,25 @@ namespace SGE.Persistence.Migrations
                     b.Navigation("PaidByUser");
 
                     b.Navigation("PurchaseOrder");
+                });
+
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.PaymentAttachment", b =>
+                {
+                    b.HasOne("SGE.Domain.Entities.Purchasing.Payment", "Payment")
+                        .WithMany("Attachments")
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SGE.Domain.Entities.Administration.User", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Payment");
+
+                    b.Navigation("UploadedByUser");
                 });
 
             modelBuilder.Entity("SGE.Domain.Entities.Purchasing.PurchaseOrder", b =>
@@ -1590,6 +1843,11 @@ namespace SGE.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("SGE.Domain.Entities.Catalog.UnitOfMeasure", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceUnitOfMeasureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SGE.Domain.Entities.Companies.Work", "Work")
                         .WithMany()
                         .HasForeignKey("WorkId")
@@ -1645,6 +1903,33 @@ namespace SGE.Persistence.Migrations
                     b.Navigation("PurchaseRequest");
 
                     b.Navigation("SecondApprovedByUser");
+                });
+
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.QuotationAttachment", b =>
+                {
+                    b.HasOne("SGE.Domain.Entities.Purchasing.Quotation", "Quotation")
+                        .WithMany("Attachments")
+                        .HasForeignKey("QuotationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SGE.Domain.Entities.Companies.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SGE.Domain.Entities.Administration.User", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Quotation");
+
+                    b.Navigation("Supplier");
+
+                    b.Navigation("UploadedByUser");
                 });
 
             modelBuilder.Entity("SGE.Domain.Entities.Purchasing.QuotationItem", b =>
@@ -1778,6 +2063,25 @@ namespace SGE.Persistence.Migrations
                     b.Navigation("ServiceOrder");
                 });
 
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.ServiceMeasurementAttachment", b =>
+                {
+                    b.HasOne("SGE.Domain.Entities.Purchasing.ServiceMeasurement", "ServiceMeasurement")
+                        .WithMany("Attachments")
+                        .HasForeignKey("ServiceMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SGE.Domain.Entities.Administration.User", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ServiceMeasurement");
+
+                    b.Navigation("UploadedByUser");
+                });
+
             modelBuilder.Entity("SGE.Domain.Entities.Purchasing.ServiceOrder", b =>
                 {
                     b.HasOne("SGE.Domain.Entities.Administration.User", "ContractUploadedByUser")
@@ -1857,6 +2161,25 @@ namespace SGE.Persistence.Migrations
                     b.Navigation("ServiceOrder");
                 });
 
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.ServiceOrderPaymentAttachment", b =>
+                {
+                    b.HasOne("SGE.Domain.Entities.Purchasing.ServiceOrderPayment", "ServiceOrderPayment")
+                        .WithMany("Attachments")
+                        .HasForeignKey("ServiceOrderPaymentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SGE.Domain.Entities.Administration.User", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ServiceOrderPayment");
+
+                    b.Navigation("UploadedByUser");
+                });
+
             modelBuilder.Entity("SGE.Domain.Entities.Administration.Role", b =>
                 {
                     b.Navigation("Users");
@@ -1876,6 +2199,11 @@ namespace SGE.Persistence.Migrations
                     b.Navigation("Works");
                 });
 
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.Payment", b =>
+                {
+                    b.Navigation("Attachments");
+                });
+
             modelBuilder.Entity("SGE.Domain.Entities.Purchasing.PurchaseOrder", b =>
                 {
                     b.Navigation("Items");
@@ -1892,6 +2220,8 @@ namespace SGE.Persistence.Migrations
 
             modelBuilder.Entity("SGE.Domain.Entities.Purchasing.Quotation", b =>
                 {
+                    b.Navigation("Attachments");
+
                     b.Navigation("Items");
                 });
 
@@ -1905,6 +2235,11 @@ namespace SGE.Persistence.Migrations
                     b.Navigation("Payments");
                 });
 
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.ServiceMeasurement", b =>
+                {
+                    b.Navigation("Attachments");
+                });
+
             modelBuilder.Entity("SGE.Domain.Entities.Purchasing.ServiceOrder", b =>
                 {
                     b.Navigation("AdvancePaymentRequests");
@@ -1914,6 +2249,11 @@ namespace SGE.Persistence.Migrations
                     b.Navigation("Measurements");
 
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.ServiceOrderPayment", b =>
+                {
+                    b.Navigation("Attachments");
                 });
 #pragma warning restore 612, 618
         }

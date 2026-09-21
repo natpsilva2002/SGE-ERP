@@ -1,4 +1,4 @@
-import { NgFor, NgIf } from '@angular/common';
+import { DatePipe, NgFor, NgIf } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -7,18 +7,23 @@ import { finalize, forkJoin } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ToastService } from '../../shared/feedback/toast.service';
 import { getApiErrorMessage } from '../purchase-requests/services/api-error';
+import { AdministrationService } from '../administration/services/administration.service';
+import { AdminRole, AdminUser, CreateAdminUser, UpdateAdminUser } from '../administration/models/administration.models';
 import {
   CatalogItem,
   CreateCatalogItem,
-  UpdateCatalogItem
+  UpdateCatalogItem,
+  Work
 } from '../purchase-requests/models/purchase-request.models';
 import { CreateSupplier, Supplier, UpdateSupplier } from '../quotations/models/quotation.models';
+import { UnitOfMeasure, CreateUnitOfMeasure, UpdateUnitOfMeasure } from '../../shared/models/unit-of-measure.models';
+import { UnitOfMeasureService } from '../../shared/services/unit-of-measure.service';
 
-type RegistrationTab = 'materials' | 'suppliers';
+type RegistrationTab = 'materials' | 'suppliers' | 'works' | 'users' | 'units';
 
 @Component({
   standalone: true,
-  imports: [NgFor, NgIf, ReactiveFormsModule],
+  imports: [DatePipe, NgFor, NgIf, ReactiveFormsModule],
   template: `
     <section class="page-header">
       <div>
@@ -30,6 +35,8 @@ type RegistrationTab = 'materials' | 'suppliers';
     <section class="tabs" role="tablist" aria-label="Cadastros">
       <button type="button" [class.active]="activeTab() === 'materials'" (click)="activeTab.set('materials')">Materiais</button>
       <button type="button" [class.active]="activeTab() === 'suppliers'" (click)="activeTab.set('suppliers')">Fornecedores</button>
+      <button type="button" [class.active]="activeTab() === 'works'" (click)="activeTab.set('works')">Obras</button>
+      <button type="button" [class.active]="activeTab() === 'units'" (click)="activeTab.set('units')">Unidades de medida</button>
     </section>
 
     <div *ngIf="loading()" class="state">Carregando cadastros...</div>
@@ -56,8 +63,9 @@ type RegistrationTab = 'materials' | 'suppliers';
         </label>
         <label>
           <span>Unidade de medida</span>
-          <select formControlName="unit">
-            <option *ngFor="let unit of unitOptions" [value]="unit">{{ unit }}</option>
+          <select formControlName="unitOfMeasureId">
+            <option value="">Selecione uma unidade</option>
+            <option *ngFor="let unit of activeUnits()" [value]="unit.id">{{ unit.code }} — {{ unit.description }}</option>
           </select>
         </label>
         <label class="checkbox">
@@ -226,6 +234,46 @@ type RegistrationTab = 'materials' | 'suppliers';
         <div class="state">Nenhum fornecedor encontrado.</div>
       </ng-template>
     </section>
+
+    <section class="panel" *ngIf="!loading() && activeTab() === 'works'">
+      <div class="section-title">
+        <div><h2>Obras cadastradas</h2><p>Use a obra existente para vincular solicitações e contratos.</p></div>
+        <button type="button" (click)="startNewWork()">+ Adicionar obra</button>
+      </div>
+      <label class="search"><span>Buscar obra</span><input type="search" [value]="workSearch()" (input)="workSearch.set($any($event.target).value)" placeholder="Código ou nome..."></label>
+      <form class="editor work-editor" *ngIf="showWorkForm()" [formGroup]="workForm" (ngSubmit)="saveWork()">
+        <label><span>Código</span><input type="text" formControlName="code"></label>
+        <label><span>Nome</span><input type="text" formControlName="name"></label>
+        <label><span>Data de início</span><input type="date" formControlName="startDate"></label>
+        <label class="wide"><span>Descrição</span><input type="text" formControlName="description"></label>
+        <label class="checkbox"><input type="checkbox" formControlName="isActive"><span>Ativa</span></label>
+        <div class="form-actions"><button type="submit" [disabled]="workForm.invalid || saving()">{{ editingWorkId() ? 'Salvar obra' : 'Cadastrar obra' }}</button><button type="button" class="secondary" (click)="cancelWorkEdit()">Cancelar</button></div>
+      </form>
+      <div class="table-wrap desktop-list" *ngIf="filteredWorks().length > 0; else noWorks"><table><thead><tr><th>Código</th><th>Obra</th><th>Início</th><th>Status</th><th>Ações</th></tr></thead><tbody><tr *ngFor="let work of filteredWorks()"><td>{{ work.code }}</td><td>{{ work.name }}</td><td>{{ work.startDate | date:'dd/MM/yyyy' }}</td><td><span class="badge" [class.inactive]="!work.isActive">{{ work.isActive ? 'Ativa' : 'Inativa' }}</span></td><td><button type="button" class="secondary" (click)="editWork(work)">Editar</button><button *ngIf="work.isActive" type="button" class="danger-button" (click)="deactivateWork(work)">Inativar</button></td></tr></tbody></table></div>
+      <div class="mobile-list" *ngIf="filteredWorks().length > 0"><article class="list-card" *ngFor="let work of filteredWorks()"><strong>{{ work.code }} — {{ work.name }}</strong><span class="badge" [class.inactive]="!work.isActive">{{ work.isActive ? 'Ativa' : 'Inativa' }}</span><button type="button" class="secondary" (click)="editWork(work)">Editar</button></article></div>
+      <ng-template #noWorks><div class="state">Nenhuma obra encontrada.</div></ng-template>
+    </section>
+
+    <section class="panel" *ngIf="!loading() && activeTab() === 'users'">
+      <div class="section-title"><div><h2>Usuários</h2><p>Gestão do mesmo cadastro usado na Administração.</p></div><button type="button" (click)="startNewUser()">Cadastrar usuário</button></div>
+      <label class="search"><span>Buscar usuário</span><input type="search" [value]="userSearch()" (input)="userSearch.set($any($event.target).value)" placeholder="Nome ou e-mail..."></label>
+      <form class="editor user-editor" *ngIf="showUserForm()" [formGroup]="userForm" (ngSubmit)="saveUser()">
+        <label><span>Nome</span><input type="text" formControlName="firstName"></label><label><span>Sobrenome</span><input type="text" formControlName="lastName"></label><label><span>E-mail</span><input type="email" formControlName="email"></label><label><span>Telefone</span><input type="text" formControlName="phoneNumber"></label><label><span>Perfil</span><select formControlName="roleId"><option value="">Selecione um perfil</option><option *ngFor="let role of roles" [value]="role.id">{{ role.name }}</option></select></label><label *ngIf="!editingUserId()"><span>Senha</span><input type="password" formControlName="password"></label><label class="checkbox"><input type="checkbox" formControlName="isActive"><span>Ativo</span></label>
+        <div class="form-actions"><button type="submit" [disabled]="userForm.invalid || saving()">Salvar</button><button type="button" class="secondary" (click)="cancelUserEdit()">Cancelar</button></div>
+      </form>
+      <div class="table-wrap desktop-list" *ngIf="filteredUsers().length > 0; else noUsers"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th><th>Ações</th></tr></thead><tbody><tr *ngFor="let user of filteredUsers()"><td>{{ user.firstName }} {{ user.lastName }}</td><td>{{ user.email }}</td><td>{{ user.role }}</td><td><span class="badge" [class.inactive]="!user.isActive">{{ user.isActive ? 'Ativo' : 'Inativo' }}</span></td><td><button type="button" class="secondary" (click)="editUser(user)">Editar</button><button *ngIf="user.isActive" type="button" class="danger-button" (click)="deactivateUser(user)">Inativar</button></td></tr></tbody></table></div>
+      <div class="mobile-list" *ngIf="filteredUsers().length > 0"><article class="list-card" *ngFor="let user of filteredUsers()"><strong>{{ user.firstName }} {{ user.lastName }}</strong><span>{{ user.email }} · {{ user.role }}</span><span class="badge" [class.inactive]="!user.isActive">{{ user.isActive ? 'Ativo' : 'Inativo' }}</span><button type="button" class="secondary" (click)="editUser(user)">Editar</button></article></div>
+      <ng-template #noUsers><div class="state">Nenhum usuário encontrado.</div></ng-template>
+    </section>
+
+    <section class="panel" *ngIf="!loading() && activeTab() === 'units'">
+      <div class="section-title"><div><h2>Unidades de medida</h2><p>Unidades ativas ficam disponíveis em Materiais e Serviços.</p></div><button type="button" (click)="startNewUnit()">+ Adicionar unidade</button></div>
+      <label class="search"><span>Buscar unidade</span><input type="search" [value]="unitSearch()" (input)="unitSearch.set($any($event.target).value)" placeholder="Código ou descrição..."></label>
+      <form class="editor unit-editor" *ngIf="showUnitForm()" [formGroup]="unitForm" (ngSubmit)="saveUnit()"><label><span>Código / Sigla</span><input type="text" formControlName="code" maxlength="20"></label><label class="wide"><span>Descrição</span><input type="text" formControlName="description"></label><label class="checkbox"><input type="checkbox" formControlName="isActive"><span>Ativa</span></label><div class="form-actions"><button type="submit" [disabled]="unitForm.invalid || saving()">{{ editingUnitId() ? 'Salvar unidade' : 'Cadastrar unidade' }}</button><button type="button" class="secondary" (click)="cancelUnitEdit()">Cancelar</button></div></form>
+      <div class="table-wrap desktop-list" *ngIf="filteredUnits().length > 0; else noUnits"><table><thead><tr><th>Código</th><th>Descrição</th><th>Status</th><th>Ações</th></tr></thead><tbody><tr *ngFor="let unit of filteredUnits()"><td><strong>{{ unit.code }}</strong></td><td>{{ unit.description }}</td><td><span class="badge" [class.inactive]="!unit.isActive">{{ unit.isActive ? 'Ativa' : 'Inativa' }}</span></td><td><button type="button" class="secondary" (click)="editUnit(unit)">Editar</button><button *ngIf="unit.isActive" type="button" class="danger-button" (click)="deactivateUnit(unit)">Inativar</button></td></tr></tbody></table></div>
+      <div class="mobile-list" *ngIf="filteredUnits().length > 0"><article class="list-card" *ngFor="let unit of filteredUnits()"><strong>{{ unit.code }}</strong><span>{{ unit.description }}</span><span class="badge" [class.inactive]="!unit.isActive">{{ unit.isActive ? 'Ativa' : 'Inativa' }}</span><button type="button" class="secondary" (click)="editUnit(unit)">Editar</button></article></div>
+      <ng-template #noUnits><div class="state">Nenhuma unidade encontrada.</div></ng-template>
+    </section>
   `,
   styles: [`
     .page-header,
@@ -343,6 +391,27 @@ type RegistrationTab = 'materials' | 'suppliers';
 
     .supplier-editor {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .work-editor,
+    .unit-editor {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .user-editor {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .wide {
+      grid-column: span 2;
+    }
+
+    .danger-button {
+      background: transparent;
+      color: var(--danger);
+      margin-left: 8px;
+      min-height: 32px;
+      padding: 0 8px;
     }
 
     .checkbox {
@@ -491,21 +560,37 @@ export class RegistrationsPageComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
+  private readonly administrationService = inject(AdministrationService);
+  private readonly unitService = inject(UnitOfMeasureService);
   private readonly apiUrl = environment.apiUrl;
 
-  readonly unitOptions = ['UN', 'PC', 'CX', 'SC', 'KG', 'G', 'T', 'M', 'M²', 'M³', 'L', 'ML', 'RL', 'BD', 'LT'];
   readonly activeTab = signal<RegistrationTab>('materials');
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly error = signal('');
   readonly materials = signal<CatalogItem[]>([]);
   readonly suppliers = signal<Supplier[]>([]);
+  readonly works = signal<Work[]>([]);
+  readonly users = signal<AdminUser[]>([]);
+  readonly units = signal<UnitOfMeasure[]>([]);
+  roles: AdminRole[] = [];
   readonly materialSearch = signal('');
   readonly supplierSearch = signal('');
+  readonly workSearch = signal('');
+  readonly userSearch = signal('');
+  readonly unitSearch = signal('');
   readonly showMaterialForm = signal(false);
   readonly showSupplierForm = signal(false);
+  readonly showWorkForm = signal(false);
+  readonly showUserForm = signal(false);
+  readonly showUnitForm = signal(false);
   readonly editingMaterialId = signal<string | null>(null);
   readonly editingSupplierId = signal<string | null>(null);
+  readonly editingWorkId = signal<string | null>(null);
+  readonly editingUserId = signal<string | null>(null);
+  readonly editingUnitId = signal<string | null>(null);
+
+  readonly activeUnits = computed(() => this.units().filter((unit) => unit.isActive));
 
   readonly filteredMaterials = computed(() => {
     const term = this.materialSearch().trim().toLowerCase();
@@ -526,9 +611,33 @@ export class RegistrationsPageComponent implements OnInit {
     );
   });
 
+  readonly filteredWorks = computed(() => {
+    const term = this.workSearch().trim().toLowerCase();
+    return this.works().filter((work) =>
+      work.code.toLowerCase().includes(term) ||
+      work.name.toLowerCase().includes(term)
+    );
+  });
+
+  readonly filteredUsers = computed(() => {
+    const term = this.userSearch().trim().toLowerCase();
+    return this.users().filter((user) =>
+      `${user.firstName} ${user.lastName}`.toLowerCase().includes(term) ||
+      user.email.toLowerCase().includes(term) ||
+      user.role.toLowerCase().includes(term)
+    );
+  });
+
+  readonly filteredUnits = computed(() => {
+    const term = this.unitSearch().trim().toLowerCase();
+    return this.units().filter((unit) =>
+      unit.code.toLowerCase().includes(term) || unit.description.toLowerCase().includes(term)
+    );
+  });
+
   readonly materialForm = this.fb.nonNullable.group({
     description: ['', Validators.required],
-    unit: ['UN', Validators.required],
+    unitOfMeasureId: ['', Validators.required],
     isActive: [true]
   });
 
@@ -550,9 +659,33 @@ export class RegistrationsPageComponent implements OnInit {
     isActive: [true]
   });
 
+  readonly workForm = this.fb.nonNullable.group({
+    code: ['', Validators.required],
+    name: ['', Validators.required],
+    description: [''],
+    startDate: [new Date().toISOString().slice(0, 10), Validators.required],
+    isActive: [true]
+  });
+
+  readonly userForm = this.fb.nonNullable.group({
+    firstName: ['', Validators.required],
+    lastName: ['', Validators.required],
+    email: ['', [Validators.required, Validators.email]],
+    password: [''],
+    phoneNumber: [''],
+    roleId: ['', Validators.required],
+    isActive: [true]
+  });
+
+  readonly unitForm = this.fb.nonNullable.group({
+    code: ['', Validators.required],
+    description: ['', Validators.required],
+    isActive: [true]
+  });
+
   ngOnInit(): void {
     const tab = this.route.snapshot.queryParamMap.get('tab');
-    if (tab === 'suppliers' || tab === 'materials') {
+    if (tab === 'suppliers' || tab === 'materials' || tab === 'works' || tab === 'units') {
       this.activeTab.set(tab);
     }
 
@@ -565,12 +698,23 @@ export class RegistrationsPageComponent implements OnInit {
 
     forkJoin({
       materials: this.http.get<CatalogItem[]>(`${this.apiUrl}/Item`),
-      suppliers: this.http.get<Supplier[]>(`${this.apiUrl}/Supplier`)
+      suppliers: this.http.get<Supplier[]>(`${this.apiUrl}/Supplier`),
+      works: this.http.get<Work[]>(`${this.apiUrl}/Work`),
+      users: this.administrationService.getUsers(),
+      roles: this.administrationService.getRoles(),
+      units: this.unitService.getAll()
     }).pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: ({ materials, suppliers }) => {
+        next: ({ materials, suppliers, works, users, roles, units }) => {
           this.materials.set(materials);
           this.suppliers.set(suppliers);
+          this.works.set(works);
+          this.users.set(users);
+          this.roles = roles;
+          this.units.set(units);
+          if (!this.materialForm.controls.unitOfMeasureId.value && units.length > 0) {
+            this.materialForm.controls.unitOfMeasureId.setValue(units.find((unit) => unit.isActive)?.id ?? '');
+          }
         },
         error: (error) => this.error.set(getApiErrorMessage(error))
       });
@@ -578,7 +722,7 @@ export class RegistrationsPageComponent implements OnInit {
 
   startNewMaterial(): void {
     this.editingMaterialId.set(null);
-    this.materialForm.reset({ description: '', unit: 'UN', isActive: true });
+    this.materialForm.reset({ description: '', unitOfMeasureId: this.activeUnits()[0]?.id ?? '', isActive: true });
     this.showMaterialForm.set(true);
   }
 
@@ -586,7 +730,7 @@ export class RegistrationsPageComponent implements OnInit {
     this.editingMaterialId.set(material.id);
     this.materialForm.setValue({
       description: material.description,
-      unit: material.unit,
+      unitOfMeasureId: material.unitOfMeasureId ?? this.activeUnits().find((unit) => unit.code === material.unit)?.id ?? '',
       isActive: material.isActive
     });
     this.showMaterialForm.set(true);
@@ -613,14 +757,16 @@ export class RegistrationsPageComponent implements OnInit {
       ? this.http.put<CatalogItem>(`${this.apiUrl}/Item/${editingId}`, {
           code,
           description: value.description,
-          unit: value.unit,
+          unit: this.activeUnits().find((unit) => unit.id === value.unitOfMeasureId)?.code ?? '',
+          unitOfMeasureId: value.unitOfMeasureId,
           isActive: value.isActive
         } satisfies UpdateCatalogItem)
       : this.http.post<CatalogItem>(`${this.apiUrl}/Item`, {
           categoryId: null,
           code,
           description: value.description,
-          unit: value.unit,
+          unit: this.activeUnits().find((unit) => unit.id === value.unitOfMeasureId)?.code ?? '',
+          unitOfMeasureId: value.unitOfMeasureId,
           isActive: value.isActive
         } satisfies CreateCatalogItem);
 
@@ -736,6 +882,197 @@ export class RegistrationsPageComponent implements OnInit {
         },
         error: (error) => this.toast.error(getApiErrorMessage(error))
       });
+  }
+
+  startNewWork(): void {
+    this.editingWorkId.set(null);
+    this.workForm.reset({
+      code: '',
+      name: '',
+      description: '',
+      startDate: new Date().toISOString().slice(0, 10),
+      isActive: true
+    });
+    this.showWorkForm.set(true);
+  }
+
+  editWork(work: Work): void {
+    this.editingWorkId.set(work.id);
+    this.workForm.setValue({
+      code: work.code,
+      name: work.name,
+      description: work.description ?? '',
+      startDate: work.startDate.slice(0, 10),
+      isActive: work.isActive
+    });
+    this.showWorkForm.set(true);
+  }
+
+  cancelWorkEdit(): void {
+    this.editingWorkId.set(null);
+    this.showWorkForm.set(false);
+  }
+
+  saveWork(): void {
+    if (this.workForm.invalid || this.saving()) {
+      this.workForm.markAllAsTouched();
+      return;
+    }
+
+    const value = this.workForm.getRawValue();
+    const editingId = this.editingWorkId();
+    const operation = editingId
+      ? this.http.put<Work>(`${this.apiUrl}/Work/${editingId}`, {
+          code: value.code,
+          name: value.name,
+          description: value.description || null,
+          isActive: value.isActive
+        })
+      : this.http.post<Work>(`${this.apiUrl}/Work`, {
+          code: value.code,
+          name: value.name,
+          description: value.description || null,
+          startDate: `${value.startDate}T00:00:00`
+        });
+
+    this.saving.set(true);
+    operation.pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: (work) => {
+        this.works.update((items) => editingId
+          ? items.map((item) => item.id === work.id ? work : item)
+          : [...items, work]);
+        this.cancelWorkEdit();
+        this.toast.success(editingId ? 'Obra atualizada.' : 'Obra cadastrada.');
+      },
+      error: (error) => this.toast.error(getApiErrorMessage(error))
+    });
+  }
+
+  deactivateWork(work: Work): void {
+    this.http.delete<void>(`${this.apiUrl}/Work/${work.id}`).subscribe({
+      next: () => {
+        this.works.update((items) => items.map((item) => item.id === work.id ? { ...item, isActive: false } : item));
+        this.toast.success('Obra inativada.');
+      },
+      error: (error) => this.toast.error(getApiErrorMessage(error))
+    });
+  }
+
+  startNewUser(): void {
+    this.editingUserId.set(null);
+    this.userForm.reset({ firstName: '', lastName: '', email: '', password: '', phoneNumber: '', roleId: this.roles[0]?.id ?? '', isActive: true });
+    this.showUserForm.set(true);
+  }
+
+  editUser(user: AdminUser): void {
+    this.editingUserId.set(user.id);
+    this.userForm.reset({ firstName: user.firstName, lastName: user.lastName, email: user.email, password: '', phoneNumber: user.phoneNumber ?? '', roleId: user.roleId, isActive: user.isActive });
+    this.showUserForm.set(true);
+  }
+
+  cancelUserEdit(): void {
+    this.editingUserId.set(null);
+    this.showUserForm.set(false);
+  }
+
+  saveUser(): void {
+    if (this.userForm.invalid || this.saving()) {
+      this.userForm.markAllAsTouched();
+      return;
+    }
+
+    const value = this.userForm.getRawValue();
+    const editingId = this.editingUserId();
+    if (!editingId && !value.password.trim()) {
+      this.toast.error('Informe uma senha para o novo usuário.');
+      return;
+    }
+
+    const base = {
+      firstName: value.firstName,
+      lastName: value.lastName,
+      email: value.email,
+      phoneNumber: value.phoneNumber || null,
+      roleId: value.roleId,
+      isActive: value.isActive
+    };
+    const operation = editingId
+      ? this.administrationService.updateUser(editingId, base satisfies UpdateAdminUser)
+      : this.administrationService.createUser({ ...base, password: value.password } satisfies CreateAdminUser);
+
+    this.saving.set(true);
+    operation.pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: (user) => {
+        this.users.update((items) => editingId
+          ? items.map((item) => item.id === user.id ? user : item)
+          : [...items, user]);
+        this.cancelUserEdit();
+        this.toast.success(editingId ? 'Usuário atualizado.' : 'Usuário cadastrado.');
+      },
+      error: (error) => this.toast.error(getApiErrorMessage(error))
+    });
+  }
+
+  deactivateUser(user: AdminUser): void {
+    this.administrationService.deactivateUser(user.id).subscribe({
+      next: () => {
+        this.users.update((items) => items.map((item) => item.id === user.id ? { ...item, isActive: false } : item));
+        this.toast.success('Usuário inativado.');
+      },
+      error: (error) => this.toast.error(getApiErrorMessage(error))
+    });
+  }
+
+  startNewUnit(): void {
+    this.editingUnitId.set(null);
+    this.unitForm.reset({ code: '', description: '', isActive: true });
+    this.showUnitForm.set(true);
+  }
+
+  editUnit(unit: UnitOfMeasure): void {
+    this.editingUnitId.set(unit.id);
+    this.unitForm.setValue({ code: unit.code, description: unit.description, isActive: unit.isActive });
+    this.showUnitForm.set(true);
+  }
+
+  cancelUnitEdit(): void {
+    this.editingUnitId.set(null);
+    this.showUnitForm.set(false);
+  }
+
+  saveUnit(): void {
+    if (this.unitForm.invalid || this.saving()) {
+      this.unitForm.markAllAsTouched();
+      return;
+    }
+
+    const value = this.unitForm.getRawValue();
+    const editingId = this.editingUnitId();
+    const operation = editingId
+      ? this.unitService.update(editingId, value satisfies UpdateUnitOfMeasure)
+      : this.unitService.create(value satisfies CreateUnitOfMeasure);
+
+    this.saving.set(true);
+    operation.pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: (unit) => {
+        this.units.update((items) => editingId
+          ? items.map((item) => item.id === unit.id ? unit : item)
+          : [...items, unit]);
+        this.cancelUnitEdit();
+        this.toast.success(editingId ? 'Unidade atualizada.' : 'Unidade cadastrada.');
+      },
+      error: (error) => this.toast.error(getApiErrorMessage(error))
+    });
+  }
+
+  deactivateUnit(unit: UnitOfMeasure): void {
+    this.unitService.deactivate(unit.id).subscribe({
+      next: () => {
+        this.units.update((items) => items.map((item) => item.id === unit.id ? { ...item, isActive: false } : item));
+        this.toast.success('Unidade inativada.');
+      },
+      error: (error) => this.toast.error(getApiErrorMessage(error))
+    });
   }
 
   formatSupplierDocument(): void {

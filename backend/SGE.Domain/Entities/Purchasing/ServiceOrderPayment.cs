@@ -28,6 +28,9 @@ public class ServiceOrderPayment : BaseEntity
 
     public ServiceAdvancePaymentRequest? AdvancePaymentRequest { get; private set; }
 
+    public ICollection<ServiceOrderPaymentAttachment> Attachments { get; private set; } =
+        new List<ServiceOrderPaymentAttachment>();
+
     private ServiceOrderPayment()
     {
     }

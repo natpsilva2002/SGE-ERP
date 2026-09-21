@@ -16,6 +16,7 @@ public interface IPurchaseRequestService
         UpdatePurchaseRequestDto dto);
 
     Task<bool> DeleteAsync(Guid id);
+    Task<PurchaseRequestDto?> CancelAsync(Guid id);
 
     Task<PurchaseRequestDto?> SendToApprovalAsync(Guid id);
 

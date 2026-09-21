@@ -18,6 +18,7 @@ public class ServiceOrderRepository
     {
         return await _dbSet
             .Include(x => x.PurchaseRequest)
+                .ThenInclude(x => x.RequestedByUser)
             .Include(x => x.Work)
             .Include(x => x.Supplier)
             .Include(x => x.ContractUploadedByUser)
@@ -27,8 +28,12 @@ public class ServiceOrderRepository
                 .ThenInclude(x => x.ApprovedByUser)
             .Include(x => x.Measurements)
                 .ThenInclude(x => x.RejectedByUser)
+            .Include(x => x.Measurements)
+                .ThenInclude(x => x.Attachments)
             .Include(x => x.Payments)
                 .ThenInclude(x => x.PaidByUser)
+            .Include(x => x.Payments)
+                .ThenInclude(x => x.Attachments)
             .Include(x => x.AdvancePaymentRequests)
                 .ThenInclude(x => x.RequestedByUser)
             .Include(x => x.AdvancePaymentRequests)
@@ -46,6 +51,7 @@ public class ServiceOrderRepository
     {
         return await _dbSet
             .Include(x => x.PurchaseRequest)
+                .ThenInclude(x => x.RequestedByUser)
             .Include(x => x.Work)
             .Include(x => x.Supplier)
             .Include(x => x.ContractUploadedByUser)
@@ -55,8 +61,12 @@ public class ServiceOrderRepository
                 .ThenInclude(x => x.ApprovedByUser)
             .Include(x => x.Measurements)
                 .ThenInclude(x => x.RejectedByUser)
+            .Include(x => x.Measurements)
+                .ThenInclude(x => x.Attachments)
             .Include(x => x.Payments)
                 .ThenInclude(x => x.PaidByUser)
+            .Include(x => x.Payments)
+                .ThenInclude(x => x.Attachments)
             .Include(x => x.AdvancePaymentRequests)
                 .ThenInclude(x => x.RequestedByUser)
             .Include(x => x.AdvancePaymentRequests)

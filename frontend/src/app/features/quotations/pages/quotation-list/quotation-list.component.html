@@ -46,6 +46,7 @@
           <th>Solicitacao</th>
           <th>Obra</th>
           <th>Data</th>
+          <th>Criado por</th>
           <th>Status</th>
           <th>Acoes</th>
         </tr>
@@ -56,6 +57,7 @@
           <td>{{ requestLabel(quotation.purchaseRequestId) }}</td>
           <td>{{ workLabel(findPurchaseRequest(quotation.purchaseRequestId)?.workId || '') }}</td>
           <td>{{ quotation.quotationDate | date: 'dd/MM/yyyy HH:mm' }}</td>
+          <td>{{ quotation.createdByUserName || 'Nao informado' }}</td>
           <td><span class="badge status-{{ quotation.status }}">{{ statusLabel(quotation.status) }}</span></td>
           <td><a class="row-action" [routerLink]="['/app/cotacoes', quotation.id]">Abrir</a></td>
         </tr>
@@ -72,6 +74,7 @@
       <p>{{ requestLabel(quotation.purchaseRequestId) }}</p>
       <p>{{ workLabel(findPurchaseRequest(quotation.purchaseRequestId)?.workId || '') }}</p>
       <span class="card-date">{{ quotation.quotationDate | date: 'dd/MM/yyyy HH:mm' }}</span>
+      <span class="card-date">Criado por: {{ quotation.createdByUserName || 'Nao informado' }}</span>
       <a class="card-action" [routerLink]="['/app/cotacoes', quotation.id]">Abrir</a>
     </article>
   </div>

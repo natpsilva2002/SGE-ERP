@@ -19,7 +19,7 @@ public class CompanyController : ControllerBase
     }
 
     // GET: api/Company
-    [Authorize(Roles = AppRoles.Requester + "," + AppRoles.Approver + "," + AppRoles.Buyer + "," + AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.Buyer + "," + AppRoles.Warehouse + "," + AppRoles.Finance + "," + AppRoles.Admin)]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CompanyDto>>> GetAll()
     {
@@ -29,7 +29,7 @@ public class CompanyController : ControllerBase
     }
 
     // GET: api/Company/{id}
-    [Authorize(Roles = AppRoles.Requester + "," + AppRoles.Approver + "," + AppRoles.Buyer + "," + AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.Buyer + "," + AppRoles.Warehouse + "," + AppRoles.Finance + "," + AppRoles.Admin)]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<CompanyDto>> GetById(Guid id)
     {

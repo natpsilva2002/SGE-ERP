@@ -4,7 +4,7 @@ public class WorkDto
 {
     public Guid Id { get; set; }
 
-    public Guid CompanyId { get; set; }
+    public Guid? CompanyId { get; set; }
 
     public string Code { get; set; } = string.Empty;
 
@@ -15,4 +15,6 @@ public class WorkDto
     public DateTime StartDate { get; set; }
 
     public DateTime? EndDate { get; set; }
+
+    public bool IsActive { get; set; }
 }

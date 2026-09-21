@@ -96,13 +96,16 @@
 
         <label>
           <span>Unidade de medicao</span>
-          <input type="text" formControlName="serviceUnit" placeholder="m2, hora, dia, etapa">
+          <select formControlName="serviceUnitOfMeasureId">
+            <option value="">Selecione uma unidade</option>
+            <option *ngFor="let unit of units()" [value]="unit.id">{{ unit.code }} — {{ unit.description }}</option>
+          </select>
         </label>
       </div>
     </ng-container>
 
     <button type="submit" [disabled]="form.invalid || saving()">
-      {{ saving() ? 'Salvando...' : (form.controls.type.value === PurchaseRequestType.Material ? 'Solicitar Material' : 'Criar solicitacao') }}
+      {{ saving() ? 'Salvando...' : 'Salvar solicitacao' }}
     </button>
   </form>
 </section>

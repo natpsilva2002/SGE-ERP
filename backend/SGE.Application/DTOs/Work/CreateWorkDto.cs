@@ -2,7 +2,7 @@ namespace SGE.Application.DTOs.Work;
 
 public class CreateWorkDto
 {
-    public Guid CompanyId { get; set; }
+    public Guid? CompanyId { get; set; }
 
     public string Code { get; set; } = string.Empty;
 

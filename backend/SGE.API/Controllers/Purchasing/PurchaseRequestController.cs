@@ -111,12 +111,20 @@ public class PurchaseRequestController : ControllerBase
         }
     }
 
-    [Authorize(Roles = AppRoles.BuyerOrAdmin)]
+    [Authorize(Roles = AppRoles.PurchaseRequestCreators)]
     [HttpPost("{id:guid}/send-to-quotation")]
     public async Task<ActionResult<PurchaseRequestDto>> SendToQuotation(Guid id)
     {
         try
         {
+            var current = await _service.GetByIdAsync(id);
+
+            if (current == null)
+                return NotFound();
+
+            if (current.Type != PurchaseRequestType.Material || !CanManageRequestType(current.Type))
+                return Forbid();
+
             var purchaseRequest = await _service.SendToQuotationAsync(id);
 
             if (purchaseRequest == null)
@@ -140,7 +148,7 @@ public class PurchaseRequestController : ControllerBase
         }
     }
 
-    [Authorize(Roles = AppRoles.ApproverOrAdmin)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost("{id:guid}/approve")]
     public async Task<ActionResult<PurchaseRequestDto>> Approve(
         Guid id,
@@ -172,7 +180,7 @@ public class PurchaseRequestController : ControllerBase
         }
     }
 
-    [Authorize(Roles = AppRoles.ApproverOrAdmin)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost("{id:guid}/reject")]
     public async Task<ActionResult<PurchaseRequestDto>> Reject(
         Guid id,
@@ -237,7 +245,7 @@ public class PurchaseRequestController : ControllerBase
     }
 
     // DELETE: api/PurchaseRequest/{id}
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.PurchaseRequestCreators)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
@@ -264,11 +272,27 @@ public class PurchaseRequestController : ControllerBase
         return type switch
         {
             PurchaseRequestType.Material => User.IsInRole(AppRoles.Warehouse) ||
-                User.IsInRole(AppRoles.Approver) ||
+                User.IsInRole(AppRoles.Buyer) ||
                 User.IsInRole(AppRoles.Admin),
-            PurchaseRequestType.Service => User.IsInRole(AppRoles.Approver) ||
+            PurchaseRequestType.Service => User.IsInRole(AppRoles.Warehouse) ||
+                User.IsInRole(AppRoles.Buyer) ||
                 User.IsInRole(AppRoles.Admin),
             _ => false
         };
+    }
+
+    [Authorize(Roles = AppRoles.PurchaseRequestCreators)]
+    [HttpPost("{id:guid}/cancel")]
+    public async Task<ActionResult<PurchaseRequestDto>> Cancel(Guid id)
+    {
+        try
+        {
+            var current = await _service.GetByIdAsync(id);
+            if (current == null) return NotFound();
+            if (current.Type != PurchaseRequestType.Service || !CanManageRequestType(current.Type)) return Forbid();
+            var cancelled = await _service.CancelAsync(id);
+            return cancelled == null ? NotFound() : Ok(cancelled);
+        }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
     }
 }

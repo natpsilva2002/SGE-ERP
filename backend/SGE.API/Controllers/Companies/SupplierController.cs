@@ -42,7 +42,7 @@ public class SupplierController : ControllerBase
     }
 
     // POST: api/Supplier
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.BuyerOrAdmin)]
     [HttpPost]
     public async Task<ActionResult<SupplierDto>> Create(
         [FromBody] CreateSupplierDto dto)
@@ -66,7 +66,7 @@ public class SupplierController : ControllerBase
     }
 
     // PUT: api/Supplier/{id}
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.BuyerOrAdmin)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<SupplierDto>> Update(
         Guid id,
@@ -81,7 +81,7 @@ public class SupplierController : ControllerBase
     }
 
     // DELETE: api/Supplier/{id}
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.BuyerOrAdmin)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

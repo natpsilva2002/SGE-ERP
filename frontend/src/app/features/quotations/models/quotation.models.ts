@@ -6,6 +6,7 @@ export interface Quotation {
   purchaseRequestId: string;
   number: string;
   quotationDate: string;
+  createdByUserName?: string | null;
   observation?: string | null;
   status: QuotationStatus;
   firstApprovedAt?: string | null;
@@ -14,6 +15,17 @@ export interface Quotation {
   secondApprovedAt?: string | null;
   secondApprovedByUserId?: string | null;
   secondApprovedByUserName?: string | null;
+  attachments: QuotationAttachment[];
+}
+
+export interface QuotationAttachment {
+  id: string;
+  quotationId: string;
+  supplierId: string;
+  originalFileName: string;
+  contentType: string;
+  fileSizeBytes: number;
+  uploadedAt: string;
 }
 
 export interface CreateQuotation {

@@ -18,7 +18,7 @@ public class PurchaseOrderService : IPurchaseOrderService
     {
         var purchaseOrders = await _repository.GetAllWithItemsAsync();
 
-        return purchaseOrders.Select(MapToDto);
+        return purchaseOrders.OrderByDescending(x => x.IssueDate).Select(MapToDto);
     }
 
     public async Task<PurchaseOrderDto?> GetByIdAsync(Guid id)
@@ -155,11 +155,15 @@ public class PurchaseOrderService : IPurchaseOrderService
                 purchaseOrder.Supplier?.CorporateName ??
                 string.Empty,
             SupplierDocument = purchaseOrder.Supplier?.Document ?? string.Empty,
+            SupplierEmail = purchaseOrder.Supplier?.Email ?? string.Empty,
+            SupplierPhone = purchaseOrder.Supplier?.Phone ?? string.Empty,
             PurchaseRequestId = purchaseOrder.Quotation?.PurchaseRequestId ?? Guid.Empty,
             PurchaseRequestNumber = purchaseOrder.Quotation?.PurchaseRequest?.Number ?? string.Empty,
+            PurchaseRequestDescription = purchaseOrder.Quotation?.PurchaseRequest?.Description ?? string.Empty,
             WorkId = purchaseOrder.Quotation?.PurchaseRequest?.WorkId ?? Guid.Empty,
             WorkName = purchaseOrder.Quotation?.PurchaseRequest?.Work?.Name ?? string.Empty,
             QuotationNumber = purchaseOrder.Quotation?.Number ?? string.Empty,
+            RequestedByUserName = FormatUserName(purchaseOrder.Quotation?.PurchaseRequest?.RequestedByUser),
             Number = purchaseOrder.Number,
             IssueDate = purchaseOrder.IssueDate,
             ExpectedDeliveryDate = purchaseOrder.ExpectedDeliveryDate,

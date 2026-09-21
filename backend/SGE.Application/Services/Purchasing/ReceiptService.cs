@@ -26,7 +26,7 @@ public class ReceiptService : IReceiptService
     {
         var receipts = await _receiptRepository.GetAllWithItemsAsync();
 
-        return receipts.Select(MapToDto);
+        return receipts.OrderByDescending(x => x.ReceiptDate).Select(MapToDto);
     }
 
     public async Task<ReceiptDto?> GetByIdAsync(Guid id)
@@ -45,7 +45,7 @@ public class ReceiptService : IReceiptService
         var receipts = await _receiptRepository
             .GetByPurchaseOrderIdWithItemsAsync(purchaseOrderId);
 
-        return receipts.Select(MapToDto);
+        return receipts.OrderByDescending(x => x.ReceiptDate).Select(MapToDto);
     }
 
     public async Task<ReceiptDto?> ReceiveAsync(

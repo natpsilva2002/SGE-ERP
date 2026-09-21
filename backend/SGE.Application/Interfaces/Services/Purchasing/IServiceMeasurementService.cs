@@ -28,4 +28,15 @@ public interface IServiceMeasurementService
         Guid serviceOrderId,
         Guid measurementId,
         RejectServiceMeasurementDto dto);
+
+    Task<ServiceMeasurementDto?> AddAttachmentAsync(
+        Guid serviceOrderId,
+        Guid measurementId,
+        string originalFileName,
+        string storedRelativePath,
+        string contentType,
+        long fileSizeBytes,
+        Guid uploadedByUserId);
+
+    Task<(string FilePath, string FileName, string ContentType)?> GetAttachmentAsync(Guid serviceOrderId, Guid measurementId, Guid attachmentId);
 }

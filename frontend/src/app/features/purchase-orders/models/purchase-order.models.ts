@@ -34,9 +34,11 @@ export interface PurchaseOrder {
   supplierDocument: string;
   purchaseRequestId: string;
   purchaseRequestNumber: string;
+  purchaseRequestDescription: string;
   workId: string;
   workName: string;
   quotationNumber: string;
+  requestedByUserName?: string | null;
   number: string;
   issueDate: string;
   expectedDeliveryDate?: string | null;
@@ -91,11 +93,22 @@ export interface Payment {
   id: string;
   purchaseOrderId: string;
   paidByUserId: string;
+  paidByUserName?: string | null;
   paymentDate: string;
   amount: number;
   paymentMethod: PaymentMethod;
   observation?: string | null;
   status: number;
+  attachments: PaymentAttachment[];
+}
+
+export interface PaymentAttachment {
+  id: string;
+  paymentId: string;
+  originalFileName: string;
+  contentType: string;
+  fileSizeBytes: number;
+  uploadedAt: string;
 }
 
 export interface ReceivePurchaseOrderItem {
@@ -106,6 +119,8 @@ export interface ReceivePurchaseOrderItem {
 
 export interface ReceivePurchaseOrder {
   observation?: string | null;
+  invoiceNumber?: string | null;
+  invoiceFile?: File | null;
   items: ReceivePurchaseOrderItem[];
 }
 
@@ -196,6 +211,10 @@ export function getPurchaseOrderFinancialStatusLabel(order: PurchaseOrder): stri
 }
 
 export function getPurchaseOrderReceivingStatusLabel(order: PurchaseOrder): string {
+  if (hasReceivingDivergence(order)) {
+    return 'Recebimento com divergencia';
+  }
+
   if (order.status === PurchaseOrderStatus.Received) {
     return 'Recebida';
   }
@@ -206,6 +225,10 @@ export function getPurchaseOrderReceivingStatusLabel(order: PurchaseOrder): stri
   }
 
   return 'Nao recebida';
+}
+
+export function hasReceivingDivergence(order: PurchaseOrder): boolean {
+  return order.items.some((item) => item.quantityReceived > item.quantityOrdered);
 }
 
 export function getReceiptStatusLabel(status: ReceiptStatus): string {

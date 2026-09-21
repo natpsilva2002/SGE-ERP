@@ -274,6 +274,25 @@
           </div>
         </div>
 
+        <div class="budget-attachments">
+          <strong>Anexos do orçamento</strong>
+          <div *ngFor="let attachment of attachmentsForSupplier(budget.supplierId)" class="card-actions">
+            <span>{{ attachment.originalFileName }}</span>
+            <button type="button" class="secondary" (click)="downloadQuotationAttachment(attachment)">Baixar</button>
+            <button *ngIf="canManageDraft()" type="button" class="danger" (click)="deleteQuotationAttachment(attachment)">Excluir</button>
+          </div>
+          <div *ngIf="canManageDraft()" class="card-actions">
+            <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" (change)="onBudgetFilesSelected(budget.supplierId, $event)">
+            <div class="selected-files" *ngIf="selectedBudgetSupplierId() === budget.supplierId && selectedBudgetFiles().length">
+              <div *ngFor="let file of selectedBudgetFiles(); let fileIndex = index">
+                <span>{{ file.name }}</span>
+                <button type="button" class="secondary" (click)="removeSelectedBudgetFile(fileIndex)">Remover</button>
+              </div>
+            </div>
+            <button type="button" [disabled]="saving() || selectedBudgetSupplierId() !== budget.supplierId || !selectedBudgetFiles().length" (click)="uploadBudgetAttachments(budget.supplierId)">Anexar arquivos</button>
+          </div>
+        </div>
+
         <div class="card-actions" *ngIf="canManageDraft()">
           <button type="button" (click)="editBudget(budget)">Editar orcamento</button>
           <button type="button" class="danger" (click)="deleteBudget(budget)">Excluir orcamento</button>

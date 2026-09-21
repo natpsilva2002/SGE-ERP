@@ -29,7 +29,7 @@
     </div>
   </section>
 
-  <section class="actions-card" *ngIf="canMarkAsSent(order) || canDownloadPdf(order) || canReceive(order)">
+  <section class="actions-card header-actions" *ngIf="canMarkAsSent(order) || canDownloadPdf(order) || canReceive(order) || canApprovePayment(order) || canRegisterPayment(order)">
     <button *ngIf="canFirstApprove(order)" type="button" [disabled]="saving()" (click)="approve(order, 1)">
       Realizar 1ª aprovacao
     </button>
@@ -47,6 +47,12 @@
     </button>
     <button *ngIf="canReceive(order)" type="button" [disabled]="saving()" (click)="openReceiptDialog(order)">
       Registrar recebimento
+    </button>
+    <button *ngIf="canApprovePayment(order)" type="button" [disabled]="saving()" (click)="approvePayment(order)">
+      Aprovar pagamento
+    </button>
+    <button *ngIf="canRegisterPayment(order)" type="button" [disabled]="saving()" (click)="openPaymentDialog(order)">
+      Registrar pagamento
     </button>
   </section>
 
@@ -73,6 +79,10 @@
         <div>
           <dt>Obra</dt>
           <dd>{{ order.workName || 'Nao informada' }}</dd>
+        </div>
+        <div>
+          <dt>Descrição da solicitação</dt>
+          <dd>{{ order.purchaseRequestDescription || 'Não informada' }}</dd>
         </div>
       </dl>
     </article>
@@ -108,7 +118,7 @@
     </div>
   </section>
 
-  <section class="content-card">
+  <section class="content-card" *ngIf="hasFinanceRole()">
     <h2>Dados comerciais</h2>
     <div class="metric-grid">
       <div>
@@ -134,7 +144,7 @@
           <strong>{{ item.itemDescription || item.itemId }}</strong>
           <span>{{ item.quantityOrdered }} {{ item.unit }}</span>
         </header>
-        <div class="metric-grid item-metrics">
+        <div class="metric-grid item-metrics" *ngIf="hasFinanceRole()">
           <div>
             <span>Total negociado</span>
             <strong>{{ money(item.totalValue) }}</strong>
@@ -158,7 +168,7 @@
   </section>
 
   <section class="content-grid">
-    <article class="content-card">
+    <article class="content-card" *ngIf="hasFinanceRole()">
       <h2>Financeiro</h2>
       <div class="metric-grid">
         <div>
@@ -191,14 +201,6 @@
         </div>
       </div>
 
-      <div class="finance-actions" *ngIf="canApprovePayment(order) || canRegisterPayment(order)">
-        <button *ngIf="canApprovePayment(order)" type="button" [disabled]="saving()" (click)="approvePayment(order)">
-          Aprovar pagamento
-        </button>
-        <button *ngIf="canRegisterPayment(order)" type="button" [disabled]="saving()" (click)="openPaymentDialog(order)">
-          Registrar pagamento
-        </button>
-      </div>
     </article>
 
     <article class="content-card">
@@ -266,12 +268,28 @@
         <div class="receipt-items">
           <div *ngFor="let item of receipt.items">
             <strong>{{ item.itemDescription || 'Material' }}</strong>
+            <span>Esperado: {{ expectedQuantity(order, item.purchaseOrderItemId) }} {{ item.unit }}</span>
             <span>Recebido: {{ item.quantityReceived }} {{ item.unit }}</span>
+            <strong *ngIf="item.hasDivergence" class="divergence-alert">Divergencia: +{{ item.divergenceQuantity }} {{ item.unit }}</strong>
             <small *ngIf="item.observation">{{ item.observation }}</small>
           </div>
         </div>
       </article>
     </div>
+  </section>
+
+  <section class="content-card" *ngIf="payments().length > 0">
+    <div class="section-title"><h2>Pagamentos registrados</h2></div>
+    <article class="receipt-card" *ngFor="let payment of payments()">
+      <strong>{{ money(payment.amount) }}</strong>
+      <span>{{ payment.paymentDate | date: 'dd/MM/yyyy HH:mm' }} · {{ paymentMethodLabel(payment.paymentMethod) }}</span>
+      <span>Registrado por: {{ payment.paidByUserName || 'Nao informado' }}</span>
+      <div class="card-actions" *ngFor="let attachment of payment.attachments">
+        <span>{{ attachment.originalFileName }}</span>
+        <button type="button" class="secondary" (click)="downloadPaymentAttachment(payment, attachment)">Baixar</button>
+        <button *ngIf="canManagePaymentAttachments()" type="button" class="danger" (click)="deletePaymentAttachment(payment, attachment)">Excluir</button>
+      </div>
+    </article>
   </section>
 
   <div class="payment-modal-backdrop" *ngIf="showPaymentDialog()" (click)="closePaymentDialog()">
@@ -297,7 +315,7 @@
 
       <label>
         <span>Data do pagamento</span>
-        <input type="date" formControlName="paymentDate">
+        <input type="datetime-local" formControlName="paymentDate">
       </label>
 
       <label>
@@ -313,6 +331,17 @@
       <label>
         <span>Observacao</span>
         <textarea rows="3" formControlName="observation"></textarea>
+      </label>
+
+      <label>
+        <span>Anexos do pagamento</span>
+        <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" (change)="onPaymentFilesSelected($event)">
+        <div class="selected-files" *ngIf="selectedPaymentFiles().length">
+          <div *ngFor="let file of selectedPaymentFiles(); let fileIndex = index">
+            <span>{{ file.name }}</span>
+            <button type="button" class="secondary" (click)="removeSelectedPaymentFile(fileIndex)">Remover</button>
+          </div>
+        </div>
       </label>
 
       <div class="modal-actions">

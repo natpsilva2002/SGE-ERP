@@ -32,49 +32,49 @@ export const routes: Routes = [
       },
       {
         path: 'solicitacoes',
-        data: { roles: [AppRoles.Requester, AppRoles.Approver, AppRoles.Buyer, AppRoles.Warehouse, AppRoles.Admin] },
+        data: { roles: [AppRoles.Warehouse, AppRoles.Buyer, AppRoles.Finance, AppRoles.Admin] },
         loadComponent: () => import('./features/purchase-requests/pages/purchase-request-list/purchase-request-list.component')
           .then((m) => m.PurchaseRequestListComponent)
       },
       {
         path: 'solicitacoes/nova',
-        data: { roles: [AppRoles.Warehouse, AppRoles.Approver, AppRoles.Admin] },
+        data: { roles: [AppRoles.Buyer, AppRoles.Warehouse, AppRoles.Admin] },
         loadComponent: () => import('./features/purchase-requests/pages/purchase-request-create/purchase-request-create.component')
           .then((m) => m.PurchaseRequestCreateComponent)
       },
       {
         path: 'solicitacoes/:id',
-        data: { roles: [AppRoles.Requester, AppRoles.Approver, AppRoles.Buyer, AppRoles.Warehouse, AppRoles.Admin] },
+        data: { roles: [AppRoles.Buyer, AppRoles.Warehouse, AppRoles.Finance, AppRoles.Admin] },
         loadComponent: () => import('./features/purchase-requests/pages/purchase-request-detail/purchase-request-detail.component')
           .then((m) => m.PurchaseRequestDetailComponent)
       },
       {
         path: 'cotacoes',
-        data: { roles: [AppRoles.Approver, AppRoles.Buyer, AppRoles.Admin] },
+        data: { roles: [AppRoles.Buyer, AppRoles.Finance, AppRoles.Admin] },
         loadComponent: () => import('./features/quotations/pages/quotation-list/quotation-list.component')
           .then((m) => m.QuotationListComponent)
       },
       {
         path: 'cotacoes/nova',
-        data: { roles: [AppRoles.Buyer, AppRoles.Approver, AppRoles.Admin] },
+        data: { roles: [AppRoles.Buyer, AppRoles.Admin] },
         loadComponent: () => import('./features/quotations/pages/quotation-create/quotation-create.component')
           .then((m) => m.QuotationCreateComponent)
       },
       {
         path: 'cotacoes/:id',
-        data: { roles: [AppRoles.Approver, AppRoles.Buyer, AppRoles.Admin] },
+        data: { roles: [AppRoles.Buyer, AppRoles.Finance, AppRoles.Admin] },
         loadComponent: () => import('./features/quotations/pages/quotation-detail/quotation-detail.component')
           .then((m) => m.QuotationDetailComponent)
       },
       {
         path: 'ordens-compra',
-        data: { roles: [AppRoles.Requester, AppRoles.Approver, AppRoles.Buyer, AppRoles.Warehouse, AppRoles.Finance, AppRoles.Admin] },
+        data: { roles: [AppRoles.Buyer, AppRoles.Warehouse, AppRoles.Finance, AppRoles.Admin] },
         loadComponent: () => import('./features/purchase-orders/pages/purchase-order-list/purchase-order-list.component')
           .then((m) => m.PurchaseOrderListComponent)
       },
       {
         path: 'ordens-compra/:id',
-        data: { roles: [AppRoles.Requester, AppRoles.Approver, AppRoles.Buyer, AppRoles.Warehouse, AppRoles.Finance, AppRoles.Admin] },
+        data: { roles: [AppRoles.Buyer, AppRoles.Warehouse, AppRoles.Finance, AppRoles.Admin] },
         loadComponent: () => import('./features/purchase-orders/pages/purchase-order-detail/purchase-order-detail.component')
           .then((m) => m.PurchaseOrderDetailComponent)
       },
@@ -85,25 +85,25 @@ export const routes: Routes = [
       },
       {
         path: 'ordens-servico',
-        data: { roles: [AppRoles.Approver, AppRoles.Finance, AppRoles.Admin] },
+        data: { roles: [AppRoles.Finance, AppRoles.Admin] },
         loadComponent: () => import('./features/service-orders/pages/service-order-list/service-order-list.component')
           .then((m) => m.ServiceOrderListComponent)
       },
       {
         path: 'ordens-servico/nova',
-        data: { roles: [AppRoles.Approver, AppRoles.Admin] },
+        data: { roles: [AppRoles.Admin] },
         loadComponent: () => import('./features/service-orders/pages/service-order-create/service-order-create.component')
           .then((m) => m.ServiceOrderCreateComponent)
       },
       {
         path: 'ordens-servico/:id',
-        data: { roles: [AppRoles.Approver, AppRoles.Finance, AppRoles.Admin] },
+        data: { roles: [AppRoles.Finance, AppRoles.Admin] },
         loadComponent: () => import('./features/service-orders/pages/service-order-detail/service-order-detail.component')
           .then((m) => m.ServiceOrderDetailComponent)
       },
       {
         path: 'recebimentos',
-        data: { roles: [AppRoles.Warehouse, AppRoles.Admin] },
+        data: { roles: [AppRoles.Buyer, AppRoles.Warehouse, AppRoles.Finance, AppRoles.Admin] },
         loadComponent: () => import('./features/receipts/pages/receipts-page/receipts-page.component')
           .then((m) => m.ReceiptsPageComponent)
       },

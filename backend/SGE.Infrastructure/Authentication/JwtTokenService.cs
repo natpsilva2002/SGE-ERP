@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using SGE.Application.DTOs.User;
 using SGE.Application.Interfaces.Services.Authentication;
+using SGE.Application.Security;
 using SGE.Domain.Entities.Administration;
 
 namespace SGE.Infrastructure.Authentication;
@@ -39,7 +40,7 @@ public class JwtTokenService : IJwtTokenService
             new(ClaimTypes.Email, user.Email),
             new(JwtRegisteredClaimNames.Name, name),
             new(ClaimTypes.Name, name),
-            new(ClaimTypes.Role, user.Role.Name)
+            new(ClaimTypes.Role, AppRoles.Normalize(user.Role.Name))
         };
 
         var securityKey = new SymmetricSecurityKey(

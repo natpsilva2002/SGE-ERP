@@ -28,6 +28,10 @@ public class ServiceOrderController : ControllerBase
         ".jpeg",
         ".png"
     };
+    private static readonly HashSet<string> AllowedDocumentExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx", ".xls", ".xlsx"
+    };
 
     private readonly IServiceOrderService _service;
     private readonly IServiceMeasurementService _measurementService;
@@ -46,7 +50,7 @@ public class ServiceOrderController : ControllerBase
         _environment = environment;
     }
 
-    [Authorize(Roles = AppRoles.Approver + "," + AppRoles.Finance + "," + AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.FinanceOrAdmin)]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ServiceOrderDto>>> GetAll()
     {
@@ -55,7 +59,7 @@ public class ServiceOrderController : ControllerBase
         return Ok(serviceOrders);
     }
 
-    [Authorize(Roles = AppRoles.Approver + "," + AppRoles.Finance + "," + AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.FinanceOrAdmin)]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ServiceOrderDto>> GetById(Guid id)
     {
@@ -67,7 +71,7 @@ public class ServiceOrderController : ControllerBase
         return Ok(serviceOrder);
     }
 
-    [Authorize(Roles = AppRoles.ApproverOrAdmin)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost]
     public async Task<ActionResult<ServiceOrderDto>> Create(
         [FromBody] CreateServiceOrderDto dto)
@@ -159,7 +163,7 @@ public class ServiceOrderController : ControllerBase
         return PhysicalFile(fullPath, contentType, contract.Value.FileName);
     }
 
-    [Authorize(Roles = AppRoles.ApproverOrAdmin)]
+    [Authorize(Roles = AppRoles.FinanceOrAdmin)]
     [HttpPost("{id:guid}/release")]
     public async Task<ActionResult<ServiceOrderDto>> Release(Guid id)
     {
@@ -230,7 +234,7 @@ public class ServiceOrderController : ControllerBase
         }
     }
 
-    [Authorize(Roles = AppRoles.ApproverOrAdmin)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost("{id:guid}/advance-payments/{advancePaymentRequestId:guid}/approve")]
     public async Task<ActionResult<ServiceOrderDto>> ApproveAdvancePayment(
         Guid id,
@@ -258,7 +262,7 @@ public class ServiceOrderController : ControllerBase
         }
     }
 
-    [Authorize(Roles = AppRoles.ApproverOrAdmin)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost("{id:guid}/advance-payments/{advancePaymentRequestId:guid}/reject")]
     public async Task<ActionResult<ServiceOrderDto>> RejectAdvancePayment(
         Guid id,
@@ -348,7 +352,7 @@ public class ServiceOrderController : ControllerBase
         }
     }
 
-    [Authorize(Roles = AppRoles.Approver + "," + AppRoles.Finance + "," + AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.FinanceOrAdmin)]
     [HttpGet("{id:guid}/attachments/{attachmentId:guid}")]
     public async Task<IActionResult> DownloadAttachment(Guid id, Guid attachmentId)
     {
@@ -391,7 +395,69 @@ public class ServiceOrderController : ControllerBase
         return NoContent();
     }
 
-    [Authorize(Roles = AppRoles.Approver + "," + AppRoles.Finance + "," + AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.FinanceOrAdmin)]
+    [RequestSizeLimit(80 * 1024 * 1024)]
+    [HttpPost("{id:guid}/payments/{paymentId:guid}/attachments")]
+    public async Task<ActionResult<ServiceOrderDto>> UploadPaymentAttachments(
+        Guid id, Guid paymentId, [FromForm] List<IFormFile> files)
+    {
+        var storedFiles = new List<string>();
+        try
+        {
+            if (files == null || files.Count == 0)
+                return BadRequest(new { message = "Informe ao menos um arquivo." });
+
+            ServiceOrderDto? serviceOrder = null;
+            foreach (var file in files)
+            {
+                ValidateDocumentFile(file);
+                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                var storedFileName = $"{Guid.NewGuid():N}{extension}";
+                var uploadRoot = GetPaymentAttachmentUploadRoot();
+                Directory.CreateDirectory(uploadRoot);
+                var fullPath = Path.Combine(uploadRoot, storedFileName);
+                await using (var stream = System.IO.File.Create(fullPath))
+                    await file.CopyToAsync(stream);
+
+                storedFiles.Add(fullPath);
+                serviceOrder = await _service.AddPaymentAttachmentAsync(
+                    id, paymentId, Path.GetFileName(file.FileName),
+                    Path.Combine("uploads", "service-payment-attachments", storedFileName),
+                    GetContentType(extension), file.Length, _currentUserService.UserId);
+
+                if (serviceOrder == null)
+                {
+                    DeleteStoredFiles(storedFiles);
+                    return NotFound();
+                }
+            }
+
+            return Ok(serviceOrder);
+        }
+        catch (ArgumentException ex)
+        {
+            DeleteStoredFiles(storedFiles);
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [Authorize(Roles = AppRoles.FinanceOrAdmin)]
+    [HttpGet("{id:guid}/payments/{paymentId:guid}/attachments/{attachmentId:guid}")]
+    public async Task<IActionResult> DownloadPaymentAttachment(Guid id, Guid paymentId, Guid attachmentId)
+    {
+        var attachment = await _service.GetPaymentAttachmentAsync(id, paymentId, attachmentId);
+        if (attachment == null)
+            return NotFound();
+
+        var fullPath = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, attachment.Value.FilePath));
+        var uploadRoot = GetPaymentAttachmentUploadRoot();
+        if (!fullPath.StartsWith(uploadRoot, StringComparison.OrdinalIgnoreCase) || !System.IO.File.Exists(fullPath))
+            return NotFound();
+
+        return PhysicalFile(fullPath, attachment.Value.ContentType, attachment.Value.FileName);
+    }
+
+    [Authorize(Roles = AppRoles.FinanceOrAdmin)]
     [HttpGet("{id:guid}/measurements")]
     public async Task<ActionResult<IEnumerable<ServiceMeasurementDto>>> GetMeasurements(Guid id)
     {
@@ -400,7 +466,7 @@ public class ServiceOrderController : ControllerBase
         return Ok(measurements);
     }
 
-    [Authorize(Roles = AppRoles.Approver + "," + AppRoles.Finance + "," + AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.FinanceOrAdmin)]
     [HttpGet("{id:guid}/measurements/{measurementId:guid}")]
     public async Task<ActionResult<ServiceMeasurementDto>> GetMeasurement(
         Guid id,
@@ -414,7 +480,69 @@ public class ServiceOrderController : ControllerBase
         return Ok(measurement);
     }
 
-    [Authorize(Roles = AppRoles.ApproverOrAdmin)]
+    [Authorize(Roles = AppRoles.FinanceOrAdmin)]
+    [RequestSizeLimit(80 * 1024 * 1024)]
+    [HttpPost("{id:guid}/measurements/{measurementId:guid}/attachments")]
+    public async Task<ActionResult<ServiceMeasurementDto>> UploadMeasurementAttachments(
+        Guid id, Guid measurementId, [FromForm] List<IFormFile> files)
+    {
+        var storedFiles = new List<string>();
+        try
+        {
+            if (files == null || files.Count == 0)
+                return BadRequest(new { message = "Informe ao menos um arquivo." });
+
+            ServiceMeasurementDto? measurement = null;
+            foreach (var file in files)
+            {
+                ValidateDocumentFile(file);
+                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                var storedFileName = $"{Guid.NewGuid():N}{extension}";
+                var uploadRoot = GetMeasurementAttachmentUploadRoot();
+                Directory.CreateDirectory(uploadRoot);
+                var fullPath = Path.Combine(uploadRoot, storedFileName);
+                await using (var stream = System.IO.File.Create(fullPath))
+                    await file.CopyToAsync(stream);
+
+                storedFiles.Add(fullPath);
+                measurement = await _measurementService.AddAttachmentAsync(
+                    id, measurementId, Path.GetFileName(file.FileName),
+                    Path.Combine("uploads", "service-measurement-attachments", storedFileName),
+                    GetContentType(extension), file.Length, _currentUserService.UserId);
+
+                if (measurement == null)
+                {
+                    DeleteStoredFiles(storedFiles);
+                    return NotFound();
+                }
+            }
+
+            return Ok(measurement);
+        }
+        catch (ArgumentException ex)
+        {
+            DeleteStoredFiles(storedFiles);
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [Authorize(Roles = AppRoles.FinanceOrAdmin)]
+    [HttpGet("{id:guid}/measurements/{measurementId:guid}/attachments/{attachmentId:guid}")]
+    public async Task<IActionResult> DownloadMeasurementAttachment(Guid id, Guid measurementId, Guid attachmentId)
+    {
+        var attachment = await _measurementService.GetAttachmentAsync(id, measurementId, attachmentId);
+        if (attachment == null)
+            return NotFound();
+
+        var fullPath = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, attachment.Value.FilePath));
+        var uploadRoot = GetMeasurementAttachmentUploadRoot();
+        if (!fullPath.StartsWith(uploadRoot, StringComparison.OrdinalIgnoreCase) || !System.IO.File.Exists(fullPath))
+            return NotFound();
+
+        return PhysicalFile(fullPath, attachment.Value.ContentType, attachment.Value.FileName);
+    }
+
+    [Authorize(Roles = AppRoles.FinanceOrAdmin)]
     [HttpPost("{id:guid}/measurements")]
     public async Task<ActionResult<ServiceMeasurementDto>> CreateMeasurement(
         Guid id,
@@ -440,7 +568,7 @@ public class ServiceOrderController : ControllerBase
         }
     }
 
-    [Authorize(Roles = AppRoles.ApproverOrAdmin)]
+    [Authorize(Roles = AppRoles.FinanceOrAdmin)]
     [HttpPut("{id:guid}/measurements/{measurementId:guid}")]
     public async Task<ActionResult<ServiceMeasurementDto>> UpdateMeasurement(
         Guid id,
@@ -466,7 +594,7 @@ public class ServiceOrderController : ControllerBase
         }
     }
 
-    [Authorize(Roles = AppRoles.ApproverOrAdmin)]
+    [Authorize(Roles = AppRoles.FinanceOrAdmin)]
     [HttpDelete("{id:guid}/measurements/{measurementId:guid}")]
     public async Task<IActionResult> DeleteMeasurement(Guid id, Guid measurementId)
     {
@@ -485,7 +613,7 @@ public class ServiceOrderController : ControllerBase
         }
     }
 
-    [Authorize(Roles = AppRoles.ApproverOrAdmin)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost("{id:guid}/measurements/{measurementId:guid}/submit")]
     public async Task<ActionResult<ServiceMeasurementDto>> SubmitMeasurement(
         Guid id,
@@ -506,7 +634,7 @@ public class ServiceOrderController : ControllerBase
         }
     }
 
-    [Authorize(Roles = AppRoles.ApproverOrAdmin)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost("{id:guid}/measurements/{measurementId:guid}/approve")]
     public async Task<ActionResult<ServiceMeasurementDto>> ApproveMeasurement(
         Guid id,
@@ -534,7 +662,7 @@ public class ServiceOrderController : ControllerBase
         }
     }
 
-    [Authorize(Roles = AppRoles.ApproverOrAdmin)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost("{id:guid}/measurements/{measurementId:guid}/reject")]
     public async Task<ActionResult<ServiceMeasurementDto>> RejectMeasurement(
         Guid id,
@@ -596,6 +724,12 @@ public class ServiceOrderController : ControllerBase
             "service-order-attachments"));
     }
 
+    private string GetPaymentAttachmentUploadRoot() => Path.GetFullPath(Path.Combine(
+        _environment.ContentRootPath, "uploads", "service-payment-attachments"));
+
+    private string GetMeasurementAttachmentUploadRoot() => Path.GetFullPath(Path.Combine(
+        _environment.ContentRootPath, "uploads", "service-measurement-attachments"));
+
     private static string GetContentType(string extension)
     {
         return extension.ToLowerInvariant() switch
@@ -606,8 +740,22 @@ public class ServiceOrderController : ControllerBase
             ".jpg" => "image/jpeg",
             ".jpeg" => "image/jpeg",
             ".png" => "image/png",
+            ".xls" => "application/vnd.ms-excel",
+            ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             _ => "application/octet-stream"
         };
+    }
+
+    private static void ValidateDocumentFile(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            throw new ArgumentException("O arquivo e obrigatorio.");
+        if (file.Length > MaxAttachmentSizeBytes)
+            throw new ArgumentException("Cada anexo deve ter no maximo 10 MB.");
+        if (!AllowedDocumentExtensions.Contains(Path.GetExtension(file.FileName)))
+            throw new ArgumentException("Apenas arquivos PDF, JPG, JPEG, PNG, DOC, DOCX, XLS ou XLSX sao permitidos.");
+        if (Path.GetFileName(file.FileName) != file.FileName)
+            throw new ArgumentException("Nome de arquivo invalido.");
     }
 
     private static void ValidateAttachmentFile(IFormFile file)

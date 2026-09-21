@@ -24,9 +24,9 @@ public class PaymentService : IPaymentService
 
     public async Task<IEnumerable<PaymentDto>> GetAllAsync()
     {
-        var payments = await _paymentRepository.GetAllAsync();
+        var payments = await _paymentRepository.GetAllWithDetailsAsync();
 
-        return payments.Select(MapToDto);
+        return payments.OrderByDescending(x => x.PaymentDate).Select(MapToDto);
     }
 
     public async Task<PaymentDto?> GetByIdAsync(Guid id)
@@ -45,7 +45,7 @@ public class PaymentService : IPaymentService
         var payments = await _paymentRepository
             .GetByPurchaseOrderIdAsync(purchaseOrderId);
 
-        return payments.Select(MapToDto);
+        return payments.OrderByDescending(x => x.PaymentDate).Select(MapToDto);
     }
 
     public async Task<PaymentDto?> PayAsync(
@@ -85,6 +85,36 @@ public class PaymentService : IPaymentService
         return MapToDto(payment);
     }
 
+    public async Task<PaymentDto?> AddAttachmentAsync(Guid paymentId, string originalFileName, string filePath, string contentType, long fileSizeBytes, Guid uploadedByUserId)
+    {
+        var payment = await _paymentRepository.GetByIdWithAttachmentsAsync(paymentId);
+        if (payment == null) return null;
+        var attachment = new PaymentAttachment(paymentId, originalFileName, filePath, contentType, fileSizeBytes, uploadedByUserId);
+        payment.Attachments.Add(attachment);
+        await _paymentRepository.AddAttachmentAsync(attachment);
+        await _paymentRepository.SaveChangesAsync();
+        return MapToDto(payment);
+    }
+
+    public async Task<(string FilePath, string FileName, string ContentType)?> GetAttachmentAsync(Guid paymentId, Guid attachmentId)
+    {
+        var payment = await _paymentRepository.GetByIdWithAttachmentsAsync(paymentId);
+        var attachment = payment?.Attachments.FirstOrDefault(x => x.Id == attachmentId);
+        return attachment == null ? null : (attachment.FilePath, attachment.OriginalFileName, attachment.ContentType);
+    }
+
+    public async Task<(bool Deleted, string? FilePath)> DeleteAttachmentAsync(Guid paymentId, Guid attachmentId)
+    {
+        var payment = await _paymentRepository.GetByIdWithAttachmentsAsync(paymentId);
+        var attachment = payment?.Attachments.FirstOrDefault(x => x.Id == attachmentId);
+        if (attachment == null) return (false, null);
+        var path = attachment.FilePath;
+        payment!.Attachments.Remove(attachment);
+        _paymentRepository.RemoveAttachment(attachment);
+        await _paymentRepository.SaveChangesAsync();
+        return (true, path);
+    }
+
     private static PaymentDto MapToDto(Payment payment)
     {
         return new PaymentDto
@@ -92,6 +122,7 @@ public class PaymentService : IPaymentService
             Id = payment.Id,
             PurchaseOrderId = payment.PurchaseOrderId,
             PaidByUserId = payment.PaidByUserId,
+            PaidByUserName = FormatUserName(payment.PaidByUser),
             PaymentDate = payment.PaymentDate,
             Amount = payment.Amount,
             PaymentMethod = payment.PaymentMethod,
@@ -102,7 +133,22 @@ public class PaymentService : IPaymentService
             InvoiceFilePath = payment.InvoiceFilePath,
             Observation = payment.Observation,
             Status = payment.Status
+            ,Attachments = payment.Attachments.OrderBy(x => x.UploadedAt).Select(x => new PaymentAttachmentDto
+            {
+                Id = x.Id, PaymentId = x.PaymentId, OriginalFileName = x.OriginalFileName,
+                ContentType = x.ContentType, FileSizeBytes = x.FileSizeBytes,
+                UploadedByUserId = x.UploadedByUserId, UploadedAt = x.UploadedAt
+            }).ToList()
         };
+    }
+
+    private static string? FormatUserName(SGE.Domain.Entities.Administration.User? user)
+    {
+        if (user == null)
+            return null;
+
+        var name = $"{user.FirstName} {user.LastName}".Trim();
+        return string.IsNullOrWhiteSpace(name) ? user.Email : name;
     }
 
     private static DateTime NormalizePaymentDate(DateTime? paymentDate)
@@ -114,7 +160,7 @@ public class PaymentService : IPaymentService
         {
             DateTimeKind.Utc => paymentDate.Value,
             DateTimeKind.Local => paymentDate.Value.ToUniversalTime(),
-            _ => DateTime.SpecifyKind(paymentDate.Value, DateTimeKind.Utc)
+            _ => DateTime.SpecifyKind(paymentDate.Value, DateTimeKind.Local).ToUniversalTime()
         };
     }
 }

@@ -24,7 +24,7 @@
         <h2>Usuarios cadastrados</h2>
         <p>Gerencie perfil e status de acesso.</p>
       </div>
-      <button type="button" (click)="openCreate()">+ Adicionar usuario</button>
+      <button type="button" (click)="openCreate()">Cadastrar usuario</button>
     </div>
 
     <form class="user-form" *ngIf="formOpen()" [formGroup]="userForm" (ngSubmit)="saveUser()">
@@ -74,7 +74,7 @@
 
       <div class="form-actions">
         <button type="submit" [disabled]="saving()">
-          {{ saving() ? 'Salvando...' : 'Salvar usuario' }}
+          {{ saving() ? 'Salvando...' : 'Salvar' }}
         </button>
         <button type="button" class="secondary" (click)="cancelForm()">Cancelar</button>
       </div>

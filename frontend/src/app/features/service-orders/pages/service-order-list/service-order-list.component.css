@@ -238,3 +238,8 @@ td {
     padding: 14px;
   }
 }
+.warning-badge {
+  background: #fff3cd;
+  color: #7a5200;
+  border: 1px solid #e7c66b;
+}

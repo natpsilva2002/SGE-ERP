@@ -98,6 +98,18 @@ export class ServiceOrderService {
     return this.http.delete<void>(`${this.apiUrl}/ServiceOrder/${id}/attachments/${attachmentId}`);
   }
 
+  uploadPaymentAttachments(id: string, paymentId: string, files: File[]): Observable<ServiceOrder> {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+    return this.http.post<ServiceOrder>(`${this.apiUrl}/ServiceOrder/${id}/payments/${paymentId}/attachments`, formData);
+  }
+
+  downloadPaymentAttachment(id: string, paymentId: string, attachmentId: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/ServiceOrder/${id}/payments/${paymentId}/attachments/${attachmentId}`, {
+      responseType: 'blob'
+    });
+  }
+
   getMeasurements(id: string): Observable<ServiceMeasurement[]> {
     return this.http.get<ServiceMeasurement[]>(`${this.apiUrl}/ServiceOrder/${id}/measurements`);
   }
@@ -114,6 +126,19 @@ export class ServiceOrderService {
     return this.http.put<ServiceMeasurement>(
       `${this.apiUrl}/ServiceOrder/${id}/measurements/${measurementId}`,
       payload);
+  }
+
+  uploadMeasurementAttachments(id: string, measurementId: string, files: File[]): Observable<ServiceMeasurement> {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+    return this.http.post<ServiceMeasurement>(
+      `${this.apiUrl}/ServiceOrder/${id}/measurements/${measurementId}/attachments`, formData);
+  }
+
+  downloadMeasurementAttachment(id: string, measurementId: string, attachmentId: string): Observable<Blob> {
+    return this.http.get(
+      `${this.apiUrl}/ServiceOrder/${id}/measurements/${measurementId}/attachments/${attachmentId}`,
+      { responseType: 'blob' });
   }
 
   deleteMeasurement(id: string, measurementId: string): Observable<void> {

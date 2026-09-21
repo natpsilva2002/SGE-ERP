@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SGE.Application.DTOs.User;
 using SGE.Application.Interfaces.Repositories.Administration;
 using SGE.Application.Interfaces.Services.Authentication;
+using SGE.Application.Security;
 
 namespace SGE.API.Controllers.Authentication;
 
@@ -63,7 +64,7 @@ public class AuthController : ControllerBase
             Name = $"{user.FirstName} {user.LastName}".Trim(),
             Email = user.Email,
             RoleId = user.RoleId,
-            Role = user.Role.Name
+            Role = AppRoles.Normalize(user.Role.Name)
         });
     }
 }

@@ -7,12 +7,13 @@ import { getApiErrorMessage } from '../../../purchase-requests/services/api-erro
 import {
   PurchaseOrder,
   PurchaseOrderStatus,
+  hasReceivingDivergence,
   getPurchaseOrderReceivingStatusLabel,
   getPurchaseOrderStatusLabel
 } from '../../../purchase-orders/models/purchase-order.models';
 import { PurchaseOrderService } from '../../../purchase-orders/services/purchase-order.service';
 
-type ReceivingFilter = 'all' | 'not-received' | 'partial' | 'received';
+type ReceivingFilter = 'all' | 'not-received' | 'partial' | 'received' | 'divergent';
 
 @Component({
   selector: 'app-receipts-page',
@@ -77,6 +78,10 @@ export class ReceiptsPageComponent implements OnInit {
     return getPurchaseOrderReceivingStatusLabel(order);
   }
 
+  hasDivergence(order: PurchaseOrder): boolean {
+    return hasReceivingDivergence(order);
+  }
+
   itemCount(order: PurchaseOrder): number {
     return order.items.length;
   }
@@ -94,6 +99,10 @@ export class ReceiptsPageComponent implements OnInit {
   }
 
   private receivingKey(order: PurchaseOrder): ReceivingFilter {
+    if (this.hasDivergence(order)) {
+      return 'divergent';
+    }
+
     if (order.status === PurchaseOrderStatus.Received) {
       return 'received';
     }

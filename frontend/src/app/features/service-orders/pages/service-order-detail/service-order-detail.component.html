@@ -10,6 +10,9 @@
 <div *ngIf="!loading() && error()" class="state error">{{ error() }}</div>
 
 <ng-container *ngIf="!loading() && !error() && serviceOrder() as order">
+  <div *ngIf="hasPendingAdvance(order)" class="pending-advance-banner">
+    Antecipação aguardando aprovação — há uma ação pendente para esta OS.
+  </div>
   <section class="summary-grid">
     <div>
       <span>Execucao</span>
@@ -70,8 +73,16 @@
           <strong>{{ money(order.contractedValue) }}</strong>
         </div>
         <div>
-          <span>Medido aprovado</span>
+          <span>Valor pago acumulado</span>
           <strong>{{ money(order.approvedMeasuredAmount) }}</strong>
+        </div>
+        <div>
+          <span>Quantidade entregue</span>
+          <strong>{{ order.measuredQuantity }} {{ order.unit || '' }}</strong>
+        </div>
+        <div>
+          <span>Quantidade restante</span>
+          <strong>{{ order.remainingQuantity }} {{ order.unit || '' }}</strong>
         </div>
         <div>
           <span>Valor pago</span>
@@ -218,6 +229,13 @@
           <span>Observacao</span>
           <strong>{{ payment.observation }}</strong>
         </div>
+        <div class="measurement-attachments" *ngIf="payment.attachments?.length">
+          <span>Anexos do pagamento</span>
+          <div *ngFor="let attachment of payment.attachments" class="attachment-row">
+            <strong>{{ attachment.originalFileName }}</strong>
+            <button type="button" class="secondary" (click)="downloadPaymentAttachment(order, payment, attachment)">Baixar</button>
+          </div>
+        </div>
       </article>
     </div>
   </section>
@@ -323,7 +341,7 @@
     <div class="section-heading">
       <div>
         <h2>Medicoes do servico</h2>
-        <p>Acompanhe valores medidos e aprovados da execucao.</p>
+        <p>Acompanhe a execucao e os valores pagos.</p>
       </div>
       <button *ngIf="canCreateMeasurement(order)" type="button" (click)="openCreateMeasurement()">
         + Nova Medicao
@@ -336,7 +354,7 @@
         <strong>{{ money(order.contractedValue) }}</strong>
       </div>
       <div>
-        <span>Medido aprovado</span>
+          <span>Valor pago acumulado</span>
         <strong>{{ money(order.approvedMeasuredAmount) }}</strong>
       </div>
       <div>
@@ -347,9 +365,9 @@
         <span>Saldo disponivel</span>
         <strong>{{ money(order.remainingToMeasure) }}</strong>
       </div>
-      <div>
-        <span>Execucao</span>
-        <strong>{{ order.executionPercentage }}%</strong>
+        <div>
+          <span>Execucao</span>
+          <strong>{{ order.physicalPercentage }}% físico / {{ order.financialPercentage }}% financeiro pago</strong>
       </div>
     </div>
 
@@ -379,12 +397,12 @@
             <strong>{{ money(measurement.amount) }}</strong>
           </div>
           <div>
-            <span>Criado por</span>
-            <strong>{{ measurement.createdByUserName || '-' }}</strong>
+            <span>Quantidade</span>
+            <strong>{{ measurement.quantityMeasured }} {{ measurement.unit }}</strong>
           </div>
           <div>
-            <span>Aprovado por</span>
-            <strong>{{ measurement.approvedByUserName || '-' }}</strong>
+            <span>Criado por</span>
+            <strong>{{ measurement.createdByUserName || '-' }}</strong>
           </div>
         </div>
 
@@ -403,15 +421,18 @@
           <strong>{{ measurement.rejectionReason || '-' }}</strong>
         </div>
 
+        <div class="measurement-attachments" *ngIf="measurement.attachments?.length">
+          <span>Anexos da medicao</span>
+          <div *ngFor="let attachment of measurement.attachments" class="attachment-row">
+            <strong>{{ attachment.originalFileName }}</strong>
+            <button type="button" class="secondary" (click)="downloadMeasurementAttachment(order, measurement, attachment)">Baixar</button>
+          </div>
+        </div>
+
         <div class="measurement-actions" *ngIf="canManageMeasurements()">
           <ng-container *ngIf="measurement.status === ServiceMeasurementStatus.Draft">
             <button type="button" class="secondary" (click)="openEditMeasurement(measurement)">Editar</button>
-            <button type="button" class="secondary" (click)="submitMeasurement(measurement)" [disabled]="saving()">Enviar para aprovacao</button>
             <button type="button" class="danger" (click)="deleteMeasurement(measurement)" [disabled]="saving()">Excluir</button>
-          </ng-container>
-          <ng-container *ngIf="measurement.status === ServiceMeasurementStatus.WaitingApproval">
-            <button type="button" (click)="approveMeasurement(measurement)" [disabled]="saving()">Aprovar</button>
-            <button type="button" class="danger" (click)="openRejectMeasurement(measurement)" [disabled]="saving()">Rejeitar</button>
           </ng-container>
         </div>
       </article>
@@ -441,7 +462,12 @@
       </label>
 
       <label>
-        <span>Valor medido</span>
+        <span>Quantidade executada</span>
+        <input type="number" min="0.01" step="0.01" formControlName="quantityMeasured">
+      </label>
+
+      <label>
+        <span>Valor pago</span>
         <input type="number" min="0.01" step="0.01" formControlName="amount">
       </label>
 
@@ -449,6 +475,26 @@
         <span>Observacao</span>
         <textarea rows="3" formControlName="observation"></textarea>
       </label>
+
+      <div class="attachment-picker">
+        <strong>Anexos do pagamento</strong>
+        <span>PDF, JPG, JPEG, PNG, DOC, DOCX, XLS ou XLSX · maximo 10 MB por arquivo</span>
+        <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" (change)="onPaymentAttachmentFilesSelected($event)">
+        <div *ngFor="let file of selectedPaymentAttachmentFiles(); let i = index" class="selected-file">
+          <span>{{ file.name }}</span>
+          <button type="button" class="secondary" (click)="removePaymentAttachmentFile(i)">Remover</button>
+        </div>
+      </div>
+
+      <div class="attachment-picker">
+        <strong>Anexos da medicao</strong>
+        <span>PDF, JPG, JPEG, PNG, DOC, DOCX, XLS ou XLSX · maximo 10 MB por arquivo</span>
+        <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" (change)="onMeasurementAttachmentFilesSelected($event)">
+        <div *ngFor="let file of selectedMeasurementAttachmentFiles(); let i = index" class="selected-file">
+          <span>{{ file.name }}</span>
+          <button type="button" class="secondary" (click)="removeMeasurementAttachmentFile(i)">Remover</button>
+        </div>
+      </div>
 
       <button type="submit" [disabled]="measurementForm.invalid || saving()">
         {{ saving() ? 'Salvando...' : 'Salvar medicao' }}

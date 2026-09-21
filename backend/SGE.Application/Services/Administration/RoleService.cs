@@ -1,6 +1,7 @@
 using SGE.Application.DTOs.Role;
 using SGE.Application.Interfaces.Repositories.Administration;
 using SGE.Application.Interfaces.Services.Administration;
+using SGE.Application.Security;
 using SGE.Domain.Entities.Administration;
 
 namespace SGE.Application.Services.Administration;
@@ -18,7 +19,10 @@ public class RoleService : IRoleService
     {
         var roles = await _repository.GetAllAsync();
 
-        return roles.Select(MapToDto);
+        return roles
+            .Where(role => AppRoles.OfficialRoles.Contains(role.Name))
+            .OrderBy(role => role.Name)
+            .Select(MapToDto);
     }
 
     public async Task<RoleDto?> GetByIdAsync(Guid id)

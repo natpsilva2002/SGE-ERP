@@ -13,7 +13,14 @@ export function getApiErrorMessage(error: unknown): string {
     }
 
     if (typeof body === 'string' && body.trim().length > 0) {
-      return body;
+      try {
+        const parsed = JSON.parse(body) as ApiErrorBody;
+        if (parsed?.message) {
+          return parsed.message;
+        }
+      } catch {
+        // Respostas técnicas em texto não devem ser exibidas ao usuário.
+      }
     }
 
     if (error.status === 403) {
@@ -22,6 +29,10 @@ export function getApiErrorMessage(error: unknown): string {
 
     if (error.status === 404) {
       return 'Registro nao encontrado.';
+    }
+
+    if (error.status >= 500) {
+      return 'Nao foi possivel concluir a operacao.';
     }
   }
 

@@ -11,6 +11,8 @@ import { getApiErrorMessage } from '../../../purchase-requests/services/api-erro
 import { formatCurrency, formatDeliveryDays } from '../../../quotations/services/formatters';
 import {
   PaymentMethod,
+  Payment,
+  PaymentAttachment,
   PurchaseOrder,
   PurchaseOrderPaymentStatus,
   PurchaseOrderStatus,
@@ -57,6 +59,8 @@ export class PurchaseOrderDetailComponent implements OnInit {
   readonly showPaymentDialog = signal(false);
   readonly showReceiptDialog = signal(false);
   readonly receipts = signal<Receipt[]>([]);
+  readonly payments = signal<Payment[]>([]);
+  readonly selectedPaymentFiles = signal<File[]>([]);
   readonly selectedInvoiceFile = signal<File | null>(null);
 
   readonly paymentMethods = [
@@ -111,9 +115,21 @@ export class PurchaseOrderDetailComponent implements OnInit {
         next: (order) => {
           this.purchaseOrder.set(order);
           this.loadReceipts(order.id);
+          if (this.hasFinanceRole()) {
+            this.loadPayments(order.id);
+          } else {
+            this.payments.set([]);
+          }
         },
         error: (error) => this.error.set(getApiErrorMessage(error))
       });
+  }
+
+  loadPayments(purchaseOrderId: string): void {
+    this.service.getPaymentsByPurchaseOrder(purchaseOrderId).subscribe({
+      next: (payments) => this.payments.set(payments),
+      error: () => this.payments.set([])
+    });
   }
 
   loadReceipts(purchaseOrderId: string): void {
@@ -245,6 +261,7 @@ export class PurchaseOrderDetailComponent implements OnInit {
   }
 
   openPaymentDialog(order: PurchaseOrder): void {
+    this.selectedPaymentFiles.set([]);
     this.paymentForm.reset({
       amount: order.amountPending,
       paymentDate: this.todayAsInputValue(),
@@ -260,9 +277,31 @@ export class PurchaseOrderDetailComponent implements OnInit {
     }
 
     this.showPaymentDialog.set(false);
+    this.selectedPaymentFiles.set([]);
+  }
+
+  onPaymentFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    const invalid = files.find((file) => !this.validAttachmentFile(file));
+    if (invalid) {
+      this.toast.error('Anexos devem ser PDF, JPG, JPEG, PNG, DOC, DOCX, XLS ou XLSX, com ate 10 MB cada.');
+      input.value = '';
+      this.selectedPaymentFiles.set([]);
+      return;
+    }
+    this.selectedPaymentFiles.set(files);
+  }
+
+  removeSelectedPaymentFile(index: number): void {
+    this.selectedPaymentFiles.update((files) => files.filter((_, fileIndex) => fileIndex !== index));
   }
 
   submitPayment(order: PurchaseOrder): void {
+    if (this.saving()) {
+      return;
+    }
+
     this.paymentForm.markAllAsTouched();
 
     const amount = this.paymentForm.controls.amount.value;
@@ -283,15 +322,62 @@ export class PurchaseOrderDetailComponent implements OnInit {
       paymentDate: this.paymentForm.controls.paymentDate.value,
       paymentMethod,
       observation: this.paymentForm.controls.observation.value || null
-    }).pipe(finalize(() => this.saving.set(false)))
-      .subscribe({
-        next: () => {
+    }).subscribe({
+        next: (payment) => {
+          const files = this.selectedPaymentFiles();
+          if (files.length) {
+            this.service.uploadPaymentAttachments(payment.id, files).pipe(finalize(() => this.saving.set(false))).subscribe({
+              next: () => this.finishPaymentRegistration(),
+              error: (error) => this.toast.error(getApiErrorMessage(error))
+            });
+            return;
+          }
+          this.finishPaymentRegistration();
+        },
+        error: (error) => { this.saving.set(false); this.toast.error(getApiErrorMessage(error)); }
+      });
+  }
+
+  private finishPaymentRegistration(): void {
+          this.saving.set(false);
           this.toast.success('Pagamento registrado.');
           this.showPaymentDialog.set(false);
+          this.selectedPaymentFiles.set([]);
           this.load();
-        },
+  }
+
+  canManagePaymentAttachments(): boolean {
+    return this.hasFinanceRole();
+  }
+
+  downloadPaymentAttachment(payment: Payment, attachment: PaymentAttachment): void {
+    this.service.downloadPaymentAttachment(payment.id, attachment.id).subscribe({
+      next: (blob) => this.downloadBlob(blob, attachment.originalFileName),
+      error: (error) => this.toast.error(getApiErrorMessage(error))
+    });
+  }
+
+  deletePaymentAttachment(payment: Payment, attachment: PaymentAttachment): void {
+    this.confirm.confirm({ title: 'Excluir anexo', message: `Excluir ${attachment.originalFileName}?`, confirmLabel: 'Excluir' }).pipe(take(1)).subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.service.deletePaymentAttachment(payment.id, attachment.id).subscribe({
+        next: () => this.loadPayments(payment.purchaseOrderId),
         error: (error) => this.toast.error(getApiErrorMessage(error))
       });
+    });
+  }
+
+  private validAttachmentFile(file: File): boolean {
+    return file.size > 0 && file.size <= 10 * 1024 * 1024 && ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx', '.xls', '.xlsx'].includes(file.name.slice(file.name.lastIndexOf('.')).toLowerCase());
+  }
+
+  private downloadBlob(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   openReceiptDialog(order: PurchaseOrder): void {
@@ -337,13 +423,20 @@ export class PurchaseOrderDetailComponent implements OnInit {
 
     const globalObservation = this.receiptForm.controls.observation.value.trim();
     const items = this.receiptItems.controls
-      .map((control) => ({
+      .map((control) => {
+        const rawQuantity = control.controls.quantityReceivedNow.value;
+        const quantityReceived = typeof rawQuantity === 'number'
+          ? rawQuantity
+          : Number(String(rawQuantity ?? '').replace(',', '.'));
+
+        return {
         purchaseOrderItemId: control.controls.purchaseOrderItemId.value,
-        quantityReceived: control.controls.quantityReceivedNow.value ?? 0,
+        quantityReceived: Number.isFinite(quantityReceived) ? quantityReceived : 0,
         quantityPending: control.controls.quantityPending.value,
         observation: control.controls.observation.value.trim()
-      }))
-      .filter((item) => item.quantityReceived > 0);
+        };
+      })
+      .filter((item) => Number.isFinite(item.quantityReceived) && item.quantityReceived > 0);
 
     if (!items.length) {
       this.toast.error('Informe ao menos um item recebido.');
@@ -365,28 +458,24 @@ export class PurchaseOrderDetailComponent implements OnInit {
     }
 
     this.saving.set(true);
+    const payloadItems = items.map((item) => ({
+      purchaseOrderItemId: item.purchaseOrderItemId,
+      quantityReceived: item.quantityReceived,
+      observation: item.observation || null
+    }));
+
+    if (payloadItems.length === 0) {
+      this.toast.error('Informe ao menos um item recebido.');
+      return;
+    }
+
     this.service.receive(order.id, {
       observation: globalObservation || null,
-      items: items.map((item) => ({
-        purchaseOrderItemId: item.purchaseOrderItemId,
-        quantityReceived: item.quantityReceived,
-        observation: item.observation || null
-      }))
+      invoiceNumber: this.receiptForm.controls.invoiceNumber.value.trim() || null,
+      invoiceFile: this.selectedInvoiceFile(),
+      items: payloadItems
     }).subscribe({
-      next: (receipt) => {
-        const invoiceNumber = this.receiptForm.controls.invoiceNumber.value.trim();
-        const file = this.selectedInvoiceFile();
-
-        if (invoiceNumber || file) {
-          this.service.uploadReceiptInvoice(receipt.id, invoiceNumber || null, file)
-            .pipe(finalize(() => this.saving.set(false)))
-            .subscribe({
-              next: () => this.finishReceipt(order.id),
-              error: (error) => this.toast.error(getApiErrorMessage(error))
-            });
-          return;
-        }
-
+      next: () => {
         this.saving.set(false);
         this.finishReceipt(order.id);
       },
@@ -487,6 +576,10 @@ export class PurchaseOrderDetailComponent implements OnInit {
     return order.items.reduce((sum, item) => sum + item.quantityReceived, 0);
   }
 
+  expectedQuantity(order: PurchaseOrder, purchaseOrderItemId: string): number {
+    return order.items.find((item) => item.id === purchaseOrderItemId)?.quantityOrdered ?? 0;
+  }
+
   totalPending(order: PurchaseOrder): number {
     return order.items.reduce((sum, item) => sum + item.quantityPending, 0);
   }
@@ -499,7 +592,7 @@ export class PurchaseOrderDetailComponent implements OnInit {
     return this.receiptForm.controls.items.controls;
   }
 
-  private hasFinanceRole(): boolean {
+  hasFinanceRole(): boolean {
     return this.authService.hasRole([AppRoles.Finance, AppRoles.Admin]);
   }
 
@@ -520,7 +613,9 @@ export class PurchaseOrderDetailComponent implements OnInit {
   }
 
   private todayAsInputValue(): string {
-    return new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    return new Date(now.getTime() - offset).toISOString().slice(0, 16);
   }
 
   private finishReceipt(purchaseOrderId: string): void {
@@ -533,7 +628,7 @@ export class PurchaseOrderDetailComponent implements OnInit {
 
   private validateInvoiceFile(file: File | null): string {
     if (!file) {
-      return '';
+      return 'Anexe a Nota Fiscal para registrar o recebimento.';
     }
 
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];

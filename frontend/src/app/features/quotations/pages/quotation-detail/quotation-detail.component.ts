@@ -16,6 +16,7 @@ import { getApiErrorMessage } from '../../../purchase-requests/services/api-erro
 import {
   PurchaseOrder,
   Quotation,
+  QuotationAttachment,
   QuotationItem,
   Supplier
 } from '../../models/quotation.models';
@@ -79,6 +80,8 @@ export class QuotationDetailComponent implements OnInit {
   readonly error = signal('');
   readonly editingBudgetSupplierId = signal<string | null>(null);
   readonly budgetDraft = signal<BudgetDraft>(this.emptyDraft());
+  readonly selectedBudgetFiles = signal<File[]>([]);
+  readonly selectedBudgetSupplierId = signal<string | null>(null);
   readonly paymentConditionOptions = [
     'Pix',
     'Cartao de credito',
@@ -91,17 +94,17 @@ export class QuotationDetailComponent implements OnInit {
 
   readonly canManageDraft = computed(() =>
     this.quotation()?.status === QuotationStatus.Draft &&
-    this.authService.hasRole([AppRoles.Buyer, AppRoles.Approver, AppRoles.Admin])
+    this.authService.hasRole([AppRoles.Buyer, AppRoles.Admin])
   );
 
   readonly canSubmit = computed(() =>
     this.quotation()?.status === QuotationStatus.Draft &&
-    this.authService.hasRole([AppRoles.Buyer, AppRoles.Approver, AppRoles.Admin])
+    this.authService.hasRole([AppRoles.Buyer, AppRoles.Admin])
   );
 
   readonly canApprove = computed(() =>
     this.quotation()?.status === QuotationStatus.WaitingApproval &&
-    this.authService.hasRole([AppRoles.Approver, AppRoles.Admin])
+    this.authService.hasRole([AppRoles.Admin])
   );
 
   readonly canSecondApprove = computed(() => {
@@ -109,7 +112,7 @@ export class QuotationDetailComponent implements OnInit {
     const user = this.authService.getCurrentUser();
 
     return quotation?.status === QuotationStatus.WaitingSecondApproval &&
-      this.authService.hasRole([AppRoles.Approver, AppRoles.Admin]) &&
+      this.authService.hasRole([AppRoles.Admin]) &&
       !!user &&
       this.normalizeId(user.id) !== this.normalizeId(quotation.firstApprovedByUserId);
   });
@@ -119,7 +122,7 @@ export class QuotationDetailComponent implements OnInit {
     const user = this.authService.getCurrentUser();
 
     return quotation?.status === QuotationStatus.WaitingSecondApproval &&
-      this.authService.hasRole([AppRoles.Approver, AppRoles.Admin]) &&
+      this.authService.hasRole([AppRoles.Admin]) &&
       !!user &&
       this.normalizeId(user.id) === this.normalizeId(quotation.firstApprovedByUserId);
   });
@@ -127,12 +130,12 @@ export class QuotationDetailComponent implements OnInit {
   readonly approvalPendingForBuyer = computed(() =>
     (this.quotation()?.status === QuotationStatus.WaitingApproval ||
       this.quotation()?.status === QuotationStatus.WaitingSecondApproval) &&
-    !this.authService.hasRole([AppRoles.Approver, AppRoles.Admin])
+      !this.authService.hasRole([AppRoles.Admin])
   );
 
   readonly canSelectWinner = computed(() =>
     this.quotation()?.status === QuotationStatus.WaitingApproval &&
-    this.authService.hasRole([AppRoles.Approver, AppRoles.Admin])
+    this.authService.hasRole([AppRoles.Admin])
   );
 
   readonly activeSuppliers = computed(() =>
@@ -170,6 +173,56 @@ export class QuotationDetailComponent implements OnInit {
       }))
       .sort((a, b) => a.supplierName.localeCompare(b.supplierName));
   });
+
+  attachmentsForSupplier(supplierId: string): QuotationAttachment[] {
+    return (this.quotation()?.attachments ?? []).filter((attachment) => this.normalizeId(attachment.supplierId) === this.normalizeId(supplierId));
+  }
+
+  onBudgetFilesSelected(supplierId: string, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    if (files.some((file) => file.size === 0 || file.size > 10 * 1024 * 1024 || !['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx', '.xls', '.xlsx'].includes(file.name.slice(file.name.lastIndexOf('.')).toLowerCase()))) {
+      this.toast.error('Anexos devem ter extensao permitida e no maximo 10 MB cada.');
+      input.value = '';
+      this.selectedBudgetFiles.set([]);
+      return;
+    }
+    this.selectedBudgetSupplierId.set(supplierId);
+    this.selectedBudgetFiles.set(files);
+  }
+
+  removeSelectedBudgetFile(index: number): void {
+    this.selectedBudgetFiles.update((files) => files.filter((_, fileIndex) => fileIndex !== index));
+  }
+
+  uploadBudgetAttachments(supplierId: string): void {
+    const files = this.selectedBudgetFiles();
+    if (!files.length) return;
+    const quotation = this.quotation();
+    if (!quotation) return;
+    this.saving.set(true);
+    this.service.uploadQuotationAttachments(quotation.id, supplierId, files).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: (updated) => { this.quotation.set(updated); this.selectedBudgetFiles.set([]); this.selectedBudgetSupplierId.set(null); this.toast.success('Anexos adicionados.'); },
+      error: (error) => this.toast.error(getApiErrorMessage(error))
+    });
+  }
+
+  downloadQuotationAttachment(attachment: QuotationAttachment): void {
+    const quotation = this.quotation();
+    if (!quotation) return;
+    this.service.downloadQuotationAttachment(quotation.id, attachment.id).subscribe({ next: (blob) => this.downloadBlob(blob, attachment.originalFileName), error: (error) => this.toast.error(getApiErrorMessage(error)) });
+  }
+
+  deleteQuotationAttachment(attachment: QuotationAttachment): void {
+    const quotation = this.quotation();
+    if (!quotation) return;
+    this.confirm.confirm({ title: 'Excluir anexo', message: `Excluir ${attachment.originalFileName}?`, confirmLabel: 'Excluir' }).pipe(take(1)).subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.service.deleteQuotationAttachment(quotation.id, attachment.id).subscribe({ next: () => this.load(), error: (error) => this.toast.error(getApiErrorMessage(error)) });
+    });
+  }
+
+  private downloadBlob(blob: Blob, fileName: string): void { const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = fileName; anchor.click(); URL.revokeObjectURL(url); }
 
   ngOnInit(): void {
     this.load();

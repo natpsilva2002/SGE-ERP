@@ -29,6 +29,8 @@ import { QuotationService } from '../../../quotations/services/quotation.service
 import { getQuotationStatusLabel } from '../../../quotations/models/quotation-status';
 import { ServiceOrder } from '../../../service-orders/models/service-order.models';
 import { ServiceOrderService } from '../../../service-orders/services/service-order.service';
+import { UnitOfMeasure } from '../../../../shared/models/unit-of-measure.models';
+import { UnitOfMeasureService } from '../../../../shared/services/unit-of-measure.service';
 
 @Component({
   selector: 'app-purchase-request-detail',
@@ -47,12 +49,14 @@ export class PurchaseRequestDetailComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly confirm = inject(ConfirmService);
   private readonly toast = inject(ToastService);
+  private readonly unitService = inject(UnitOfMeasureService);
 
   readonly request = signal<PurchaseRequest | null>(null);
   readonly items = signal<PurchaseRequestItem[]>([]);
   readonly catalogItems = signal<CatalogItem[]>([]);
   readonly companies = signal<Company[]>([]);
   readonly works = signal<Work[]>([]);
+  readonly units = signal<UnitOfMeasure[]>([]);
   readonly quotations = signal<Quotation[]>([]);
   readonly serviceOrder = signal<ServiceOrder | null>(null);
   readonly loading = signal(false);
@@ -72,7 +76,8 @@ export class PurchaseRequestDetailComponent implements OnInit {
     }
 
     if (request.type === PurchaseRequestType.Material) {
-      return request.status === PurchaseRequestStatus.WaitingQuotation &&
+      return (request.status === PurchaseRequestStatus.Draft ||
+        request.status === PurchaseRequestStatus.WaitingQuotation) &&
         !this.hasLinkedQuotations();
     }
 
@@ -80,7 +85,8 @@ export class PurchaseRequestDetailComponent implements OnInit {
   });
 
   readonly canSubmitForApprovalCurrent = computed(() =>
-    this.request()?.type === PurchaseRequestType.Service &&
+    (this.request()?.type === PurchaseRequestType.Service ||
+      this.request()?.type === PurchaseRequestType.Material) &&
     this.request()?.status === PurchaseRequestStatus.Draft &&
     this.canManageCurrentType()
   );
@@ -88,14 +94,22 @@ export class PurchaseRequestDetailComponent implements OnInit {
   readonly canApproveCurrent = computed(() =>
     this.request()?.type === PurchaseRequestType.Service &&
     this.request()?.status === PurchaseRequestStatus.WaitingApproval &&
-    this.authService.hasRole([AppRoles.Approver, AppRoles.Admin])
+    this.authService.hasRole([AppRoles.Admin])
   );
 
   readonly canDeleteCurrent = computed(() =>
-    this.request()?.type === PurchaseRequestType.Material &&
-    this.request()?.status === PurchaseRequestStatus.WaitingQuotation &&
+    (this.request()?.status === PurchaseRequestStatus.Draft ||
+      (this.request()?.type === PurchaseRequestType.Material &&
+        this.request()?.status === PurchaseRequestStatus.WaitingQuotation)) &&
       !this.hasLinkedQuotations() &&
-      this.authService.hasRole([AppRoles.Admin])
+      this.canManageCurrentType()
+  );
+
+  readonly canCancelCurrent = computed(() =>
+    this.request()?.type === PurchaseRequestType.Service &&
+    (this.request()?.status === PurchaseRequestStatus.Draft ||
+      this.request()?.status === PurchaseRequestStatus.WaitingApproval) &&
+    this.canManageCurrentType()
   );
 
   readonly canEditRequestFields = computed(() =>
@@ -108,7 +122,7 @@ export class PurchaseRequestDetailComponent implements OnInit {
     this.request()?.status === PurchaseRequestStatus.Approved &&
     this.request()?.type === PurchaseRequestType.Service &&
     !this.serviceOrder() &&
-    this.authService.hasRole([AppRoles.Approver, AppRoles.Admin])
+    this.authService.hasRole([AppRoles.Admin])
   );
 
   readonly activeCatalogItems = computed(() =>
@@ -126,7 +140,8 @@ export class PurchaseRequestDetailComponent implements OnInit {
     description: ['', Validators.required],
     serviceSpecification: [''],
     serviceQuantity: [null as number | null],
-    serviceUnit: ['']
+    serviceUnit: [''],
+    serviceUnitOfMeasureId: ['']
   });
 
   readonly itemForm = this.fb.nonNullable.group({
@@ -159,7 +174,11 @@ export class PurchaseRequestDetailComponent implements OnInit {
     this.error.set('');
 
     const canReadServiceOrders = this.authService.hasRole([
-      AppRoles.Approver,
+      AppRoles.Finance,
+      AppRoles.Admin
+    ]);
+    const canReadQuotations = this.authService.hasRole([
+      AppRoles.Buyer,
       AppRoles.Finance,
       AppRoles.Admin
     ]);
@@ -170,16 +189,18 @@ export class PurchaseRequestDetailComponent implements OnInit {
       catalogItems: this.service.getCatalogItems(),
       companies: this.service.getCompanies(),
       works: this.service.getWorks(),
-      quotations: this.quotationService.getAll(),
+      units: this.unitService.getActive(),
+      quotations: canReadQuotations ? this.quotationService.getAll() : of([]),
       serviceOrders: canReadServiceOrders ? this.serviceOrderService.getAll() : of([])
     }).pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: ({ request, items, catalogItems, companies, works, quotations, serviceOrders }) => {
+        next: ({ request, items, catalogItems, companies, works, units, quotations, serviceOrders }) => {
           this.request.set(request);
           this.items.set(items.filter((item) => item.purchaseRequestId === request.id));
           this.catalogItems.set(catalogItems);
           this.companies.set(companies);
           this.works.set(works);
+          this.units.set(units);
           this.quotations.set(quotations.filter((quotation) => quotation.purchaseRequestId === request.id));
           this.serviceOrder.set(serviceOrders.find((order) => order.purchaseRequestId === request.id) ?? null);
           this.editForm.setValue({
@@ -188,7 +209,9 @@ export class PurchaseRequestDetailComponent implements OnInit {
             description: request.description,
             serviceSpecification: request.serviceSpecification ?? '',
             serviceQuantity: request.serviceQuantity ?? null,
-            serviceUnit: request.serviceUnit ?? ''
+            serviceUnit: request.serviceUnit ?? '',
+            serviceUnitOfMeasureId: request.serviceUnitOfMeasureId ??
+              units.find((unit) => unit.code === request.serviceUnit)?.id ?? ''
           });
         },
         error: (error) => this.error.set(getApiErrorMessage(error))
@@ -205,7 +228,12 @@ export class PurchaseRequestDetailComponent implements OnInit {
 
     this.saving.set(true);
 
-    this.service.update(request.id, this.editForm.getRawValue())
+    const value = this.editForm.getRawValue();
+    const selectedUnit = this.units().find((unit) => unit.id === value.serviceUnitOfMeasureId);
+    this.service.update(request.id, {
+      ...value,
+      serviceUnit: selectedUnit?.code ?? value.serviceUnit
+    })
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
         next: (updated) => {
@@ -315,13 +343,22 @@ export class PurchaseRequestDetailComponent implements OnInit {
     }
 
     this.confirm.confirm({
-      title: 'Enviar para aprovacao',
-      message: `Enviar a solicitacao ${request.number} para aprovacao?`,
+      title: request.type === PurchaseRequestType.Material
+        ? 'Enviar para cotacao'
+        : 'Enviar para aprovacao',
+      message: `Enviar a solicitacao ${request.number} para o proximo passo?`,
       confirmLabel: 'Enviar'
     }).pipe(take(1)).subscribe((confirmed) => {
       if (confirmed) {
-        this.service.submitForApproval(request.id).subscribe({
-          next: (updated) => this.updateRequest(updated, 'Solicitacao enviada para aprovacao.'),
+        const operation = request.type === PurchaseRequestType.Material
+          ? this.service.sendToQuotation(request.id)
+          : this.service.submitForApproval(request.id);
+
+        operation.subscribe({
+          next: (updated) => this.updateRequest(updated,
+            request.type === PurchaseRequestType.Material
+              ? 'Solicitacao enviada para cotacao.'
+              : 'Solicitacao enviada para aprovacao.'),
           error: (error) => this.toast.error(getApiErrorMessage(error))
         });
       }
@@ -394,6 +431,24 @@ export class PurchaseRequestDetailComponent implements OnInit {
     });
   }
 
+  cancelRequest(): void {
+    const request = this.request();
+    if (!request) return;
+
+    this.confirm.confirm({
+      title: 'Cancelar solicitacao',
+      message: `Cancelar a solicitacao ${request.number}?`,
+      confirmLabel: 'Cancelar'
+    }).pipe(take(1)).subscribe((confirmed) => {
+      if (confirmed) {
+        this.service.cancel(request.id).subscribe({
+          next: (updated) => this.updateRequest(updated, 'Solicitacao cancelada.'),
+          error: (error) => this.toast.error(getApiErrorMessage(error))
+        });
+      }
+    });
+  }
+
   getItemDescription(itemId: string): string {
     const item = this.catalogItems().find((catalogItem) => catalogItem.id === itemId);
 
@@ -403,11 +458,11 @@ export class PurchaseRequestDetailComponent implements OnInit {
   requesterLabel(request: PurchaseRequest): string {
     const user = this.authService.getCurrentUser();
 
-    if (user?.id === request.requestedByUserId) {
-      return user.name;
+    if (request.requestedByUserName) {
+      return request.requestedByUserName;
     }
 
-    return 'Nao informado';
+    return user?.id === request.requestedByUserId ? user.name : 'Nao informado';
   }
 
   companyLabel(companyId: string): string {
@@ -424,6 +479,10 @@ export class PurchaseRequestDetailComponent implements OnInit {
 
   statusLabel(status: PurchaseRequestStatus): string {
     return getPurchaseRequestStatusLabel(status);
+  }
+
+  workflowLabel(request: PurchaseRequest): string {
+    return request.workflowStatus || this.statusLabel(request.status);
   }
 
   typeLabel(type: PurchaseRequestType): string {
@@ -450,11 +509,11 @@ export class PurchaseRequestDetailComponent implements OnInit {
     }
 
     if (request.type === PurchaseRequestType.Material) {
-      return this.authService.hasRole([AppRoles.Requester, AppRoles.Warehouse, AppRoles.Admin]);
+      return this.authService.hasRole([AppRoles.Warehouse, AppRoles.Buyer, AppRoles.Admin]);
     }
 
     if (request.type === PurchaseRequestType.Service) {
-      return this.authService.hasRole([AppRoles.Approver, AppRoles.Admin]);
+      return this.authService.hasRole([AppRoles.Warehouse, AppRoles.Buyer, AppRoles.Admin]);
     }
 
     return false;

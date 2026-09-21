@@ -27,12 +27,20 @@ public class ItemConfiguration : IEntityTypeConfiguration<Item>
             .IsRequired()
             .HasDefaultValue(true);
 
+        builder.HasIndex(x => x.UnitOfMeasureId);
+
         builder.HasIndex(x => x.Code)
             .IsUnique();
 
         builder.HasOne(x => x.Category)
             .WithMany(x => x.Items)
             .HasForeignKey(x => x.CategoryId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.UnitOfMeasure)
+            .WithMany()
+            .HasForeignKey(x => x.UnitOfMeasureId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
     }

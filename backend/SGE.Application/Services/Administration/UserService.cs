@@ -2,6 +2,7 @@ using SGE.Application.DTOs.User;
 using SGE.Application.Interfaces.Repositories.Administration;
 using SGE.Application.Interfaces.Services.Administration;
 using SGE.Application.Interfaces.Services.Authentication;
+using SGE.Application.Security;
 using SGE.Domain.Entities.Administration;
 
 namespace SGE.Application.Services.Administration;
@@ -51,7 +52,7 @@ public class UserService : IUserService
 
         var role = await _roleRepository.GetByIdAsync(dto.RoleId);
 
-        if (role == null)
+        if (role == null || !AppRoles.OfficialRoles.Contains(role.Name))
             throw new ArgumentException("O perfil informado nao existe.");
 
         var existingUsers = await _repository.FindAsync(
@@ -97,7 +98,7 @@ public class UserService : IUserService
 
         var role = await _roleRepository.GetByIdAsync(dto.RoleId);
 
-        if (role == null)
+        if (role == null || !AppRoles.OfficialRoles.Contains(role.Name))
             throw new ArgumentException("O perfil informado nao existe.");
 
         var existingUsers = await _repository.FindAsync(

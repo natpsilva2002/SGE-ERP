@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using SGE.Application.DTOs.Payment;
 using SGE.Application.DTOs.PurchaseOrder;
@@ -42,6 +43,9 @@ public class PurchaseOrderController : ControllerBase
     {
         var purchaseOrders = await _service.GetAllAsync();
 
+        if (!CanViewFinancialData())
+            return Ok(purchaseOrders.Select(RedactFinancialData));
+
         return Ok(purchaseOrders);
     }
 
@@ -54,6 +58,9 @@ public class PurchaseOrderController : ControllerBase
 
         if (purchaseOrder == null)
             return NotFound();
+
+        if (!CanViewFinancialData())
+            return Ok(RedactFinancialData(purchaseOrder));
 
         return Ok(purchaseOrder);
     }
@@ -71,7 +78,7 @@ public class PurchaseOrderController : ControllerBase
         return Ok(purchaseOrder);
     }
 
-    [Authorize(Roles = AppRoles.ApproverOrAdmin)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost("{id:guid}/approve")]
     public async Task<ActionResult<PurchaseOrderDto>> Approve(Guid id)
     {
@@ -165,20 +172,61 @@ public class PurchaseOrderController : ControllerBase
     }
 
     [Authorize(Roles = AppRoles.WarehouseOrAdmin)]
+    [RequestSizeLimit(15 * 1024 * 1024)]
     [HttpPost("{id:guid}/receive")]
     public async Task<ActionResult<ReceiptDto>> Receive(
         Guid id,
-        [FromBody] ReceivePurchaseOrderDto dto)
+        [FromForm] string payload,
+        [FromForm] string? invoiceNumber,
+        [FromForm] IFormFile? invoiceFile)
     {
+        string? storedFilePath = null;
+        string? storedRelativePath = null;
         try
         {
+            if (invoiceFile == null)
+                throw new ArgumentException("Anexe a Nota Fiscal para registrar o recebimento.");
+
+            ValidateInvoiceFile(invoiceFile);
+
+            var dto = JsonSerializer.Deserialize<ReceivePurchaseOrderDto>(
+                payload,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            if (dto == null)
+                throw new ArgumentException("Os dados do recebimento sao invalidos.");
+
             dto.ReceivedByUserId = _currentUserService.UserId;
+
+            var root = Path.Combine(
+                HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().ContentRootPath,
+                "uploads", "receipts");
+            Directory.CreateDirectory(root);
+            var extension = Path.GetExtension(invoiceFile.FileName).ToLowerInvariant();
+            var storedName = $"{Guid.NewGuid():N}{extension}";
+            storedFilePath = Path.Combine(root, storedName);
+            storedRelativePath = Path.Combine("uploads", "receipts", storedName);
+            await using (var stream = System.IO.File.Create(storedFilePath))
+                await invoiceFile.CopyToAsync(stream);
+
             var receipt = await _receiptService.ReceiveAsync(id, dto);
 
             if (receipt == null)
+            {
+                if (storedFilePath != null && System.IO.File.Exists(storedFilePath))
+                    System.IO.File.Delete(storedFilePath);
                 return NotFound();
+            }
 
-            return Ok(receipt);
+            var updated = await _receiptService.AttachInvoiceAsync(
+                receipt.Id,
+                invoiceNumber,
+                Path.GetFileName(invoiceFile.FileName),
+                storedRelativePath);
+
+            return Ok(updated ?? receipt);
         }
         catch (ArgumentException ex)
         {
@@ -194,6 +242,38 @@ public class PurchaseOrderController : ControllerBase
                 message = ex.Message
             });
         }
+        catch
+        {
+            if (!string.IsNullOrWhiteSpace(storedFilePath) &&
+                System.IO.File.Exists(storedFilePath))
+                System.IO.File.Delete(storedFilePath);
+            throw;
+        }
+    }
+
+    private static readonly HashSet<string> AllowedInvoiceExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".pdf", ".jpg", ".jpeg", ".png"
+    };
+
+    private static readonly HashSet<string> AllowedInvoiceContentTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "application/pdf", "image/jpeg", "image/png"
+    };
+
+    private static void ValidateInvoiceFile(IFormFile file)
+    {
+        if (file.Length <= 0)
+            throw new ArgumentException("A Nota Fiscal anexada esta vazia.");
+        if (file.Length > 10 * 1024 * 1024)
+            throw new ArgumentException("A Nota Fiscal deve ter no maximo 10 MB.");
+        if (!AllowedInvoiceExtensions.Contains(Path.GetExtension(file.FileName)))
+            throw new ArgumentException("A Nota Fiscal deve ser PDF, JPG, JPEG ou PNG.");
+        if (!string.IsNullOrWhiteSpace(file.ContentType) &&
+            !AllowedInvoiceContentTypes.Contains(file.ContentType))
+            throw new ArgumentException("O tipo da Nota Fiscal e invalido.");
+        if (Path.GetFileName(file.FileName) != file.FileName)
+            throw new ArgumentException("Nome de arquivo invalido.");
     }
 
     [Authorize(Roles = AppRoles.FinanceOrAdmin)]
@@ -234,5 +314,43 @@ public class PurchaseOrderController : ControllerBase
         var invalidPattern = $"[{Regex.Escape(invalidCharacters)}]";
 
         return Regex.Replace(fileName, invalidPattern, "-");
+    }
+
+    private bool CanViewFinancialData()
+    {
+        return User.IsInRole(AppRoles.Finance) || User.IsInRole(AppRoles.Admin);
+    }
+
+    private static object RedactFinancialData(PurchaseOrderDto order)
+    {
+        return new
+        {
+            order.Id,
+            order.QuotationId,
+            order.SupplierId,
+            order.SupplierName,
+            order.SupplierDocument,
+            order.PurchaseRequestId,
+            order.PurchaseRequestNumber,
+            order.WorkId,
+            order.WorkName,
+            order.QuotationNumber,
+            order.Number,
+            order.IssueDate,
+            order.ExpectedDeliveryDate,
+            order.Status,
+            Items = order.Items.Select(item => new
+            {
+                item.Id,
+                item.PurchaseOrderId,
+                item.ItemId,
+                item.ItemDescription,
+                item.QuantityOrdered,
+                item.QuantityReceived,
+                item.QuantityPending,
+                item.Unit,
+                item.Observation
+            })
+        };
     }
 }

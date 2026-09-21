@@ -10,9 +10,12 @@ import { ToastService } from '../../../../shared/feedback/toast.service';
 import { getApiErrorMessage } from '../../../purchase-requests/services/api-error';
 import {
   ServiceOrder,
+  ServiceOrderPayment,
+  ServiceOrderPaymentAttachment,
   ServiceAdvancePaymentRequest,
   ServiceAdvancePaymentStatus,
   ServiceMeasurement,
+  ServiceMeasurementAttachment,
   ServiceMeasurementStatus,
   ServiceOrderExecutionStatus,
   ServiceOrderAttachment,
@@ -46,6 +49,8 @@ export class ServiceOrderDetailComponent implements OnInit {
   readonly serviceOrder = signal<ServiceOrder | null>(null);
   readonly selectedFile = signal<File | null>(null);
   readonly selectedAttachmentFiles = signal<File[]>([]);
+  readonly selectedPaymentAttachmentFiles = signal<File[]>([]);
+  readonly selectedMeasurementAttachmentFiles = signal<File[]>([]);
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly error = signal('');
@@ -76,6 +81,7 @@ export class ServiceOrderDetailComponent implements OnInit {
   readonly measurementForm = this.fb.nonNullable.group({
     measurementDate: ['', Validators.required],
     description: ['', Validators.required],
+    quantityMeasured: [0, [Validators.required, Validators.min(0.01)]],
     amount: [0, [Validators.required, Validators.min(0.01)]],
     observation: ['']
   });
@@ -194,6 +200,26 @@ export class ServiceOrderDetailComponent implements OnInit {
     });
   }
 
+  downloadPaymentAttachment(
+    order: ServiceOrder,
+    payment: ServiceOrderPayment,
+    attachment: ServiceOrderPaymentAttachment): void {
+    this.service.downloadPaymentAttachment(order.id, payment.id, attachment.id).subscribe({
+      next: (blob) => this.downloadBlob(blob, attachment.originalFileName),
+      error: (error) => this.toast.error(getApiErrorMessage(error))
+    });
+  }
+
+  downloadMeasurementAttachment(
+    order: ServiceOrder,
+    measurement: ServiceMeasurement,
+    attachment: ServiceMeasurementAttachment): void {
+    this.service.downloadMeasurementAttachment(order.id, measurement.id, attachment.id).subscribe({
+      next: (blob) => this.downloadBlob(blob, attachment.originalFileName),
+      error: (error) => this.toast.error(getApiErrorMessage(error))
+    });
+  }
+
   deleteAttachment(order: ServiceOrder, attachment: ServiceOrderAttachment): void {
     this.confirm.confirm({
       title: 'Excluir anexo',
@@ -275,7 +301,7 @@ export class ServiceOrderDetailComponent implements OnInit {
   }
 
   canRelease(order: ServiceOrder): boolean {
-    return this.authService.hasRole([AppRoles.Approver, AppRoles.Admin]) &&
+    return this.authService.hasRole([AppRoles.Finance, AppRoles.Admin]) &&
       order.executionStatus === ServiceOrderExecutionStatus.WaitingContract &&
       !!order.contractFileName;
   }
@@ -288,6 +314,7 @@ export class ServiceOrderDetailComponent implements OnInit {
 
   openPaymentDialog(order: ServiceOrder): void {
     this.paymentAdvanceRequest.set(null);
+    this.selectedPaymentAttachmentFiles.set([]);
     this.paymentForm.reset({
       amount: order.availableMeasuredToPay,
       paymentDate: this.todayAsInputValue(),
@@ -299,6 +326,7 @@ export class ServiceOrderDetailComponent implements OnInit {
 
   openAdvancePaymentDialog(advance: ServiceAdvancePaymentRequest): void {
     this.paymentAdvanceRequest.set(advance);
+    this.selectedPaymentAttachmentFiles.set([]);
     this.paymentForm.reset({
       amount: advance.amountPending,
       paymentDate: this.todayAsInputValue(),
@@ -311,6 +339,31 @@ export class ServiceOrderDetailComponent implements OnInit {
   closePaymentDialog(): void {
     this.showPaymentDialog.set(false);
     this.paymentAdvanceRequest.set(null);
+    this.selectedPaymentAttachmentFiles.set([]);
+  }
+
+  onPaymentAttachmentFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    if (this.validateDocumentFiles(files)) {
+      this.selectedPaymentAttachmentFiles.set(files);
+    }
+  }
+
+  removePaymentAttachmentFile(index: number): void {
+    this.selectedPaymentAttachmentFiles.update((files) => files.filter((_, i) => i !== index));
+  }
+
+  onMeasurementAttachmentFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    if (this.validateDocumentFiles(files)) {
+      this.selectedMeasurementAttachmentFiles.set(files);
+    }
+  }
+
+  removeMeasurementAttachmentFile(index: number): void {
+    this.selectedMeasurementAttachmentFiles.update((files) => files.filter((_, i) => i !== index));
   }
 
   submitPayment(order: ServiceOrder): void {
@@ -320,6 +373,7 @@ export class ServiceOrderDetailComponent implements OnInit {
     }
 
     const value = this.paymentForm.getRawValue();
+    const selectedFiles = this.selectedPaymentAttachmentFiles();
 
     const advance = this.paymentAdvanceRequest();
     const available = advance ? advance.amountPending : order.availableMeasuredToPay;
@@ -336,14 +390,34 @@ export class ServiceOrderDetailComponent implements OnInit {
       paymentDate: value.paymentDate,
       paymentMethod: value.paymentMethod,
       observation: value.observation || null
-    }).pipe(finalize(() => this.saving.set(false)))
-      .subscribe({
+    }).subscribe({
         next: (updated) => {
-          this.serviceOrder.set(updated);
-          this.closePaymentDialog();
-          this.toast.success('Pagamento registrado.');
+          const payment = updated.lastPaymentId
+            ? updated.payments.find((item) => item.id === updated.lastPaymentId)
+            : null;
+          if (!payment || selectedFiles.length === 0) {
+            this.serviceOrder.set(updated);
+            this.closePaymentDialog();
+            this.saving.set(false);
+            this.toast.success('Pagamento registrado.');
+            return;
+          }
+
+          this.service.uploadPaymentAttachments(order.id, payment.id, selectedFiles)
+            .pipe(finalize(() => this.saving.set(false)))
+            .subscribe({
+              next: (withAttachments) => {
+                this.serviceOrder.set(withAttachments);
+                this.closePaymentDialog();
+                this.toast.success('Pagamento e anexos registrados.');
+              },
+              error: (error) => this.toast.error(getApiErrorMessage(error))
+            });
         },
-        error: (error) => this.toast.error(getApiErrorMessage(error))
+        error: (error) => {
+          this.saving.set(false);
+          this.toast.error(getApiErrorMessage(error));
+        }
       });
   }
 
@@ -448,7 +522,11 @@ export class ServiceOrderDetailComponent implements OnInit {
   }
 
   canApproveAdvance(): boolean {
-    return this.authService.hasRole([AppRoles.Approver, AppRoles.Admin]);
+    return this.authService.hasRole([AppRoles.Admin]);
+  }
+
+  hasPendingAdvance(order: ServiceOrder): boolean {
+    return order.advancePaymentRequests.some((request) => request.status === ServiceAdvancePaymentStatus.WaitingApproval);
   }
 
   canPayAdvance(advance: ServiceAdvancePaymentRequest): boolean {
@@ -462,11 +540,11 @@ export class ServiceOrderDetailComponent implements OnInit {
   }
 
   canDownloadAttachment(): boolean {
-    return this.authService.hasRole([AppRoles.Approver, AppRoles.Finance, AppRoles.Admin]);
+    return this.authService.hasRole([AppRoles.Finance, AppRoles.Admin]);
   }
 
   canManageMeasurements(): boolean {
-    return this.authService.hasRole([AppRoles.Approver, AppRoles.Admin]);
+    return this.authService.hasRole([AppRoles.Finance, AppRoles.Admin]);
   }
 
   canCreateMeasurement(order: ServiceOrder): boolean {
@@ -477,9 +555,11 @@ export class ServiceOrderDetailComponent implements OnInit {
 
   openCreateMeasurement(): void {
     this.editingMeasurement.set(null);
+    this.selectedMeasurementAttachmentFiles.set([]);
     this.measurementForm.reset({
       measurementDate: this.todayAsInputValue(),
       description: '',
+      quantityMeasured: 0,
       amount: 0,
       observation: ''
     });
@@ -488,9 +568,11 @@ export class ServiceOrderDetailComponent implements OnInit {
 
   openEditMeasurement(measurement: ServiceMeasurement): void {
     this.editingMeasurement.set(measurement);
+    this.selectedMeasurementAttachmentFiles.set([]);
     this.measurementForm.reset({
       measurementDate: this.asDateInputValue(measurement.measurementDate),
       description: measurement.description,
+      quantityMeasured: measurement.quantityMeasured,
       amount: measurement.amount,
       observation: measurement.observation ?? ''
     });
@@ -500,6 +582,7 @@ export class ServiceOrderDetailComponent implements OnInit {
   closeMeasurementDialog(): void {
     this.showMeasurementDialog.set(false);
     this.editingMeasurement.set(null);
+    this.selectedMeasurementAttachmentFiles.set([]);
   }
 
   submitMeasurementForm(): void {
@@ -514,8 +597,10 @@ export class ServiceOrderDetailComponent implements OnInit {
     const editing = this.editingMeasurement();
     const available = this.availableBalanceForForm(order, editing);
 
-    if (value.amount <= 0 || value.amount > available) {
-      this.toast.error('O valor da medicao deve respeitar o saldo disponivel.');
+    if (value.amount <= 0 || value.amount > available ||
+      (order.estimatedQuantity !== null && order.estimatedQuantity !== undefined &&
+        value.quantityMeasured > order.remainingQuantity + (editing?.quantityMeasured ?? 0))) {
+      this.toast.error('Quantidade e valor da medicao devem respeitar os saldos disponiveis.');
       return;
     }
 
@@ -523,25 +608,48 @@ export class ServiceOrderDetailComponent implements OnInit {
       ? this.service.updateMeasurement(order.id, editing.id, {
           measurementDate: value.measurementDate,
           description: value.description.trim(),
+          quantityMeasured: value.quantityMeasured,
+          unit: order.unit,
           amount: value.amount,
           observation: value.observation || null
         })
       : this.service.createMeasurement(order.id, {
           measurementDate: value.measurementDate,
           description: value.description.trim(),
+          quantityMeasured: value.quantityMeasured,
+          unit: order.unit,
           amount: value.amount,
           observation: value.observation || null
         });
 
     this.saving.set(true);
-    request.pipe(finalize(() => this.saving.set(false)))
+    request
       .subscribe({
-        next: () => {
-          this.toast.success(editing ? 'Medicao atualizada.' : 'Medicao criada.');
-          this.closeMeasurementDialog();
-          this.load();
+        next: (measurement) => {
+          const selectedFiles = this.selectedMeasurementAttachmentFiles();
+          if (selectedFiles.length === 0) {
+            this.saving.set(false);
+            this.toast.success(editing ? 'Medicao atualizada.' : 'Medicao criada.');
+            this.closeMeasurementDialog();
+            this.load();
+            return;
+          }
+
+          this.service.uploadMeasurementAttachments(order.id, measurement.id, selectedFiles)
+            .pipe(finalize(() => this.saving.set(false)))
+            .subscribe({
+              next: () => {
+                this.toast.success(editing ? 'Medicao e anexos atualizados.' : 'Medicao e anexos registrados.');
+                this.closeMeasurementDialog();
+                this.load();
+              },
+              error: (error) => this.toast.error(getApiErrorMessage(error))
+            });
         },
-        error: (error) => this.toast.error(getApiErrorMessage(error))
+        error: (error) => {
+          this.saving.set(false);
+          this.toast.error(getApiErrorMessage(error));
+        }
       });
   }
 
@@ -624,7 +732,7 @@ export class ServiceOrderDetailComponent implements OnInit {
     this.saving.set(true);
     this.service.rejectMeasurement(order.id, measurement.id, {
       rejectionReason: this.rejectForm.controls.rejectionReason.value.trim()
-    }).pipe(finalize(() => this.saving.set(false)))
+    })
       .subscribe({
         next: () => {
           this.toast.success('Medicao rejeitada.');
@@ -706,5 +814,29 @@ export class ServiceOrderDetailComponent implements OnInit {
 
   private asDateInputValue(value: string): string {
     return value.slice(0, 10);
+  }
+
+  private downloadBlob(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private validateDocumentFiles(files: File[]): boolean {
+    const allowed = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx'];
+    const invalid = files.find((file) => {
+      const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+      return !allowed.includes(extension) || file.size > 10 * 1024 * 1024;
+    });
+
+    if (invalid) {
+      this.toast.error('Anexos devem ser PDF, JPG, JPEG, PNG, DOC, DOCX, XLS ou XLSX, com ate 10 MB cada.');
+      return false;
+    }
+
+    return files.length > 0;
   }
 }

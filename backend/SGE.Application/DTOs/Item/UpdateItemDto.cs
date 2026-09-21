@@ -8,5 +8,7 @@ public class UpdateItemDto
 
     public string Unit { get; set; } = string.Empty;
 
+    public Guid? UnitOfMeasureId { get; set; }
+
     public bool IsActive { get; set; } = true;
 }

@@ -50,11 +50,18 @@ public class ServiceMeasurementRepository
         return await _dbSet.CountAsync(x => x.ServiceOrderId == serviceOrderId);
     }
 
+    public async Task AddAttachmentAsync(ServiceMeasurementAttachment attachment) =>
+        await _context.Set<ServiceMeasurementAttachment>().AddAsync(attachment);
+
+    public void RemoveAttachment(ServiceMeasurementAttachment attachment) =>
+        _context.Set<ServiceMeasurementAttachment>().Remove(attachment);
+
     private IQueryable<ServiceMeasurement> WithUsers()
     {
         return _dbSet
             .Include(x => x.CreatedByUser)
             .Include(x => x.ApprovedByUser)
-            .Include(x => x.RejectedByUser);
+            .Include(x => x.RejectedByUser)
+            .Include(x => x.Attachments);
     }
 }

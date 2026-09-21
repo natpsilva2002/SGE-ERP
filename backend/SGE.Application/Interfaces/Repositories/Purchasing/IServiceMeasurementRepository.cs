@@ -17,4 +17,8 @@ public interface IServiceMeasurementRepository : IGenericRepository<ServiceMeasu
         params ServiceMeasurementStatus[] statuses);
 
     Task<int> CountByServiceOrderAsync(Guid serviceOrderId);
+
+    Task AddAttachmentAsync(ServiceMeasurementAttachment attachment);
+
+    void RemoveAttachment(ServiceMeasurementAttachment attachment);
 }

@@ -8,21 +8,17 @@ namespace SGE.Application.Services.Companies;
 public class WorkService : IWorkService
 {
     private readonly IWorkRepository _repository;
-    private readonly ICompanyRepository _companyRepository;
 
-    public WorkService(
-        IWorkRepository repository,
-        ICompanyRepository companyRepository)
+    public WorkService(IWorkRepository repository)
     {
         _repository = repository;
-        _companyRepository = companyRepository;
     }
 
     public async Task<IEnumerable<WorkDto>> GetAllAsync()
     {
         var works = await _repository.GetAllAsync();
 
-        return works.Select(MapToDto);
+        return works.OrderByDescending(x => x.CreatedAt).Select(MapToDto);
     }
 
     public async Task<WorkDto?> GetByIdAsync(Guid id)
@@ -37,11 +33,6 @@ public class WorkService : IWorkService
 
     public async Task<WorkDto> CreateAsync(CreateWorkDto dto)
     {
-        var company = await _companyRepository.GetByIdAsync(dto.CompanyId);
-
-        if (company == null)
-            throw new ArgumentException("A empresa informada não existe.");
-
         var startDate = dto.StartDate.Kind == DateTimeKind.Unspecified
     ? DateTime.SpecifyKind(dto.StartDate, DateTimeKind.Utc)
     : dto.StartDate.ToUniversalTime();
@@ -73,6 +64,9 @@ public class WorkService : IWorkService
             dto.Name,
             dto.Description);
 
+        if (dto.IsActive.HasValue)
+            work.SetActive(dto.IsActive.Value);
+
         _repository.Update(work);
         await _repository.SaveChangesAsync();
 
@@ -86,7 +80,8 @@ public class WorkService : IWorkService
         if (work == null)
             return false;
 
-        _repository.Remove(work);
+        work.Deactivate();
+        _repository.Update(work);
         await _repository.SaveChangesAsync();
 
         return true;
@@ -102,7 +97,8 @@ public class WorkService : IWorkService
             Name = work.Name,
             Description = work.Description,
             StartDate = work.StartDate,
-            EndDate = work.EndDate
+            EndDate = work.EndDate,
+            IsActive = work.IsActive
         };
     }
 }

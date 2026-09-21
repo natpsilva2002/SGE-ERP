@@ -102,8 +102,10 @@ builder.Services.AddScoped<IRoleService, RoleService>();
 // Catalog
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IItemRepository, ItemRepository>();
+builder.Services.AddScoped<IUnitOfMeasureRepository, UnitOfMeasureRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IItemService, ItemService>();
+builder.Services.AddScoped<IUnitOfMeasureService, UnitOfMeasureService>();
 
 // Companies
 builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
@@ -177,6 +179,25 @@ builder.Services.AddSwaggerGen(options =>
 // ==========================================
 var app = builder.Build();
 
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exceptionFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+
+        if (exceptionFeature?.Error != null)
+            logger.LogError(exceptionFeature.Error, "Erro nao tratado em {Path}", context.Request.Path);
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new
+        {
+            message = "Nao foi possivel concluir a operacao."
+        });
+    });
+});
+
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
@@ -213,8 +234,6 @@ static async Task SeedDevelopmentAdminAsync(IServiceProvider services)
 
     var roles = new[]
     {
-        AppRoles.Requester,
-        AppRoles.Approver,
         AppRoles.Buyer,
         AppRoles.Warehouse,
         AppRoles.Finance,

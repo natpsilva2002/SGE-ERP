@@ -10,6 +10,8 @@ public class PaymentDto
 
     public Guid PaidByUserId { get; set; }
 
+    public string? PaidByUserName { get; set; }
+
     public DateTime PaymentDate { get; set; }
 
     public decimal Amount { get; set; }
@@ -29,4 +31,6 @@ public class PaymentDto
     public string? Observation { get; set; }
 
     public PaymentStatus Status { get; set; }
+
+    public List<PaymentAttachmentDto> Attachments { get; set; } = new();
 }

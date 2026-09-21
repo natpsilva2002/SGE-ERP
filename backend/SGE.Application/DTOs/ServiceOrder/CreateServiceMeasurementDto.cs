@@ -6,6 +6,10 @@ public class CreateServiceMeasurementDto
 
     public string Description { get; set; } = string.Empty;
 
+    public decimal QuantityMeasured { get; set; }
+
+    public string? Unit { get; set; }
+
     public decimal Amount { get; set; }
 
     public string? Observation { get; set; }

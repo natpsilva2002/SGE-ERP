@@ -10,6 +10,7 @@ public class WorkConfiguration : IEntityTypeConfiguration<Work>
         builder.ToTable("works");
 
         builder.HasKey(x => x.Id);
+        builder.Ignore(x => x.IsActive);
 
         builder.Property(x => x.Code)
             .HasMaxLength(30)
@@ -25,6 +26,7 @@ public class WorkConfiguration : IEntityTypeConfiguration<Work>
         builder.HasOne(x => x.Company)
             .WithMany(x => x.Works)
             .HasForeignKey(x => x.CompanyId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(x => x.Code)

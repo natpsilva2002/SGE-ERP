@@ -61,7 +61,7 @@
           <td>{{ request.description }}</td>
           <td>{{ requesterLabel(request) }}</td>
           <td>{{ request.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
-          <td><span class="badge status-{{ request.status }}">{{ statusLabel(request.status) }}</span></td>
+          <td><span class="badge status-{{ request.status }}">{{ workflowLabel(request) }}</span></td>
           <td>
             <div class="row-actions">
               <a [routerLink]="['/app/solicitacoes', request.id]">Abrir</a>
@@ -91,7 +91,7 @@
         <a class="table-link" [routerLink]="['/app/solicitacoes', request.id]">
           {{ request.number }}
         </a>
-        <span class="badge status-{{ request.status }}">{{ statusLabel(request.status) }}</span>
+        <span class="badge status-{{ request.status }}">{{ workflowLabel(request) }}</span>
       </div>
 
       <span class="badge type-badge">{{ typeLabel(request.type) }}</span>

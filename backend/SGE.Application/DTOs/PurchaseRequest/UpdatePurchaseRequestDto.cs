@@ -13,4 +13,6 @@ public class UpdatePurchaseRequestDto
     public decimal? ServiceQuantity { get; set; }
 
     public string? ServiceUnit { get; set; }
+
+    public Guid? ServiceUnitOfMeasureId { get; set; }
 }

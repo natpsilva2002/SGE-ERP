@@ -12,4 +12,8 @@ public interface IQuotationRepository : IGenericRepository<Quotation>
     Task<bool> ExistsByNumberAsync(string number);
 
     Task<bool> ExistsForPurchaseRequestAsync(Guid purchaseRequestId);
+
+    Task AddAttachmentAsync(QuotationAttachment attachment);
+
+    void RemoveAttachment(QuotationAttachment attachment);
 }

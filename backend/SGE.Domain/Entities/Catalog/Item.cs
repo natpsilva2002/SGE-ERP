@@ -11,6 +11,10 @@ public class Item : BaseSoftDeleteEntity
 
     public string Unit { get; private set; } = string.Empty;
 
+    public Guid? UnitOfMeasureId { get; private set; }
+
+    public UnitOfMeasure? UnitOfMeasure { get; private set; }
+
     public bool IsActive { get; private set; } = true;
 
     public Category? Category { get; private set; }
@@ -24,12 +28,14 @@ public class Item : BaseSoftDeleteEntity
         string code,
         string description,
         string unit,
-        bool isActive = true)
+        bool isActive = true,
+        Guid? unitOfMeasureId = null)
     {
         CategoryId = categoryId;
         Code = code;
         Description = description;
         Unit = unit;
+        UnitOfMeasureId = unitOfMeasureId;
         IsActive = isActive;
     }
 
@@ -37,11 +43,13 @@ public class Item : BaseSoftDeleteEntity
         string code,
         string description,
         string unit,
-        bool isActive)
+        bool isActive,
+        Guid? unitOfMeasureId = null)
     {
         Code = code;
         Description = description;
         Unit = unit;
+        UnitOfMeasureId = unitOfMeasureId;
         IsActive = isActive;
     }
 

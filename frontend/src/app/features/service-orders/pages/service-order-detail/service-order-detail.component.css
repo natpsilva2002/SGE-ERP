@@ -169,6 +169,32 @@ textarea {
   padding: 10px;
 }
 
+.attachment-picker,
+.measurement-attachments {
+  display: grid;
+  gap: 8px;
+}
+
+.attachment-picker {
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+  padding-top: 14px;
+}
+
+.attachment-picker > span,
+.measurement-attachments > span {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.attachment-row,
+.selected-file {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
 .badge {
   border-radius: 999px;
   display: inline-flex;
@@ -423,4 +449,14 @@ textarea {
   .page-header {
     padding: 14px;
   }
+}
+.pending-advance-banner {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid #e7c66b;
+  border-left: 4px solid #c58a00;
+  border-radius: 8px;
+  background: #fff8df;
+  color: #634300;
+  font-weight: 700;
 }

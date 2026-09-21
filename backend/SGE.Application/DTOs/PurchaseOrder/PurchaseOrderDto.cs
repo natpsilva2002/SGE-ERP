@@ -14,15 +14,23 @@ public class PurchaseOrderDto
 
     public string SupplierDocument { get; set; } = string.Empty;
 
+    public string SupplierEmail { get; set; } = string.Empty;
+
+    public string SupplierPhone { get; set; } = string.Empty;
+
     public Guid PurchaseRequestId { get; set; }
 
     public string PurchaseRequestNumber { get; set; } = string.Empty;
+
+    public string PurchaseRequestDescription { get; set; } = string.Empty;
 
     public Guid WorkId { get; set; }
 
     public string WorkName { get; set; } = string.Empty;
 
     public string QuotationNumber { get; set; } = string.Empty;
+
+    public string? RequestedByUserName { get; set; }
 
     public string Number { get; set; } = string.Empty;
 

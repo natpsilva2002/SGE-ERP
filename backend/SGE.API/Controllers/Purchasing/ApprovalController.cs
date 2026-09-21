@@ -8,7 +8,7 @@ namespace SGE.API.Controllers.Purchasing;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AppRoles.ApproverOrAdmin)]
+[Authorize(Roles = AppRoles.Admin)]
 public class ApprovalController : ControllerBase
 {
     private readonly IApprovalService _service;

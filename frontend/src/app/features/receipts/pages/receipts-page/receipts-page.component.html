@@ -19,6 +19,7 @@
       <option value="not-received">Nao recebida</option>
       <option value="partial">Parcialmente recebida</option>
       <option value="received">Recebida</option>
+      <option value="divergent">Com divergencia</option>
     </select>
   </label>
 </section>
@@ -54,7 +55,7 @@
           <td>{{ order.workName || 'Nao informada' }}</td>
           <td>{{ order.issueDate | date: 'dd/MM/yyyy HH:mm' }}</td>
           <td><span class="badge status-{{ order.status }}">{{ orderStatusLabel(order.status) }}</span></td>
-          <td>{{ receivingStatusLabel(order) }}</td>
+          <td><span [class.divergence-alert]="hasDivergence(order)">{{ receivingStatusLabel(order) }}</span></td>
           <td>{{ itemCount(order) }}</td>
           <td>{{ totalPending(order) }}</td>
           <td><a class="action-link" [routerLink]="['/app/ordens-compra', order.id]">Abrir OC</a></td>
@@ -80,7 +81,7 @@
       <div class="card-grid">
         <div>
           <span>Recebimento</span>
-          <strong>{{ receivingStatusLabel(order) }}</strong>
+          <strong [class.divergence-alert]="hasDivergence(order)">{{ receivingStatusLabel(order) }}</strong>
         </div>
         <div>
           <span>Itens</span>

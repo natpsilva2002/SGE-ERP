@@ -14,11 +14,13 @@ export interface PurchaseRequest {
   serviceSpecification?: string | null;
   serviceQuantity?: number | null;
   serviceUnit?: string | null;
+  serviceUnitOfMeasureId?: string | null;
   status: PurchaseRequestStatus;
+  workflowStatus?: string | null;
+  hasQuotation: boolean;
 }
 
 export interface CreatePurchaseRequest {
-  companyId?: string | null;
   workId: string;
   requestedByUserId?: string | null;
   number?: string | null;
@@ -27,6 +29,7 @@ export interface CreatePurchaseRequest {
   serviceSpecification?: string | null;
   serviceQuantity?: number | null;
   serviceUnit?: string | null;
+  serviceUnitOfMeasureId?: string | null;
   items?: CreatePurchaseRequestMaterialItem[];
 }
 
@@ -43,6 +46,7 @@ export interface UpdatePurchaseRequest {
   serviceSpecification?: string | null;
   serviceQuantity?: number | null;
   serviceUnit?: string | null;
+  serviceUnitOfMeasureId?: string | null;
 }
 
 export interface PurchaseRequestItem {
@@ -51,6 +55,7 @@ export interface PurchaseRequestItem {
   itemId: string;
   quantity: number;
   unit: string;
+  unitOfMeasureId?: string | null;
   observation?: string | null;
 }
 
@@ -59,12 +64,14 @@ export interface CreatePurchaseRequestItem {
   itemId: string;
   quantity: number;
   unit: string;
+  unitOfMeasureId?: string | null;
   observation?: string | null;
 }
 
 export interface UpdatePurchaseRequestItem {
   quantity: number;
   unit: string;
+  unitOfMeasureId?: string | null;
   observation?: string | null;
 }
 
@@ -78,6 +85,7 @@ export interface CatalogItem {
   code: string;
   description: string;
   unit: string;
+  unitOfMeasureId?: string | null;
   isActive: boolean;
 }
 
@@ -86,6 +94,7 @@ export interface CreateCatalogItem {
   code: string;
   description: string;
   unit: string;
+  unitOfMeasureId?: string | null;
   isActive: boolean;
 }
 
@@ -93,6 +102,7 @@ export interface UpdateCatalogItem {
   code: string;
   description: string;
   unit: string;
+  unitOfMeasureId?: string | null;
   isActive: boolean;
 }
 
@@ -113,10 +123,11 @@ export interface Company {
 
 export interface Work {
   id: string;
-  companyId: string;
+  companyId?: string | null;
   code: string;
   name: string;
   description?: string | null;
   startDate: string;
   endDate?: string | null;
+  isActive: boolean;
 }

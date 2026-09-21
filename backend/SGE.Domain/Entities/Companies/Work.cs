@@ -3,7 +3,7 @@ using SGE.Domain.Common;
 namespace SGE.Domain.Entities.Companies;
 public class Work : BaseSoftDeleteEntity
 {
-    public Guid CompanyId { get; private set; }
+    public Guid? CompanyId { get; private set; }
 
     public string Code { get; private set; } = string.Empty;
 
@@ -15,14 +15,16 @@ public class Work : BaseSoftDeleteEntity
 
     public DateTime? EndDate { get; private set; }
 
-    public Company Company { get; private set; } = null!;
+    public bool IsActive => !IsDeleted;
+
+    public Company? Company { get; private set; }
 
     private Work()
     {
     }
 
     public Work(
-        Guid companyId,
+        Guid? companyId,
         string code,
         string name,
         string? description,
@@ -48,5 +50,16 @@ public class Work : BaseSoftDeleteEntity
         Code = code;
         Name = name;
         Description = description;
+    }
+
+    public void SetActive(bool isActive)
+    {
+        IsDeleted = !isActive;
+        DeletedAt = isActive ? null : DeletedAt ?? DateTime.UtcNow;
+    }
+
+    public void Deactivate()
+    {
+        SetActive(false);
     }
 }

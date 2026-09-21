@@ -8,7 +8,7 @@ namespace SGE.API.Controllers.Purchasing;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[Authorize(Roles = AppRoles.QuotationReaders)]
 public class QuotationItemController : ControllerBase
 {
     private readonly IQuotationItemService _service;
@@ -127,7 +127,7 @@ public class QuotationItemController : ControllerBase
         }
     }
 
-    [Authorize(Roles = AppRoles.ApproverOrAdmin)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPatch("{id:guid}/select")]
     public async Task<ActionResult<QuotationItemDto>> Select(Guid id)
     {

@@ -23,4 +23,6 @@ public class ServiceOrderPaymentDto
     public string? Observation { get; set; }
 
     public PaymentStatus Status { get; set; }
+
+    public List<ServiceOrderPaymentAttachmentDto> Attachments { get; set; } = new();
 }

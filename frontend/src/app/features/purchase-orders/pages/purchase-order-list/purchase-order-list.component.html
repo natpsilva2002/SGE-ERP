@@ -52,6 +52,7 @@
           <th>Financeiro</th>
           <th>Recebimento</th>
           <th>Data</th>
+          <th>Origem</th>
           <th>Acoes</th>
         </tr>
       </thead>
@@ -69,6 +70,7 @@
           <td><span class="badge payment-{{ order.paymentStatus }}">{{ financialStatusLabel(order) }}</span></td>
           <td>{{ receivingStatusLabel(order) }}</td>
           <td>{{ order.issueDate | date: 'dd/MM/yyyy HH:mm' }}</td>
+          <td>{{ order.requestedByUserName || 'Nao informado' }}</td>
           <td>
             <a class="action-link" [routerLink]="['/app/ordens-compra', order.id]">Abrir</a>
           </td>
@@ -109,6 +111,10 @@
       <div class="card-meta">
         <span>Data</span>
         <strong>{{ order.issueDate | date: 'dd/MM/yyyy HH:mm' }}</strong>
+      </div>
+      <div class="card-meta">
+        <span>Solicitado por</span>
+        <strong>{{ order.requestedByUserName || 'Nao informado' }}</strong>
       </div>
 
       <a class="card-action" [routerLink]="['/app/ordens-compra', order.id]">Abrir</a>

@@ -40,7 +40,7 @@ public class ItemController : ControllerBase
     }
 
     // POST: api/Item
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.BuyerOrAdmin)]
     [HttpPost]
     public async Task<ActionResult<ItemDto>> Create(
         [FromBody] CreateItemDto dto)
@@ -64,7 +64,7 @@ public class ItemController : ControllerBase
     }
 
     // PUT: api/Item/{id}
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.BuyerOrAdmin)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<ItemDto>> Update(
         Guid id,
@@ -79,7 +79,7 @@ public class ItemController : ControllerBase
     }
 
     // DELETE: api/Item/{id}
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Roles = AppRoles.BuyerOrAdmin)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

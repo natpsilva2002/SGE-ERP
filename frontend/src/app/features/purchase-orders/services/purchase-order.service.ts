@@ -42,11 +42,38 @@ export class PurchaseOrderService {
   }
 
   receive(id: string, payload: ReceivePurchaseOrder): Observable<Receipt> {
-    return this.http.post<Receipt>(`${this.apiUrl}/PurchaseOrder/${id}/receive`, payload);
+    const formData = new FormData();
+    formData.append('payload', JSON.stringify({
+      observation: payload.observation ?? null,
+      items: payload.items
+    }));
+    formData.append('invoiceNumber', payload.invoiceNumber ?? '');
+    if (payload.invoiceFile) {
+      formData.append('invoiceFile', payload.invoiceFile);
+    }
+    return this.http.post<Receipt>(`${this.apiUrl}/PurchaseOrder/${id}/receive`, formData);
   }
 
   getReceiptsByPurchaseOrder(id: string): Observable<Receipt[]> {
     return this.http.get<Receipt[]>(`${this.apiUrl}/Receipt/by-purchase-order/${id}`);
+  }
+
+  getPaymentsByPurchaseOrder(id: string): Observable<Payment[]> {
+    return this.http.get<Payment[]>(`${this.apiUrl}/Payment/by-purchase-order/${id}`);
+  }
+
+  uploadPaymentAttachments(paymentId: string, files: File[]): Observable<Payment> {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+    return this.http.post<Payment>(`${this.apiUrl}/Payment/${paymentId}/attachments`, formData);
+  }
+
+  downloadPaymentAttachment(paymentId: string, attachmentId: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/Payment/${paymentId}/attachments/${attachmentId}`, { responseType: 'blob' });
+  }
+
+  deletePaymentAttachment(paymentId: string, attachmentId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/Payment/${paymentId}/attachments/${attachmentId}`);
   }
 
   uploadReceiptInvoice(
