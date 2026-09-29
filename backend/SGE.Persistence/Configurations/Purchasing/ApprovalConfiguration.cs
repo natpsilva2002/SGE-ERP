@@ -36,6 +36,12 @@ public class ApprovalConfiguration : IEntityTypeConfiguration<Approval>
             .HasForeignKey(x => x.QuotationId)
             .IsRequired(false);
 
+        builder.HasOne(x => x.ServiceOrderAmendment)
+            .WithMany(x => x.Approvals)
+            .HasForeignKey(x => x.ServiceOrderAmendmentId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasOne(x => x.User)
             .WithMany()
             .HasForeignKey(x => x.UserId);

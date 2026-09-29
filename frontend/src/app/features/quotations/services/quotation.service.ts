@@ -11,6 +11,7 @@ import {
   QuotationApprovalResult,
   QuotationItem,
   Supplier,
+  QuotationSupplierOffer,
   UpdateQuotation,
   UpdateQuotationItem
 } from '../models/quotation.models';
@@ -42,6 +43,17 @@ export class QuotationService {
 
   update(id: string, dto: UpdateQuotation): Observable<Quotation> {
     return this.http.put<Quotation>(`${this.apiUrl}/Quotation/${id}`, dto);
+  }
+
+  setSupplierOfferFreight(quotationId: string, supplierId: string, freightValue: number): Observable<Quotation> {
+    return this.http.put<Quotation>(
+      `${this.apiUrl}/Quotation/${quotationId}/supplier-offers/${supplierId}`,
+      { freightValue }
+    );
+  }
+
+  deleteSupplierOffer(quotationId: string, supplierId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/Quotation/${quotationId}/supplier-offers/${supplierId}`);
   }
 
   submitForApproval(id: string): Observable<Quotation> {

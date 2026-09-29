@@ -295,17 +295,17 @@ public class ServiceMeasurementService : IServiceMeasurementService
                 x.Status != ServiceMeasurementStatus.Rejected)
             .Sum(x => x.Amount);
 
-        if (committedAmount + amount > serviceOrder.ContractedValue)
+        if (committedAmount + amount > serviceOrder.CurrentContractedValue)
             throw new InvalidOperationException(
                 "O valor medido ultrapassa o saldo disponivel da ordem de servico.");
 
-        if (serviceOrder.EstimatedQuantity.HasValue)
+        if (serviceOrder.CurrentContractedQuantity.HasValue)
         {
             var committedQuantity = measurements
                 .Where(x => x.Id != ignoredMeasurementId && x.Status != ServiceMeasurementStatus.Rejected)
                 .Sum(x => x.QuantityMeasured);
 
-            if (committedQuantity + quantity > serviceOrder.EstimatedQuantity.Value)
+            if (committedQuantity + quantity > serviceOrder.CurrentContractedQuantity.Value)
                 throw new InvalidOperationException("A quantidade medida ultrapassa a quantidade contratada da ordem de servico.");
         }
     }
@@ -318,7 +318,7 @@ public class ServiceMeasurementService : IServiceMeasurementService
             serviceOrder.Id,
             ServiceMeasurementStatus.Approved);
 
-        if (approvedAmount + measurement.Amount > serviceOrder.ContractedValue)
+        if (approvedAmount + measurement.Amount > serviceOrder.CurrentContractedValue)
             throw new InvalidOperationException(
                 "O valor aprovado ultrapassa o valor contratado da ordem de servico.");
     }

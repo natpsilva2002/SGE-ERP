@@ -35,6 +35,7 @@ public class SgeDbContext : DbContext
 
     public DbSet<Quotation> Quotations => Set<Quotation>();
     public DbSet<QuotationItem> QuotationItems => Set<QuotationItem>();
+    public DbSet<QuotationSupplierOffer> QuotationSupplierOffers => Set<QuotationSupplierOffer>();
 
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
     public DbSet<PurchaseOrderItem> PurchaseOrderItems => Set<PurchaseOrderItem>();
@@ -42,6 +43,8 @@ public class SgeDbContext : DbContext
     public DbSet<ReceiptItem> ReceiptItems => Set<ReceiptItem>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<ServiceOrder> ServiceOrders => Set<ServiceOrder>();
+    public DbSet<ServiceOrderAmendment> ServiceOrderAmendments => Set<ServiceOrderAmendment>();
+    public DbSet<ServiceOrderAmendmentAttachment> ServiceOrderAmendmentAttachments => Set<ServiceOrderAmendmentAttachment>();
     public DbSet<ServiceMeasurement> ServiceMeasurements => Set<ServiceMeasurement>();
     public DbSet<ServiceOrderPayment> ServiceOrderPayments => Set<ServiceOrderPayment>();
     public DbSet<ServiceAdvancePaymentRequest> ServiceAdvancePaymentRequests => Set<ServiceAdvancePaymentRequest>();

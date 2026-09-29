@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.RegularExpressions;
 using SGE.Application.DTOs.ServiceOrder;
 using SGE.Application.Interfaces.Services.Authentication;
 using SGE.Application.Interfaces.Services.Purchasing;
 using SGE.Application.Security;
 using SGE.Domain.Enums;
+using SGE.API.Services.FileStorage;
 
 namespace SGE.API.Controllers.Purchasing;
 
@@ -35,19 +37,25 @@ public class ServiceOrderController : ControllerBase
 
     private readonly IServiceOrderService _service;
     private readonly IServiceMeasurementService _measurementService;
+    private readonly IServiceOrderPdfService _pdfService;
+    private readonly IServiceOrderAmendmentService _amendmentService;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IWebHostEnvironment _environment;
+    private readonly IFileStorage _fileStorage;
 
     public ServiceOrderController(
         IServiceOrderService service,
         IServiceMeasurementService measurementService,
+        IServiceOrderPdfService pdfService,
+        IServiceOrderAmendmentService amendmentService,
         ICurrentUserService currentUserService,
-        IWebHostEnvironment environment)
+        IFileStorage fileStorage)
     {
         _service = service;
         _measurementService = measurementService;
+        _pdfService = pdfService;
+        _amendmentService = amendmentService;
         _currentUserService = currentUserService;
-        _environment = environment;
+        _fileStorage = fileStorage;
     }
 
     [Authorize(Roles = AppRoles.FinanceOrAdmin)]
@@ -69,6 +77,18 @@ public class ServiceOrderController : ControllerBase
             return NotFound();
 
         return Ok(serviceOrder);
+    }
+
+    [Authorize(Roles = AppRoles.FinanceOrAdmin)]
+    [HttpGet("{id:guid}/pdf")]
+    public async Task<IActionResult> DownloadPdf(Guid id)
+    {
+        var serviceOrder = await _service.GetByIdAsync(id);
+        if (serviceOrder == null) return NotFound();
+
+        var pdf = _pdfService.Generate(serviceOrder);
+        var fileName = Regex.Replace($"OS-{serviceOrder.Number}.pdf", "[<>:\"/\\\\|?*]", "-");
+        return File(pdf, "application/pdf", fileName);
     }
 
     [Authorize(Roles = AppRoles.Admin)]
@@ -95,38 +115,163 @@ public class ServiceOrderController : ControllerBase
         }
     }
 
+    [Authorize(Roles = AppRoles.Admin)]
+    [HttpPut("{id:guid}/contract-terms")]
+    public async Task<ActionResult<ServiceOrderDto>> UpdateContractTerms(Guid id, [FromBody] UpdateServiceOrderContractDto dto)
+    {
+        try
+        {
+            var order = await _service.UpdateContractTermsAsync(id, dto);
+            return order == null ? NotFound() : Ok(order);
+        }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
+    [Authorize(Roles = AppRoles.Admin)]
+    [HttpPost("{id:guid}/amendments")]
+    public async Task<ActionResult<ServiceOrderAmendmentDto>> CreateAmendment(Guid id, [FromBody] CreateServiceOrderAmendmentDto dto)
+    {
+        try
+        {
+            var amendment = await _amendmentService.CreateAsync(id, _currentUserService.UserId, dto);
+            return CreatedAtAction(nameof(GetById), new { id }, amendment);
+        }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
+    [Authorize(Roles = AppRoles.Admin)]
+    [HttpPut("{id:guid}/amendments/{amendmentId:guid}")]
+    public async Task<ActionResult<ServiceOrderAmendmentDto>> UpdateAmendment(Guid id, Guid amendmentId, [FromBody] CreateServiceOrderAmendmentDto dto)
+    {
+        try
+        {
+            var amendment = await _amendmentService.UpdateAsync(id, amendmentId, dto);
+            return amendment == null ? NotFound() : Ok(amendment);
+        }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
+    [Authorize(Roles = AppRoles.Admin)]
+    [HttpPost("{id:guid}/amendments/{amendmentId:guid}/submit")]
+    public async Task<ActionResult<ServiceOrderAmendmentDto>> SubmitAmendment(Guid id, Guid amendmentId)
+    {
+        try
+        {
+            var amendment = await _amendmentService.SubmitAsync(id, amendmentId, _currentUserService.UserId);
+            return amendment == null ? NotFound() : Ok(amendment);
+        }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
+    [Authorize(Roles = AppRoles.Admin)]
+    [HttpPost("{id:guid}/amendments/{amendmentId:guid}/approve")]
+    public async Task<ActionResult<ServiceOrderAmendmentDto>> ApproveAmendment(Guid id, Guid amendmentId, [FromBody] ServiceOrderAmendmentDecisionDto dto)
+    {
+        try
+        {
+            var amendment = await _amendmentService.DecideAsync(id, amendmentId, _currentUserService.UserId, true, dto.Observation);
+            return amendment == null ? NotFound() : Ok(amendment);
+        }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
+    [Authorize(Roles = AppRoles.Admin)]
+    [HttpPost("{id:guid}/amendments/{amendmentId:guid}/reject")]
+    public async Task<ActionResult<ServiceOrderAmendmentDto>> RejectAmendment(Guid id, Guid amendmentId, [FromBody] ServiceOrderAmendmentDecisionDto dto)
+    {
+        try
+        {
+            var amendment = await _amendmentService.DecideAsync(id, amendmentId, _currentUserService.UserId, false, dto.Observation);
+            return amendment == null ? NotFound() : Ok(amendment);
+        }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
+    [Authorize(Roles = AppRoles.Admin)]
+    [RequestSizeLimit(80 * 1024 * 1024)]
+    [HttpPost("{id:guid}/amendments/{amendmentId:guid}/attachments")]
+    public async Task<ActionResult<ServiceOrderAmendmentDto>> UploadAmendmentAttachments(Guid id, Guid amendmentId, [FromForm] List<IFormFile> files)
+    {
+        var storedFiles = new List<string>();
+        try
+        {
+            if (files == null || files.Count == 0) return BadRequest(new { message = "Informe ao menos um arquivo." });
+            ServiceOrderAmendmentDto? result = null;
+            foreach (var file in files)
+            {
+                ValidateDocumentFile(file);
+                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                await using var stream = file.OpenReadStream();
+                var key = await _fileStorage.UploadAsync(stream, $"service-orders/{id:N}/amendments/{amendmentId:N}", extension, GetContentType(extension), HttpContext.RequestAborted);
+                storedFiles.Add(key);
+                result = await _amendmentService.AddAttachmentAsync(id, amendmentId, Path.GetFileName(file.FileName),
+                    key, GetContentType(extension), file.Length, _currentUserService.UserId);
+                if (result == null) { await DeleteStoredFilesAsync(storedFiles); return NotFound(); }
+            }
+            return Ok(result);
+        }
+        catch (ArgumentException ex) { await DeleteStoredFilesAsync(storedFiles); return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { await DeleteStoredFilesAsync(storedFiles); return BadRequest(new { message = ex.Message }); }
+        catch { await DeleteStoredFilesAsync(storedFiles); throw; }
+    }
+
+    [Authorize(Roles = AppRoles.FinanceOrAdmin)]
+    [HttpGet("{id:guid}/amendments/{amendmentId:guid}/attachments/{attachmentId:guid}")]
+    public async Task<IActionResult> DownloadAmendmentAttachment(Guid id, Guid amendmentId, Guid attachmentId)
+    {
+        var attachment = await _amendmentService.GetAttachmentAsync(id, amendmentId, attachmentId);
+        if (attachment == null) return NotFound();
+        var stream = await _fileStorage.DownloadAsync(attachment.Value.FilePath, HttpContext.RequestAborted);
+        if (stream == null) return NotFound();
+        return File(stream, attachment.Value.ContentType, attachment.Value.FileName);
+    }
+
+    [Authorize(Roles = AppRoles.Admin)]
+    [HttpDelete("{id:guid}/amendments/{amendmentId:guid}/attachments/{attachmentId:guid}")]
+    public async Task<IActionResult> DeleteAmendmentAttachment(Guid id, Guid amendmentId, Guid attachmentId)
+    {
+        try
+        {
+            var result = await _amendmentService.DeleteAttachmentAsync(id, amendmentId, attachmentId);
+            if (!result.Deleted) return NotFound();
+            if (!string.IsNullOrWhiteSpace(result.FilePath))
+            {
+                await _fileStorage.DeleteAsync(result.FilePath, HttpContext.RequestAborted);
+            }
+            return NoContent();
+        }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
     [Authorize(Roles = AppRoles.FinanceOrAdmin)]
     [HttpPost("{id:guid}/contract")]
     public async Task<ActionResult<ServiceOrderDto>> UploadContract(
         Guid id,
         IFormFile file)
     {
+        string? storedKey = null;
         try
         {
             ValidateContractFile(file);
 
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            var storedFileName = $"{Guid.NewGuid():N}{extension}";
-            var uploadRoot = GetContractUploadRoot();
-            Directory.CreateDirectory(uploadRoot);
-
-            var fullPath = Path.Combine(uploadRoot, storedFileName);
-
-            await using (var stream = System.IO.File.Create(fullPath))
-            {
-                await file.CopyToAsync(stream);
-            }
-
-            var relativePath = Path.Combine("uploads", "service-contracts", storedFileName);
+            await using (var stream = file.OpenReadStream())
+                storedKey = await _fileStorage.UploadAsync(stream, $"service-orders/{id:N}/contracts", extension, file.ContentType, HttpContext.RequestAborted);
             var serviceOrder = await _service.AttachContractAsync(
                 id,
                 Path.GetFileName(file.FileName),
-                relativePath,
+                storedKey,
                 _currentUserService.UserId);
 
             if (serviceOrder == null)
             {
-                System.IO.File.Delete(fullPath);
+                await _fileStorage.DeleteAsync(storedKey, HttpContext.RequestAborted);
                 return NotFound();
             }
 
@@ -134,11 +279,18 @@ public class ServiceOrderController : ControllerBase
         }
         catch (ArgumentException ex)
         {
+            if (storedKey != null) await _fileStorage.DeleteAsync(storedKey, HttpContext.RequestAborted);
             return BadRequest(new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
+            if (storedKey != null) await _fileStorage.DeleteAsync(storedKey, HttpContext.RequestAborted);
             return BadRequest(new { message = ex.Message });
+        }
+        catch
+        {
+            if (storedKey != null) await _fileStorage.DeleteAsync(storedKey, HttpContext.RequestAborted);
+            throw;
         }
     }
 
@@ -151,16 +303,10 @@ public class ServiceOrderController : ControllerBase
         if (contract == null)
             return NotFound();
 
-        var fullPath = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, contract.Value.FilePath));
-        var uploadRoot = GetContractUploadRoot();
+        var stream = await _fileStorage.DownloadAsync(contract.Value.FilePath, HttpContext.RequestAborted);
+        if (stream == null) return NotFound();
 
-        if (!fullPath.StartsWith(uploadRoot, StringComparison.OrdinalIgnoreCase) ||
-            !System.IO.File.Exists(fullPath))
-            return NotFound();
-
-        var contentType = GetContentType(Path.GetExtension(fullPath));
-
-        return PhysicalFile(fullPath, contentType, contract.Value.FileName);
+        return File(stream, GetContentType(Path.GetExtension(contract.Value.FileName)), contract.Value.FileName);
     }
 
     [Authorize(Roles = AppRoles.FinanceOrAdmin)]
@@ -313,42 +459,41 @@ public class ServiceOrderController : ControllerBase
                 ValidateAttachmentFile(file);
 
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-                var storedFileName = $"{Guid.NewGuid():N}{extension}";
-                var uploadRoot = GetAttachmentUploadRoot();
-                Directory.CreateDirectory(uploadRoot);
-
-                var fullPath = Path.Combine(uploadRoot, storedFileName);
-                await using (var stream = System.IO.File.Create(fullPath))
-                {
-                    await file.CopyToAsync(stream);
-                }
-
-                storedFiles.Add(fullPath);
-                var relativePath = Path.Combine("uploads", "service-order-attachments", storedFileName);
+                await using var stream = file.OpenReadStream();
+                var key = await _fileStorage.UploadAsync(stream, $"service-orders/{id:N}/attachments", extension, GetContentType(extension), HttpContext.RequestAborted);
+                storedFiles.Add(key);
                 serviceOrder = await _service.AddAttachmentAsync(
                     id,
                     type,
                     Path.GetFileName(file.FileName),
-                    relativePath,
+                    key,
                     GetContentType(extension),
                     file.Length,
                     _currentUserService.UserId);
 
                 if (serviceOrder == null)
+                {
+                    await DeleteStoredFilesAsync(storedFiles);
                     return NotFound();
+                }
             }
 
             return Ok(serviceOrder);
         }
         catch (ArgumentException ex)
         {
-            DeleteStoredFiles(storedFiles);
+            await DeleteStoredFilesAsync(storedFiles);
             return BadRequest(new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
-            DeleteStoredFiles(storedFiles);
+            await DeleteStoredFilesAsync(storedFiles);
             return BadRequest(new { message = ex.Message });
+        }
+        catch
+        {
+            await DeleteStoredFilesAsync(storedFiles);
+            throw;
         }
     }
 
@@ -361,14 +506,10 @@ public class ServiceOrderController : ControllerBase
         if (attachment == null)
             return NotFound();
 
-        var fullPath = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, attachment.Value.FilePath));
-        var uploadRoot = GetAttachmentUploadRoot();
+        var stream = await _fileStorage.DownloadAsync(attachment.Value.FilePath, HttpContext.RequestAborted);
+        if (stream == null) return NotFound();
 
-        if (!fullPath.StartsWith(uploadRoot, StringComparison.OrdinalIgnoreCase) ||
-            !System.IO.File.Exists(fullPath))
-            return NotFound();
-
-        return PhysicalFile(fullPath, attachment.Value.ContentType, attachment.Value.FileName);
+        return File(stream, attachment.Value.ContentType, attachment.Value.FileName);
     }
 
     [Authorize(Roles = AppRoles.FinanceOrAdmin)]
@@ -382,14 +523,7 @@ public class ServiceOrderController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(result.FilePath))
         {
-            var fullPath = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, result.FilePath));
-            var uploadRoot = GetAttachmentUploadRoot();
-
-            if (fullPath.StartsWith(uploadRoot, StringComparison.OrdinalIgnoreCase) &&
-                System.IO.File.Exists(fullPath))
-            {
-                System.IO.File.Delete(fullPath);
-            }
+            await _fileStorage.DeleteAsync(result.FilePath, HttpContext.RequestAborted);
         }
 
         return NoContent();
@@ -412,22 +546,17 @@ public class ServiceOrderController : ControllerBase
             {
                 ValidateDocumentFile(file);
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-                var storedFileName = $"{Guid.NewGuid():N}{extension}";
-                var uploadRoot = GetPaymentAttachmentUploadRoot();
-                Directory.CreateDirectory(uploadRoot);
-                var fullPath = Path.Combine(uploadRoot, storedFileName);
-                await using (var stream = System.IO.File.Create(fullPath))
-                    await file.CopyToAsync(stream);
-
-                storedFiles.Add(fullPath);
+                await using var stream = file.OpenReadStream();
+                var key = await _fileStorage.UploadAsync(stream, $"service-orders/{id:N}/payments/{paymentId:N}/attachments", extension, GetContentType(extension), HttpContext.RequestAborted);
+                storedFiles.Add(key);
                 serviceOrder = await _service.AddPaymentAttachmentAsync(
                     id, paymentId, Path.GetFileName(file.FileName),
-                    Path.Combine("uploads", "service-payment-attachments", storedFileName),
+                    key,
                     GetContentType(extension), file.Length, _currentUserService.UserId);
 
                 if (serviceOrder == null)
                 {
-                    DeleteStoredFiles(storedFiles);
+                    await DeleteStoredFilesAsync(storedFiles);
                     return NotFound();
                 }
             }
@@ -436,8 +565,13 @@ public class ServiceOrderController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            DeleteStoredFiles(storedFiles);
+            await DeleteStoredFilesAsync(storedFiles);
             return BadRequest(new { message = ex.Message });
+        }
+        catch
+        {
+            await DeleteStoredFilesAsync(storedFiles);
+            throw;
         }
     }
 
@@ -449,12 +583,10 @@ public class ServiceOrderController : ControllerBase
         if (attachment == null)
             return NotFound();
 
-        var fullPath = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, attachment.Value.FilePath));
-        var uploadRoot = GetPaymentAttachmentUploadRoot();
-        if (!fullPath.StartsWith(uploadRoot, StringComparison.OrdinalIgnoreCase) || !System.IO.File.Exists(fullPath))
-            return NotFound();
+        var stream = await _fileStorage.DownloadAsync(attachment.Value.FilePath, HttpContext.RequestAborted);
+        if (stream == null) return NotFound();
 
-        return PhysicalFile(fullPath, attachment.Value.ContentType, attachment.Value.FileName);
+        return File(stream, attachment.Value.ContentType, attachment.Value.FileName);
     }
 
     [Authorize(Roles = AppRoles.FinanceOrAdmin)]
@@ -497,22 +629,17 @@ public class ServiceOrderController : ControllerBase
             {
                 ValidateDocumentFile(file);
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-                var storedFileName = $"{Guid.NewGuid():N}{extension}";
-                var uploadRoot = GetMeasurementAttachmentUploadRoot();
-                Directory.CreateDirectory(uploadRoot);
-                var fullPath = Path.Combine(uploadRoot, storedFileName);
-                await using (var stream = System.IO.File.Create(fullPath))
-                    await file.CopyToAsync(stream);
-
-                storedFiles.Add(fullPath);
+                await using var stream = file.OpenReadStream();
+                var key = await _fileStorage.UploadAsync(stream, $"service-orders/{id:N}/measurements/{measurementId:N}/attachments", extension, GetContentType(extension), HttpContext.RequestAborted);
+                storedFiles.Add(key);
                 measurement = await _measurementService.AddAttachmentAsync(
                     id, measurementId, Path.GetFileName(file.FileName),
-                    Path.Combine("uploads", "service-measurement-attachments", storedFileName),
+                    key,
                     GetContentType(extension), file.Length, _currentUserService.UserId);
 
                 if (measurement == null)
                 {
-                    DeleteStoredFiles(storedFiles);
+                    await DeleteStoredFilesAsync(storedFiles);
                     return NotFound();
                 }
             }
@@ -521,8 +648,18 @@ public class ServiceOrderController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            DeleteStoredFiles(storedFiles);
+            await DeleteStoredFilesAsync(storedFiles);
             return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            await DeleteStoredFilesAsync(storedFiles);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch
+        {
+            await DeleteStoredFilesAsync(storedFiles);
+            throw;
         }
     }
 
@@ -534,12 +671,10 @@ public class ServiceOrderController : ControllerBase
         if (attachment == null)
             return NotFound();
 
-        var fullPath = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, attachment.Value.FilePath));
-        var uploadRoot = GetMeasurementAttachmentUploadRoot();
-        if (!fullPath.StartsWith(uploadRoot, StringComparison.OrdinalIgnoreCase) || !System.IO.File.Exists(fullPath))
-            return NotFound();
+        var stream = await _fileStorage.DownloadAsync(attachment.Value.FilePath, HttpContext.RequestAborted);
+        if (stream == null) return NotFound();
 
-        return PhysicalFile(fullPath, attachment.Value.ContentType, attachment.Value.FileName);
+        return File(stream, attachment.Value.ContentType, attachment.Value.FileName);
     }
 
     [Authorize(Roles = AppRoles.FinanceOrAdmin)]
@@ -708,28 +843,6 @@ public class ServiceOrderController : ControllerBase
             throw new ArgumentException("Nome de arquivo invalido.");
     }
 
-    private string GetContractUploadRoot()
-    {
-        return Path.GetFullPath(Path.Combine(
-            _environment.ContentRootPath,
-            "uploads",
-            "service-contracts"));
-    }
-
-    private string GetAttachmentUploadRoot()
-    {
-        return Path.GetFullPath(Path.Combine(
-            _environment.ContentRootPath,
-            "uploads",
-            "service-order-attachments"));
-    }
-
-    private string GetPaymentAttachmentUploadRoot() => Path.GetFullPath(Path.Combine(
-        _environment.ContentRootPath, "uploads", "service-payment-attachments"));
-
-    private string GetMeasurementAttachmentUploadRoot() => Path.GetFullPath(Path.Combine(
-        _environment.ContentRootPath, "uploads", "service-measurement-attachments"));
-
     private static string GetContentType(string extension)
     {
         return extension.ToLowerInvariant() switch
@@ -777,12 +890,9 @@ public class ServiceOrderController : ControllerBase
             throw new ArgumentException("Nome de arquivo invalido.");
     }
 
-    private static void DeleteStoredFiles(IEnumerable<string> filePaths)
+    private async Task DeleteStoredFilesAsync(IEnumerable<string> keys)
     {
-        foreach (var filePath in filePaths)
-        {
-            if (System.IO.File.Exists(filePath))
-                System.IO.File.Delete(filePath);
-        }
+        foreach (var key in keys)
+            await _fileStorage.DeleteAsync(key, HttpContext.RequestAborted);
     }
 }

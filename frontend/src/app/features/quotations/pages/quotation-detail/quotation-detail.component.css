@@ -259,14 +259,22 @@ select {
   align-items: center;
   background: var(--surface-muted);
   border-radius: 8px;
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
+  display: grid;
+  gap: 8px 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
   padding: 12px;
 }
 
-.budget-total strong {
+.budget-total strong:last-child {
   font-size: 18px;
+}
+
+.freight-field {
+  max-width: 320px;
+}
+
+.freight-field > span strong {
+  color: var(--danger);
 }
 
 .form-actions,
@@ -304,6 +312,37 @@ select {
   display: grid;
   gap: 4px;
   min-width: 0;
+}
+
+.budget-price-breakdown {
+  border-block: 1px solid var(--border);
+  display: grid;
+  gap: 8px 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 10px 0;
+}
+
+.budget-price-breakdown div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.budget-price-breakdown span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.budget-price-breakdown strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.budget-price-breakdown .proposal-total strong {
+  color: var(--primary);
+  font-size: 16px;
+  font-weight: 800;
 }
 
 .budget-total-inline {
@@ -538,6 +577,10 @@ select {
   .budget-total-inline {
     justify-content: stretch;
     text-align: left;
+  }
+
+  .budget-price-breakdown {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -4,6 +4,7 @@ import { Observable, forkJoin } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { PurchaseRequest, Work } from '../../purchase-requests/models/purchase-request.models';
 import { Supplier } from '../../quotations/models/quotation.models';
+import { UnitOfMeasure } from '../../../shared/models/unit-of-measure.models';
 import {
   CreateServiceOrder,
   CreateServiceMeasurement,
@@ -14,7 +15,10 @@ import {
   ServiceMeasurement,
   ServiceOrder,
   ServiceOrderCreateContext,
-  UpdateServiceMeasurement
+  UpdateServiceMeasurement,
+  UpdateServiceOrderContract,
+  CreateServiceOrderAmendment,
+  ServiceOrderAmendment
 } from '../models/service-order.models';
 
 @Injectable({
@@ -32,8 +36,47 @@ export class ServiceOrderService {
     return this.http.get<ServiceOrder>(`${this.apiUrl}/ServiceOrder/${id}`);
   }
 
+  downloadPdf(id: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/ServiceOrder/${id}/pdf`, { responseType: 'blob' });
+  }
+
   create(dto: CreateServiceOrder): Observable<ServiceOrder> {
     return this.http.post<ServiceOrder>(`${this.apiUrl}/ServiceOrder`, dto);
+  }
+
+  updateContractTerms(id: string, dto: UpdateServiceOrderContract): Observable<ServiceOrder> {
+    return this.http.put<ServiceOrder>(`${this.apiUrl}/ServiceOrder/${id}/contract-terms`, dto);
+  }
+
+  createAmendment(id: string, dto: CreateServiceOrderAmendment): Observable<ServiceOrderAmendment> {
+    return this.http.post<ServiceOrderAmendment>(`${this.apiUrl}/ServiceOrder/${id}/amendments`, dto);
+  }
+
+  updateAmendment(id: string, amendmentId: string, dto: CreateServiceOrderAmendment): Observable<ServiceOrderAmendment> {
+    return this.http.put<ServiceOrderAmendment>(`${this.apiUrl}/ServiceOrder/${id}/amendments/${amendmentId}`, dto);
+  }
+
+  submitAmendment(id: string, amendmentId: string): Observable<ServiceOrderAmendment> {
+    return this.http.post<ServiceOrderAmendment>(`${this.apiUrl}/ServiceOrder/${id}/amendments/${amendmentId}/submit`, {});
+  }
+
+  decideAmendment(id: string, amendmentId: string, approve: boolean, observation?: string): Observable<ServiceOrderAmendment> {
+    const action = approve ? 'approve' : 'reject';
+    return this.http.post<ServiceOrderAmendment>(`${this.apiUrl}/ServiceOrder/${id}/amendments/${amendmentId}/${action}`, { observation });
+  }
+
+  uploadAmendmentAttachments(id: string, amendmentId: string, files: File[]): Observable<ServiceOrderAmendment> {
+    const data = new FormData();
+    files.forEach(file => data.append('files', file));
+    return this.http.post<ServiceOrderAmendment>(`${this.apiUrl}/ServiceOrder/${id}/amendments/${amendmentId}/attachments`, data);
+  }
+
+  downloadAmendmentAttachment(id: string, amendmentId: string, attachmentId: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/ServiceOrder/${id}/amendments/${amendmentId}/attachments/${attachmentId}`, { responseType: 'blob' });
+  }
+
+  deleteAmendmentAttachment(id: string, amendmentId: string, attachmentId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/ServiceOrder/${id}/amendments/${amendmentId}/attachments/${attachmentId}`);
   }
 
   uploadContract(id: string, file: File): Observable<ServiceOrder> {
@@ -172,7 +215,8 @@ export class ServiceOrderService {
       purchaseRequests: this.http.get<PurchaseRequest[]>(`${this.apiUrl}/PurchaseRequest`),
       suppliers: this.http.get<Supplier[]>(`${this.apiUrl}/Supplier`),
       works: this.http.get<Work[]>(`${this.apiUrl}/Work`),
-      serviceOrders: this.getAll()
+      serviceOrders: this.getAll(),
+      units: this.http.get<UnitOfMeasure[]>(`${this.apiUrl}/UnitOfMeasure`, { params: { activeOnly: true } })
     });
   }
 }

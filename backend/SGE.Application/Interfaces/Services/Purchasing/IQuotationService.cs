@@ -15,6 +15,13 @@ public interface IQuotationService
         Guid id,
         UpdateQuotationDto dto);
 
+    Task<QuotationDto?> SetSupplierOfferFreightAsync(
+        Guid quotationId,
+        Guid supplierId,
+        decimal freightValue);
+
+    Task<bool> DeleteSupplierOfferAsync(Guid quotationId, Guid supplierId);
+
     Task<bool> DeleteAsync(Guid id);
 
     Task<QuotationDto?> SubmitForApprovalAsync(Guid id);

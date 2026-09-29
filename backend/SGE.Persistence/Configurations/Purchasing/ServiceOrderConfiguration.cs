@@ -59,6 +59,8 @@ public class ServiceOrderConfiguration : IEntityTypeConfiguration<ServiceOrder>
             .HasColumnType("numeric(18,2)");
 
         builder.Ignore(x => x.AmountPending);
+        builder.Ignore(x => x.CurrentContractedValue);
+        builder.Ignore(x => x.CurrentContractedQuantity);
 
         builder.Property(x => x.PaymentStatus)
             .HasConversion<int>()
@@ -88,5 +90,10 @@ public class ServiceOrderConfiguration : IEntityTypeConfiguration<ServiceOrder>
         builder.HasMany(x => x.Measurements)
             .WithOne(x => x.ServiceOrder)
             .HasForeignKey(x => x.ServiceOrderId);
+
+        builder.HasMany(x => x.Amendments)
+            .WithOne(x => x.ServiceOrder)
+            .HasForeignKey(x => x.ServiceOrderId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

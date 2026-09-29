@@ -229,3 +229,12 @@ th {
     font-weight: 700;
   }
 }
+.page-header {
+  background: transparent;
+  border: 0;
+  padding: 0 0 4px;
+}
+
+.table-card table {
+  font-size: 12px;
+}

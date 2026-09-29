@@ -5,7 +5,7 @@ using SGE.Application.DTOs.Quotation;
 using SGE.Application.Interfaces.Services.Authentication;
 using SGE.Application.Interfaces.Services.Purchasing;
 using SGE.Application.Security;
-using Microsoft.AspNetCore.Hosting;
+using SGE.API.Services.FileStorage;
 
 namespace SGE.API.Controllers.Purchasing;
 
@@ -16,16 +16,16 @@ public class QuotationController : ControllerBase
 {
     private readonly IQuotationService _service;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IWebHostEnvironment _environment;
+    private readonly IFileStorage _fileStorage;
 
     public QuotationController(
         IQuotationService service,
         ICurrentUserService currentUserService,
-        IWebHostEnvironment environment)
+        IFileStorage fileStorage)
     {
         _service = service;
         _currentUserService = currentUserService;
-        _environment = environment;
+        _fileStorage = fileStorage;
     }
 
     [Authorize(Roles = AppRoles.QuotationManagers)]
@@ -40,26 +40,23 @@ public class QuotationController : ControllerBase
             foreach (var file in files)
                 ValidateFile(file);
 
-            var root = Path.Combine(_environment.ContentRootPath, "uploads", "quotation-attachments");
-            Directory.CreateDirectory(root);
             QuotationDto? result = null;
             foreach (var file in files)
             {
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-                var storedName = $"{Guid.NewGuid():N}{extension}";
-                var fullPath = Path.Combine(root, storedName);
-                await using (var stream = System.IO.File.Create(fullPath)) await file.CopyToAsync(stream);
-                stored.Add(fullPath);
-                result = await _service.AddAttachmentAsync(id, supplierId, Path.GetFileName(file.FileName), Path.Combine("uploads", "quotation-attachments", storedName), file.ContentType, file.Length, _currentUserService.UserId);
-                if (result == null) { DeleteFiles(stored); return NotFound(); }
+                await using var stream = file.OpenReadStream();
+                var key = await _fileStorage.UploadAsync(stream, $"quotation-attachments/quotations/{id:N}/suppliers/{supplierId:N}", extension, file.ContentType, HttpContext.RequestAborted);
+                stored.Add(key);
+                result = await _service.AddAttachmentAsync(id, supplierId, Path.GetFileName(file.FileName), key, file.ContentType, file.Length, _currentUserService.UserId);
+                if (result == null) { await DeleteFilesAsync(stored); return NotFound(); }
             }
             return Ok(result);
         }
-        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
-        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (ArgumentException ex) { await DeleteFilesAsync(stored); return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { await DeleteFilesAsync(stored); return BadRequest(new { message = ex.Message }); }
         catch
         {
-            DeleteFiles(stored);
+            await DeleteFilesAsync(stored);
             throw;
         }
     }
@@ -70,10 +67,9 @@ public class QuotationController : ControllerBase
     {
         var attachment = await _service.GetAttachmentAsync(id, attachmentId);
         if (attachment == null) return NotFound();
-        var path = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, attachment.Value.FilePath));
-        var root = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, "uploads", "quotation-attachments"));
-        if (!path.StartsWith(root, StringComparison.OrdinalIgnoreCase) || !System.IO.File.Exists(path)) return NotFound();
-        return PhysicalFile(path, attachment.Value.ContentType, attachment.Value.FileName);
+        var stream = await _fileStorage.DownloadAsync(attachment.Value.FilePath, HttpContext.RequestAborted);
+        if (stream == null) return NotFound();
+        return File(stream, attachment.Value.ContentType, attachment.Value.FileName);
     }
 
     [Authorize(Roles = AppRoles.QuotationManagers)]
@@ -84,7 +80,7 @@ public class QuotationController : ControllerBase
         {
             var result = await _service.DeleteAttachmentAsync(id, attachmentId);
             if (!result.Deleted) return NotFound();
-            if (result.FilePath != null) DeleteStoredFile(result.FilePath);
+            if (result.FilePath != null) await _fileStorage.DeleteAsync(result.FilePath, HttpContext.RequestAborted);
             return NoContent();
         }
         catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
@@ -98,8 +94,11 @@ public class QuotationController : ControllerBase
         if (!AllowedExtensions.Contains(Path.GetExtension(file.FileName))) throw new ArgumentException("Extensao de arquivo nao permitida.");
         if (Path.GetFileName(file.FileName) != file.FileName) throw new ArgumentException("Nome de arquivo invalido.");
     }
-    private void DeleteStoredFile(string relativePath) { var path = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, relativePath)); var root = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, "uploads", "quotation-attachments")); if (path.StartsWith(root, StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(path)) System.IO.File.Delete(path); }
-    private static void DeleteFiles(IEnumerable<string> files) { foreach (var file in files) if (System.IO.File.Exists(file)) System.IO.File.Delete(file); }
+    private async Task DeleteFilesAsync(IEnumerable<string> keys)
+    {
+        foreach (var key in keys)
+            await _fileStorage.DeleteAsync(key, HttpContext.RequestAborted);
+    }
 
     [Authorize(Roles = AppRoles.QuotationReaders)]
     [HttpGet]
@@ -305,6 +304,44 @@ public class QuotationController : ControllerBase
                 return NotFound();
 
             return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [Authorize(Roles = AppRoles.QuotationManagers)]
+    [HttpPut("{id:guid}/supplier-offers/{supplierId:guid}")]
+    public async Task<ActionResult<QuotationDto>> SetSupplierOfferFreight(
+        Guid id,
+        Guid supplierId,
+        [FromBody] UpdateQuotationSupplierOfferDto dto)
+    {
+        try
+        {
+            var quotation = await _service.SetSupplierOfferFreightAsync(id, supplierId, dto.FreightValue);
+            return quotation == null ? NotFound() : Ok(quotation);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [Authorize(Roles = AppRoles.QuotationManagers)]
+    [HttpDelete("{id:guid}/supplier-offers/{supplierId:guid}")]
+    public async Task<IActionResult> DeleteSupplierOffer(Guid id, Guid supplierId)
+    {
+        try
+        {
+            return await _service.DeleteSupplierOfferAsync(id, supplierId)
+                ? NoContent()
+                : NotFound();
         }
         catch (InvalidOperationException ex)
         {

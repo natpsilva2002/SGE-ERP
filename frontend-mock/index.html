@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Mock visual navegável do SGE-ERP" />
+    <title>SGE-ERP · Mock visual</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="demo-ribbon">MOCK VISUAL · dados demonstrativos</div>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="brand"><span class="brand-mark">S</span><span><strong>SGE</strong><small>Estrutural</small></span></div>
+        <button class="sidebar-close" data-action="toggle-menu" aria-label="Fechar menu">×</button>
+        <nav class="main-nav" aria-label="Navegação principal">
+          <div class="nav-label">Operação</div>
+          <a class="nav-item active" href="#inicio" data-page="home"><span class="icon">⌂</span>Início</a>
+          <a class="nav-item" href="#solicitacoes" data-page="requests"><span class="icon">▤</span>Solicitações <b class="nav-count">12</b></a>
+          <a class="nav-item" href="#cotacoes" data-page="quotations"><span class="icon">◈</span>Cotações</a>
+          <a class="nav-item" href="#ordens-compra" data-page="purchase-orders"><span class="icon">▣</span>Ordens de Compra</a>
+          <a class="nav-item" href="#ordens-servico" data-page="service-orders"><span class="icon">⌁</span>Ordens de Serviço</a>
+          <a class="nav-item" href="#recebimentos" data-page="receipts"><span class="icon">✓</span>Recebimentos</a>
+          <div class="nav-label nav-label-spaced">Gestão</div>
+          <a class="nav-item" href="#financeiro" data-page="finance"><span class="icon">◫</span>Financeiro <b class="nav-count amber">4</b></a>
+          <a class="nav-item" href="#cadastros" data-page="registrations"><span class="icon">▦</span>Cadastros</a>
+          <a class="nav-item" href="#administracao" data-page="admin"><span class="icon">⚙</span>Administração</a>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="profile"><span class="avatar">MS</span><span><strong>Marina Silva</strong><small>Administrador</small></span><button class="icon-button" aria-label="Opções do perfil">•••</button></div>
+          <div class="build-note">Mock de proposta · 21 set 2026</div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar"><button class="menu-toggle" data-action="toggle-menu" aria-label="Abrir menu">☰</button><div class="breadcrumb">SGE / <span id="breadcrumb-current">Início</span></div><div class="topbar-actions"><button class="notes-toggle" data-action="toggle-notes">◎ Ver anotações da proposta</button><button class="icon-button notification" aria-label="Notificações">♢<i>3</i></button><span class="topbar-avatar">MS</span></div></header>
+        <div id="app" class="page-wrap"></div>
+      </main>
+    </div>
+    <div id="toast" class="toast" role="status"></div>
+    <div id="modal" class="modal-backdrop" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-header"><div><span class="eyebrow">Ação demonstrativa</span><h2 id="modal-title">Título</h2></div><button class="icon-button close-modal" data-action="close-modal" aria-label="Fechar">×</button></div><div id="modal-body"></div><div class="modal-footer"><button class="button secondary" data-action="close-modal">Cancelar</button><button class="button primary" data-action="modal-confirm">Confirmar ação</button></div></div></div>
+    <script src="script.js"></script>
+  </body>
+</html>

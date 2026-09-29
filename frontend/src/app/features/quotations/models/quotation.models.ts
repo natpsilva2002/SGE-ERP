@@ -16,6 +16,12 @@ export interface Quotation {
   secondApprovedByUserId?: string | null;
   secondApprovedByUserName?: string | null;
   attachments: QuotationAttachment[];
+  supplierOffers: QuotationSupplierOffer[];
+}
+
+export interface QuotationSupplierOffer {
+  supplierId: string;
+  freightValue: number;
 }
 
 export interface QuotationAttachment {
@@ -159,6 +165,8 @@ export interface PurchaseOrder {
   expectedDeliveryDate?: string | null;
   status: number;
   totalValue: number;
+  itemsSubtotal: number;
+  freightValue: number;
   amountPaid: number;
   amountPending: number;
   paymentStatus: number;

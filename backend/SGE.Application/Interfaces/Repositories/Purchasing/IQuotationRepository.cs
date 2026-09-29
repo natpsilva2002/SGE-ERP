@@ -15,5 +15,7 @@ public interface IQuotationRepository : IGenericRepository<Quotation>
 
     Task AddAttachmentAsync(QuotationAttachment attachment);
 
+    Task AddSupplierOfferAsync(QuotationSupplierOffer supplierOffer);
+
     void RemoveAttachment(QuotationAttachment attachment);
 }

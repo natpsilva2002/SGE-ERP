@@ -17,6 +17,8 @@ import {
 } from '../../models/purchase-order.models';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
 
+type ReceivingTab = 'all' | 'approval' | 'pending' | 'completed';
+
 @Component({
   selector: 'app-purchase-order-list',
   standalone: true,
@@ -36,10 +38,20 @@ export class PurchaseOrderListComponent implements OnInit {
   readonly loading = signal(false);
   readonly error = signal('');
   readonly purchaseOrders = signal<PurchaseOrder[]>([]);
+  readonly receivingTab = signal<ReceivingTab>('all');
+
+  readonly allCount = computed(() => this.purchaseOrders().length);
+  readonly awaitingApprovalCount = computed(() =>
+    this.purchaseOrders().filter((order) => this.isAwaitingApproval(order)).length);
+  readonly pendingReceivingCount = computed(() =>
+    this.purchaseOrders().filter((order) => this.isAwaitingReceiving(order)).length);
+  readonly completedReceivingCount = computed(() =>
+    this.purchaseOrders().filter((order) => this.isReceivingCompleted(order)).length);
 
   readonly filteredOrders = computed(() => {
     const search = this.searchControl.value.trim().toLowerCase();
     const status = this.statusControl.value;
+    const receivingTab = this.receivingTab();
 
     return this.purchaseOrders().filter((order) => {
       const matchesSearch = !search ||
@@ -51,8 +63,12 @@ export class PurchaseOrderListComponent implements OnInit {
         order.issueDate,
         this.startDateControl.value,
         this.endDateControl.value);
+      const matchesReceivingTab = receivingTab === 'all' ||
+        (receivingTab === 'approval' && this.isAwaitingApproval(order)) ||
+        (receivingTab === 'pending' && this.isAwaitingReceiving(order)) ||
+        (receivingTab === 'completed' && this.isReceivingCompleted(order));
 
-      return matchesSearch && matchesStatus && matchesDate;
+      return matchesSearch && matchesStatus && matchesDate && matchesReceivingTab;
     });
   });
 
@@ -99,6 +115,10 @@ export class PurchaseOrderListComponent implements OnInit {
     this.endDateControl.setValue('');
   }
 
+  selectReceivingTab(tab: ReceivingTab): void {
+    this.receivingTab.set(tab);
+  }
+
   money(value: number): string {
     return formatCurrency(value);
   }
@@ -127,5 +147,25 @@ export class PurchaseOrderListComponent implements OnInit {
     }
 
     return true;
+  }
+
+  private isReceivingCompleted(order: PurchaseOrder): boolean {
+    if (order.status === PurchaseOrderStatus.Received ||
+      order.status === PurchaseOrderStatus.Completed) {
+      return true;
+    }
+
+    return order.items.length > 0 &&
+      order.items.every((item) => item.quantityPending <= 0);
+  }
+
+  private isAwaitingReceiving(order: PurchaseOrder): boolean {
+    return !this.isReceivingCompleted(order);
+  }
+
+  private isAwaitingApproval(order: PurchaseOrder): boolean {
+    return order.paymentStatus === PurchaseOrderPaymentStatus.Unpaid &&
+      !order.isPaymentApproved &&
+      !order.paymentApprovedAt;
   }
 }

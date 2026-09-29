@@ -3,35 +3,36 @@
     <span class="eyebrow">Solicitacoes</span>
     <h1>Nova solicitacao de compra</h1>
   </div>
-  <a routerLink="/app/solicitacoes">Voltar</a>
 </section>
 
 <section class="form-card">
   <div *ngIf="loadingRefs()" class="state">Carregando cadastros...</div>
   <div *ngIf="error()" class="state error">{{ error() }}</div>
 
-  <form [formGroup]="form" (ngSubmit)="submit()" *ngIf="!loadingRefs()">
-    <label>
-      <span>Tipo</span>
-      <select formControlName="type">
-        <option *ngFor="let option of availableTypeOptions()" [ngValue]="option.value">
-          {{ option.label }}
-        </option>
-      </select>
-    </label>
+  <form class="create-form" [formGroup]="form" (ngSubmit)="submit()" *ngIf="!loadingRefs()">
+    <div class="form-grid form-grid--two">
+      <label>
+        <span>Tipo</span>
+        <select formControlName="type">
+          <option *ngFor="let option of availableTypeOptions()" [ngValue]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
 
-    <label>
-      <span>Obra</span>
-      <select formControlName="workId">
-        <option value="">Selecione</option>
-        <option *ngFor="let work of works()" [value]="work.id">
-          {{ work.code }} - {{ work.name }}
-        </option>
-      </select>
-    </label>
+      <label>
+        <span>Obra</span>
+        <select formControlName="workId">
+          <option value="">Selecione</option>
+          <option *ngFor="let work of works()" [value]="work.id">
+            {{ work.code }} - {{ work.name }}
+          </option>
+        </select>
+      </label>
+    </div>
 
     <ng-container *ngIf="form.controls.type.value === PurchaseRequestType.Material">
-      <label>
+      <label class="field-full">
         <span>Descricao</span>
         <textarea
           formControlName="description"
@@ -78,34 +79,35 @@
     </ng-container>
 
     <ng-container *ngIf="form.controls.type.value === PurchaseRequestType.Service">
-      <label>
-        <span>Servico</span>
-        <textarea formControlName="serviceDescription" rows="3"></textarea>
-      </label>
-
-      <label>
-        <span>Especificacao do servico</span>
-        <textarea formControlName="serviceSpecification" rows="4"></textarea>
-      </label>
-
-      <div class="form-grid">
-        <label>
-          <span>Quantidade prevista</span>
-          <input type="number" min="0.0001" step="0.0001" formControlName="serviceQuantity">
+      <div class="form-grid service-fields">
+        <label class="field-full">
+          <span>Servico</span>
+          <textarea
+            formControlName="serviceDescription"
+            rows="3"
+            placeholder="Ex.: Instalação elétrica do galpão"></textarea>
         </label>
 
-        <label>
-          <span>Unidade de medicao</span>
-          <select formControlName="serviceUnitOfMeasureId">
-            <option value="">Selecione uma unidade</option>
-            <option *ngFor="let unit of units()" [value]="unit.id">{{ unit.code }} — {{ unit.description }}</option>
-          </select>
+        <label class="field-full">
+          <span>Especificacao do servico</span>
+          <textarea
+            formControlName="serviceSpecification"
+            rows="4"
+            aria-describedby="service-specification-help"
+            placeholder="Descreva escopo, requisitos, local de execução e demais informações necessárias."></textarea>
+          <small id="service-specification-help" class="field-help">
+            Descreva escopo, requisitos, local de execução e demais informações necessárias.
+          </small>
         </label>
+
       </div>
     </ng-container>
 
-    <button type="submit" [disabled]="form.invalid || saving()">
-      {{ saving() ? 'Salvando...' : 'Salvar solicitacao' }}
-    </button>
+    <div class="form-actions">
+      <a class="cancel-action" routerLink="/app/solicitacoes">Cancelar</a>
+      <button class="primary-action" type="submit" [disabled]="form.invalid || saving()">
+        {{ saving() ? 'Salvando...' : 'Salvar solicitacao' }}
+      </button>
+    </div>
   </form>
 </section>

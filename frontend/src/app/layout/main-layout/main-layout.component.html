@@ -1,8 +1,8 @@
 <div class="app-shell">
   <header class="mobile-header">
     <a class="mobile-brand" routerLink="/app" aria-label="SGE ERP">
-      <span class="brand-mark">SGE</span>
-      <span class="brand-name">ERP</span>
+      <span class="brand-mark">S</span>
+      <span class="brand-lockup"><strong>SGE</strong><small>Estrutural</small></span>
     </a>
 
     <button class="menu-button" type="button" aria-label="Abrir menu principal" (click)="openDrawer()">
@@ -12,8 +12,8 @@
 
   <aside class="sidebar" aria-label="Menu principal">
     <a class="brand" routerLink="/app" aria-label="SGE ERP">
-      <span class="brand-mark">SGE</span>
-      <span class="brand-name">ERP</span>
+      <span class="brand-mark">S</span>
+      <span class="brand-lockup"><strong>SGE</strong><small>Estrutural</small></span>
     </a>
 
     <nav class="nav" aria-label="Menu principal">
@@ -26,13 +26,23 @@
         {{ item.label }}
       </a>
     </nav>
+
+    <div class="sidebar-account" *ngIf="user$ | async as user">
+      <span class="sidebar-avatar" aria-hidden="true">{{ user.name.slice(0, 2).toUpperCase() }}</span>
+      <span class="sidebar-account-copy">
+        <strong>{{ user.name }}</strong>
+        <small>{{ user.role }}</small>
+      </span>
+      <span class="sidebar-account-menu" aria-hidden="true">•••</span>
+    </div>
   </aside>
 
   <div class="main">
     <header class="topbar">
-      <div class="topbar-title">SGE-ERP</div>
+      <div class="topbar-context"><span>SGE /</span><strong class="topbar-title">SGE-ERP</strong></div>
 
       <div class="user-area" *ngIf="user$ | async as user">
+        <span class="topbar-avatar" aria-hidden="true">{{ user.name.slice(0, 2).toUpperCase() }}</span>
         <div class="user-meta">
           <span class="user-name">{{ user.name }}</span>
           <span class="user-role">{{ user.role }}</span>
@@ -52,8 +62,8 @@
 <aside class="mobile-drawer" *ngIf="drawerOpen" aria-label="Menu principal mobile">
   <div class="drawer-header">
     <a class="mobile-brand" routerLink="/app" aria-label="SGE ERP" (click)="closeDrawer()">
-      <span class="brand-mark">SGE</span>
-      <span class="brand-name">ERP</span>
+      <span class="brand-mark">S</span>
+      <span class="brand-lockup"><strong>SGE</strong><small>Estrutural</small></span>
     </a>
 
     <button class="close-button" type="button" aria-label="Fechar menu principal" (click)="closeDrawer()">

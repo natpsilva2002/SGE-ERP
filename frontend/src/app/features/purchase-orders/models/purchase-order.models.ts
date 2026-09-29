@@ -44,6 +44,8 @@ export interface PurchaseOrder {
   expectedDeliveryDate?: string | null;
   status: PurchaseOrderStatus;
   totalValue: number;
+  itemsSubtotal: number;
+  freightValue: number;
   amountPaid: number;
   amountPending: number;
   paymentStatus: PurchaseOrderPaymentStatus;

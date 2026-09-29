@@ -9,8 +9,50 @@
 }
 
 .page-header {
+  background: transparent;
+  border: 0;
   margin-bottom: 16px;
-  padding: 22px;
+  padding: 0 0 4px;
+}
+
+.page-header p {
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+
+.tabbar {
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 25px;
+  margin-bottom: 20px;
+  overflow: visible;
+}
+
+.tabbar .tab {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-weight: 400;
+  min-height: 0;
+  padding: 0 1px 12px;
+  position: relative;
+}
+
+.tabbar .tab.active {
+  color: var(--primary-strong);
+  font-weight: 800;
+}
+
+.tabbar .tab.active::after {
+  background: var(--primary);
+  bottom: -1px;
+  content: '';
+  height: 2px;
+  left: 0;
+  position: absolute;
+  right: 0;
 }
 
 .eyebrow {
@@ -27,11 +69,15 @@ h1 {
 
 .toolbar {
   align-items: end;
+  background: transparent !important;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(220px, 1fr) 180px 160px 160px auto auto;
   margin-bottom: 16px;
-  padding: 16px;
+  padding: 0;
 }
 
 label {
@@ -98,31 +144,125 @@ button.secondary {
 
 .table-wrap {
   max-width: 100%;
-  overflow-x: auto;
+  overflow: hidden;
 }
 
-table {
+.table-card table {
   border-collapse: collapse;
-  min-width: 980px;
+  min-width: 0;
+  table-layout: fixed;
   width: 100%;
 }
 
-th,
-td {
+.table-card th,
+.table-card td {
   border-bottom: 1px solid var(--border);
-  padding: 13px 14px;
+  padding: 10px 8px !important;
   text-align: left;
 }
 
-th {
+.table-card th {
   background: var(--surface-muted);
   color: var(--muted);
-  font-size: 12px;
+  font-size: 10px;
   text-transform: uppercase;
 }
 
-td {
+.table-card td {
+  font-size: 11px;
   overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.table-card th:nth-child(1),
+.table-card td:nth-child(1) { width: 16%; }
+.table-card th:nth-child(2),
+.table-card td:nth-child(2) { width: 11%; }
+.table-card th:nth-child(3),
+.table-card td:nth-child(3) { width: 12%; }
+.table-card th:nth-child(4),
+.table-card td:nth-child(4) { width: 8%; }
+.table-card th:nth-child(5),
+.table-card td:nth-child(5) { width: 10%; }
+.table-card th:nth-child(6),
+.table-card td:nth-child(6) { width: 12%; }
+.table-card th:nth-child(7),
+.table-card td:nth-child(7) { width: 10%; }
+.table-card th:nth-child(8),
+.table-card td:nth-child(8) { width: 10%; }
+.table-card th:nth-child(9),
+.table-card td:nth-child(9) { width: 7%; }
+.table-card th:nth-child(10),
+.table-card td:nth-child(10) { width: 4%; }
+
+.order-number,
+.money-cell,
+.badge-cell,
+.receiving-cell,
+.date-cell,
+.action-cell,
+.badge,
+.action-link {
+  white-space: nowrap;
+}
+
+.order-number {
+  min-width: 0;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.supplier-cell,
+.work-cell {
+  overflow-wrap: normal;
+  white-space: normal;
+}
+
+.money-cell {
+  min-width: 0;
+}
+
+.badge-cell {
+  min-width: 0;
+}
+
+.receiving-cell {
+  min-width: 0;
+}
+
+.date-cell {
+  min-width: 0;
+}
+
+.origin-cell {
+  max-width: none;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.action-cell {
+  min-width: 0;
+}
+
+.table-card .money-cell,
+.table-card .receiving-cell,
+.table-card .date-cell,
+.table-card .action-cell,
+.table-card .badge,
+.table-card .action-link {
+  white-space: nowrap;
+}
+
+.table-card .badge {
+  font-size: 9px;
+  gap: 3px;
+  padding: 2px 3px;
+}
+
+.table-card .action-link {
+  font-size: 10px;
+  min-height: 30px;
+  padding: 2px 3px;
 }
 
 .table-link {

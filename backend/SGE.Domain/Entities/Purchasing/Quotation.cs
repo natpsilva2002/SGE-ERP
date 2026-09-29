@@ -36,6 +36,9 @@ public class Quotation : BaseSoftDeleteEntity
     public ICollection<QuotationAttachment> Attachments { get; private set; } =
         new List<QuotationAttachment>();
 
+    public ICollection<QuotationSupplierOffer> SupplierOffers { get; private set; } =
+        new List<QuotationSupplierOffer>();
+
     public bool IsEditable => Status != QuotationStatus.Approved &&
         Status != QuotationStatus.Completed;
 

@@ -1,19 +1,63 @@
-<section class="page-header">
-  <div>
-    <span class="eyebrow">Ordem de Compra</span>
-    <h1>{{ purchaseOrder()?.number || 'OC' }}</h1>
-  </div>
-  <a routerLink="/app/ordens-compra">Voltar</a>
-</section>
-
 <div *ngIf="loading()" class="state">Carregando ordem de compra...</div>
 <div *ngIf="!loading() && error()" class="state error">{{ error() }}</div>
 
 <ng-container *ngIf="!loading() && !error() && purchaseOrder() as order">
+  <section class="page-header">
+    <div>
+      <span class="eyebrow">Ordem de Compra</span>
+      <h1>{{ order.number }}</h1>
+      <p class="page-meta">
+        {{ order.workName || 'Obra não informada' }} · criado em {{ order.issueDate | date: 'dd/MM/yyyy HH:mm' }} · responsável {{ order.requestedByUserName || 'Não informado' }}
+      </p>
+    </div>
+    <div class="page-header-actions">
+      <a routerLink="/app/ordens-compra">Voltar</a>
+
+      <section class="actions-card header-actions" *ngIf="canMarkAsSent(order) || canDownloadPdf(order) || canReceive(order) || canApprovePayment(order) || canRegisterPayment(order)">
+        <button *ngIf="canFirstApprove(order)" type="button" [disabled]="saving()" (click)="approve(order, 1)">
+          Realizar 1ª aprovacao
+        </button>
+        <button *ngIf="canSecondApprove(order)" type="button" [disabled]="saving()" (click)="approve(order, 2)">
+          Realizar 2ª aprovacao
+        </button>
+        <p *ngIf="waitingForOtherApprover(order)" class="approval-note">
+          Aguardando aprovacao de outro aprovador.
+        </p>
+        <button *ngIf="canDownloadPdf(order)" type="button" class="secondary" [disabled]="downloading()" (click)="downloadPdf(order)">
+          Baixar Ordem de Compra
+        </button>
+        <button *ngIf="canMarkAsSent(order)" type="button" [disabled]="saving()" (click)="markAsSent(order)">
+          Marcar como enviada
+        </button>
+        <button *ngIf="canReceive(order)" type="button" [disabled]="saving()" (click)="openReceiptDialog(order)">
+          Registrar recebimento
+        </button>
+        <button *ngIf="canApprovePayment(order)" type="button" [disabled]="saving()" (click)="approvePayment(order)">
+          Aprovar pagamento
+        </button>
+        <button *ngIf="canRegisterPayment(order)" type="button" [disabled]="saving()" (click)="openPaymentDialog(order)">
+          Registrar pagamento
+        </button>
+      </section>
+    </div>
+  </section>
+
   <section class="summary-grid">
     <div>
       <span>Numero da OC</span>
       <strong>{{ order.number }}</strong>
+    </div>
+    <div>
+      <span>Obra</span>
+      <strong>{{ order.workName || 'Nao informada' }}</strong>
+    </div>
+    <div>
+      <span>Fornecedor</span>
+      <strong>{{ order.supplierName || 'Nao informado' }}</strong>
+    </div>
+    <div>
+      <span>Valor total</span>
+      <strong>{{ money(order.totalValue) }}</strong>
     </div>
     <div>
       <span>Data</span>
@@ -23,273 +67,298 @@
       <span>Status</span>
       <strong class="badge status-{{ order.status }}">{{ statusLabel(order.status) }}</strong>
     </div>
-    <div>
-      <span>Fornecedor</span>
-      <strong>{{ order.supplierName || 'Nao informado' }}</strong>
-    </div>
   </section>
 
-  <section class="actions-card header-actions" *ngIf="canMarkAsSent(order) || canDownloadPdf(order) || canReceive(order) || canApprovePayment(order) || canRegisterPayment(order)">
-    <button *ngIf="canFirstApprove(order)" type="button" [disabled]="saving()" (click)="approve(order, 1)">
-      Realizar 1ª aprovacao
-    </button>
-    <button *ngIf="canSecondApprove(order)" type="button" [disabled]="saving()" (click)="approve(order, 2)">
-      Realizar 2ª aprovacao
-    </button>
-    <p *ngIf="waitingForOtherApprover(order)" class="approval-note">
-      Aguardando aprovacao de outro aprovador.
-    </p>
-    <button *ngIf="canDownloadPdf(order)" type="button" class="secondary" [disabled]="downloading()" (click)="downloadPdf(order)">
-      Baixar Ordem de Compra
-    </button>
-    <button *ngIf="canMarkAsSent(order)" type="button" [disabled]="saving()" (click)="markAsSent(order)">
-      Marcar como enviada
-    </button>
-    <button *ngIf="canReceive(order)" type="button" [disabled]="saving()" (click)="openReceiptDialog(order)">
-      Registrar recebimento
-    </button>
-    <button *ngIf="canApprovePayment(order)" type="button" [disabled]="saving()" (click)="approvePayment(order)">
-      Aprovar pagamento
-    </button>
-    <button *ngIf="canRegisterPayment(order)" type="button" [disabled]="saving()" (click)="openPaymentDialog(order)">
-      Registrar pagamento
-    </button>
-  </section>
-
-  <section class="content-grid">
-    <article class="content-card">
-      <h2>Origem</h2>
-      <dl>
-        <div>
-          <dt>Solicitacao</dt>
-          <dd>
-            <a [routerLink]="['/app/solicitacoes', order.purchaseRequestId]">
-              {{ order.purchaseRequestNumber || order.purchaseRequestId }}
-            </a>
-          </dd>
-        </div>
-        <div>
-          <dt>Cotacao</dt>
-          <dd>
-            <a [routerLink]="['/app/cotacoes', order.quotationId]">
-              {{ order.quotationNumber || order.quotationId }}
-            </a>
-          </dd>
-        </div>
-        <div>
-          <dt>Obra</dt>
-          <dd>{{ order.workName || 'Nao informada' }}</dd>
-        </div>
-        <div>
-          <dt>Descrição da solicitação</dt>
-          <dd>{{ order.purchaseRequestDescription || 'Não informada' }}</dd>
-        </div>
-      </dl>
-    </article>
-
-    <article class="content-card">
-      <h2>Fornecedor</h2>
-      <dl>
-        <div>
-          <dt>Razao social / Nome</dt>
-          <dd>{{ order.supplierName || 'Nao informado' }}</dd>
-        </div>
-        <div>
-          <dt>CNPJ</dt>
-          <dd>{{ formatCnpj(order.supplierDocument) }}</dd>
-        </div>
-      </dl>
-    </article>
-  </section>
-
-  <section class="content-card po-approval-legacy">
-    <h2>Aprovações</h2>
-    <div class="metric-grid approval-grid">
-      <div>
-        <span>1ª aprovação</span>
-        <strong>{{ approverName(order.firstApprovedByUserName) }}</strong>
-        <small>{{ order.firstApprovedAt ? (order.firstApprovedAt | date: 'dd/MM/yyyy HH:mm') : 'Pendente' }}</small>
-      </div>
-      <div>
-        <span>2ª aprovação</span>
-        <strong>{{ approverName(order.secondApprovedByUserName) }}</strong>
-        <small>{{ order.secondApprovedAt ? (order.secondApprovedAt | date: 'dd/MM/yyyy HH:mm') : 'Pendente' }}</small>
-      </div>
-    </div>
-  </section>
-
-  <section class="content-card" *ngIf="hasFinanceRole()">
-    <h2>Dados comerciais</h2>
-    <div class="metric-grid">
-      <div>
-        <span>Prazo de entrega</span>
-        <strong>{{ delivery(order.deliveryDays) }}</strong>
-      </div>
-      <div>
-        <span>Condicao de pagamento</span>
-        <strong>{{ order.paymentCondition || '-' }}</strong>
-      </div>
-      <div>
-        <span>Parcelas</span>
-        <strong>{{ installments(order.installmentCount) }}</strong>
-      </div>
-    </div>
-  </section>
-
-  <section class="content-card">
-    <h2>Itens da OC</h2>
-    <div class="items-list">
-      <article class="item-card" *ngFor="let item of order.items">
-        <header>
-          <strong>{{ item.itemDescription || item.itemId }}</strong>
-          <span>{{ item.quantityOrdered }} {{ item.unit }}</span>
-        </header>
-        <div class="metric-grid item-metrics" *ngIf="hasFinanceRole()">
+  <section class="detail-grid">
+    <div class="detail-main">
+      <article class="content-card" *ngIf="hasFinanceRole()">
+        <h2>Resumo</h2>
+        <div class="metric-grid summary-metrics">
           <div>
-            <span>Total negociado</span>
-            <strong>{{ money(item.totalValue) }}</strong>
+            <span>Prazo de entrega</span>
+            <strong>{{ delivery(order.deliveryDays) }}</strong>
           </div>
           <div>
-            <span>Unitario calculado</span>
-            <strong>{{ money(item.unitPrice) }}</strong>
+            <span>Condicao de pagamento</span>
+            <strong>{{ order.paymentCondition || '-' }}</strong>
           </div>
           <div>
-            <span>Recebido</span>
-            <strong>{{ item.quantityReceived }} {{ item.unit }}</strong>
+            <span>Parcelas</span>
+            <strong>{{ installments(order.installmentCount) }}</strong>
+          </div>
+        </div>
+      </article>
+
+      <article class="content-card">
+        <h2>Itens da OC</h2>
+        <div class="items-table-wrap">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Qtd.</th>
+                <th>Unidade</th>
+                <th>Observacao</th>
+              </tr>
+            </thead>
+            <tbody>
+              <ng-container *ngFor="let item of order.items">
+                <tr>
+                  <td class="item-name">{{ item.itemDescription || item.itemId }}</td>
+                  <td>{{ item.quantityOrdered }}</td>
+                  <td>{{ item.unit }}</td>
+                  <td>{{ item.observation || '-' }}</td>
+                </tr>
+                <tr *ngIf="hasFinanceRole()" class="item-financial-row">
+                  <td colspan="4">
+                    <div class="item-financial-grid">
+                      <div>
+                        <span>Total negociado</span>
+                        <strong>{{ money(item.totalValue) }}</strong>
+                      </div>
+                      <div>
+                        <span>Unitario</span>
+                        <strong>{{ money(item.unitPrice) }}</strong>
+                      </div>
+                      <div>
+                        <span>Recebido</span>
+                        <strong>{{ item.quantityReceived }} {{ item.unit }}</strong>
+                      </div>
+                      <div>
+                        <span>Pendente</span>
+                        <strong>{{ item.quantityPending }} {{ item.unit }}</strong>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </ng-container>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="content-card" *ngIf="hasFinanceRole()">
+        <h2>Financeiro</h2>
+        <div class="metric-grid finance-metrics">
+          <div>
+            <span>Subtotal dos materiais</span>
+            <strong>{{ money(order.itemsSubtotal) }}</strong>
+          </div>
+          <div>
+            <span>Frete</span>
+            <strong>{{ money(order.freightValue) }}</strong>
+          </div>
+          <div>
+            <span>Valor total</span>
+            <strong>{{ money(order.totalValue) }}</strong>
+          </div>
+          <div>
+            <span>Pago</span>
+            <strong>{{ money(order.amountPaid) }}</strong>
           </div>
           <div>
             <span>Pendente</span>
-            <strong>{{ item.quantityPending }} {{ item.unit }}</strong>
+            <strong>{{ money(order.amountPending) }}</strong>
+          </div>
+          <div>
+            <span>Status</span>
+            <strong class="badge payment-{{ order.paymentStatus }}">{{ financialStatusLabel(order) }}</strong>
+          </div>
+          <div>
+            <span>Aprovacao do pagamento</span>
+            <strong>{{ order.paymentApprovedAt ? 'Pagamento autorizado' : 'Aguardando aprovacao' }}</strong>
+          </div>
+          <div>
+            <span>Aprovado por</span>
+            <strong>{{ approverName(order.paymentApprovedByUserName) }}</strong>
+          </div>
+          <div>
+            <span>Data da aprovacao</span>
+            <strong>{{ order.paymentApprovedAt ? (order.paymentApprovedAt | date: 'dd/MM/yyyy HH:mm') : '-' }}</strong>
           </div>
         </div>
-        <p *ngIf="item.observation">Observacao: {{ item.observation }}</p>
+      </article>
+
+      <article class="content-card">
+        <h2>Recebimento</h2>
+        <div class="metric-grid receiving-metrics">
+          <div>
+            <span>Quantidade pedida</span>
+            <strong>{{ totalOrdered(order) }}</strong>
+          </div>
+          <div>
+            <span>Quantidade recebida</span>
+            <strong>{{ totalReceived(order) }}</strong>
+          </div>
+          <div>
+            <span>Quantidade pendente</span>
+            <strong>{{ totalPending(order) }}</strong>
+          </div>
+          <div>
+            <span>Status logistico</span>
+            <strong class="badge status-{{ order.status }}">{{ statusLabel(order.status) }}</strong>
+          </div>
+          <div>
+            <span>Status recebimento</span>
+            <strong>{{ receivingStatusLabel(order) }}</strong>
+          </div>
+        </div>
+      </article>
+
+      <article class="content-card">
+        <h2>Recebimentos</h2>
+        <div *ngIf="receipts().length === 0" class="empty-list">
+          Nenhum recebimento registrado.
+        </div>
+
+        <div class="receipts-list" *ngIf="receipts().length > 0">
+          <article class="receipt-card" *ngFor="let receipt of receipts(); let index = index">
+            <header>
+              <div>
+                <strong>Recebimento #{{ receipts().length - index }}</strong>
+                <span>{{ receipt.receiptDate | date: 'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              <span class="badge status-2">{{ receiptStatusLabel(receipt.status) }}</span>
+            </header>
+
+            <dl>
+              <div>
+                <dt>Recebido por</dt>
+                <dd>{{ approverName(receipt.receivedByUserName) }}</dd>
+              </div>
+              <div>
+                <dt>Nota fiscal</dt>
+                <dd>{{ receipt.invoiceNumber || '-' }}</dd>
+              </div>
+              <div *ngIf="receipt.invoiceFileName">
+                <dt>Arquivo da NF</dt>
+                <dd>
+                  <button type="button" class="secondary inline-button" (click)="downloadInvoice(receipt)">
+                    Baixar NF
+                  </button>
+                </dd>
+              </div>
+            </dl>
+
+            <div class="receipt-items">
+              <div *ngFor="let item of receipt.items">
+                <strong>{{ item.itemDescription || 'Material' }}</strong>
+                <span>Esperado: {{ expectedQuantity(order, item.purchaseOrderItemId) }} {{ item.unit }}</span>
+                <span>Recebido: {{ item.quantityReceived }} {{ item.unit }}</span>
+                <strong *ngIf="item.hasDivergence" class="divergence-alert">Divergencia: +{{ item.divergenceQuantity }} {{ item.unit }}</strong>
+                <small *ngIf="item.observation">{{ item.observation }}</small>
+              </div>
+            </div>
+          </article>
+        </div>
+      </article>
+
+      <article class="content-card" *ngIf="payments().length > 0">
+        <div class="section-title"><h2>Pagamentos registrados</h2></div>
+        <article class="receipt-card" *ngFor="let payment of payments()">
+          <strong>{{ money(payment.amount) }}</strong>
+          <span>{{ payment.paymentDate | date: 'dd/MM/yyyy HH:mm' }} · {{ paymentMethodLabel(payment.paymentMethod) }}</span>
+          <span>Registrado por: {{ payment.paidByUserName || 'Nao informado' }}</span>
+          <div class="card-actions" *ngFor="let attachment of payment.attachments">
+            <span>{{ attachment.originalFileName }}</span>
+            <button type="button" class="secondary" (click)="downloadPaymentAttachment(payment, attachment)">Baixar</button>
+            <button *ngIf="canManagePaymentAttachments()" type="button" class="danger" (click)="deletePaymentAttachment(payment, attachment)">Excluir</button>
+          </div>
+        </article>
       </article>
     </div>
-  </section>
 
-  <section class="content-grid">
-    <article class="content-card" *ngIf="hasFinanceRole()">
-      <h2>Financeiro</h2>
-      <div class="metric-grid">
-        <div>
-          <span>Valor total</span>
-          <strong>{{ money(order.totalValue) }}</strong>
-        </div>
-        <div>
-          <span>Pago</span>
-          <strong>{{ money(order.amountPaid) }}</strong>
-        </div>
-        <div>
-          <span>Pendente</span>
-          <strong>{{ money(order.amountPending) }}</strong>
-        </div>
-        <div>
-          <span>Status</span>
-          <strong class="badge payment-{{ order.paymentStatus }}">{{ financialStatusLabel(order) }}</strong>
-        </div>
-        <div>
-          <span>Aprovacao do pagamento</span>
-          <strong>{{ order.paymentApprovedAt ? 'Pagamento autorizado' : 'Aguardando aprovacao' }}</strong>
-        </div>
-        <div>
-          <span>Aprovado por</span>
-          <strong>{{ approverName(order.paymentApprovedByUserName) }}</strong>
-        </div>
-        <div>
-          <span>Data da aprovacao</span>
-          <strong>{{ order.paymentApprovedAt ? (order.paymentApprovedAt | date: 'dd/MM/yyyy HH:mm') : '-' }}</strong>
-        </div>
-      </div>
-
-    </article>
-
-    <article class="content-card">
-      <h2>Recebimento</h2>
-      <div class="metric-grid">
-        <div>
-          <span>Quantidade pedida</span>
-          <strong>{{ totalOrdered(order) }}</strong>
-        </div>
-        <div>
-          <span>Quantidade recebida</span>
-          <strong>{{ totalReceived(order) }}</strong>
-        </div>
-        <div>
-          <span>Quantidade pendente</span>
-          <strong>{{ totalPending(order) }}</strong>
-        </div>
-        <div>
-          <span>Status logistico</span>
-          <strong class="badge status-{{ order.status }}">{{ statusLabel(order.status) }}</strong>
-        </div>
-        <div>
-          <span>Status recebimento</span>
-          <strong>{{ receivingStatusLabel(order) }}</strong>
-        </div>
-      </div>
-    </article>
-  </section>
-
-  <section class="content-card">
-    <h2>Recebimentos</h2>
-    <div *ngIf="receipts().length === 0" class="empty-list">
-      Nenhum recebimento registrado.
-    </div>
-
-    <div class="receipts-list" *ngIf="receipts().length > 0">
-      <article class="receipt-card" *ngFor="let receipt of receipts(); let index = index">
-        <header>
-          <div>
-            <strong>Recebimento #{{ receipts().length - index }}</strong>
-            <span>{{ receipt.receiptDate | date: 'dd/MM/yyyy HH:mm' }}</span>
-          </div>
-          <span class="badge status-2">{{ receiptStatusLabel(receipt.status) }}</span>
-        </header>
-
+    <aside class="detail-side">
+      <article class="content-card">
+        <h2>Informações complementares</h2>
         <dl>
           <div>
-            <dt>Recebido por</dt>
-            <dd>{{ approverName(receipt.receivedByUserName) }}</dd>
+            <dt>Fornecedor</dt>
+            <dd>{{ order.supplierName || 'Nao informado' }}</dd>
           </div>
           <div>
-            <dt>Nota fiscal</dt>
-            <dd>{{ receipt.invoiceNumber || '-' }}</dd>
+            <dt>CNPJ</dt>
+            <dd>{{ formatCnpj(order.supplierDocument) }}</dd>
           </div>
-          <div *ngIf="receipt.invoiceFileName">
-            <dt>Arquivo da NF</dt>
-            <dd>
-              <button type="button" class="secondary inline-button" (click)="downloadInvoice(receipt)">
-                Baixar NF
-              </button>
-            </dd>
+          <div>
+            <dt>Descrição da solicitação</dt>
+            <dd>{{ order.purchaseRequestDescription || 'Não informada' }}</dd>
           </div>
         </dl>
+      </article>
 
-        <div class="receipt-items">
-          <div *ngFor="let item of receipt.items">
-            <strong>{{ item.itemDescription || 'Material' }}</strong>
-            <span>Esperado: {{ expectedQuantity(order, item.purchaseOrderItemId) }} {{ item.unit }}</span>
-            <span>Recebido: {{ item.quantityReceived }} {{ item.unit }}</span>
-            <strong *ngIf="item.hasDivergence" class="divergence-alert">Divergencia: +{{ item.divergenceQuantity }} {{ item.unit }}</strong>
-            <small *ngIf="item.observation">{{ item.observation }}</small>
+      <article class="content-card">
+        <h2>Origem</h2>
+        <dl>
+          <div>
+            <dt>Solicitacao</dt>
+            <dd>
+              <a [routerLink]="['/app/solicitacoes', order.purchaseRequestId]">
+                {{ order.purchaseRequestNumber || order.purchaseRequestId }}
+              </a>
+            </dd>
+          </div>
+          <div>
+            <dt>Cotacao</dt>
+            <dd>
+              <a [routerLink]="['/app/cotacoes', order.quotationId]">
+                {{ order.quotationNumber || order.quotationId }}
+              </a>
+            </dd>
+          </div>
+          <div>
+            <dt>Obra</dt>
+            <dd>{{ order.workName || 'Nao informada' }}</dd>
+          </div>
+        </dl>
+      </article>
+
+      <article class="content-card">
+        <h2>Aprovações</h2>
+        <div class="metric-grid approval-grid">
+          <div>
+            <span>1ª aprovação</span>
+            <strong>{{ approverName(order.firstApprovedByUserName) }}</strong>
+            <small>{{ order.firstApprovedAt ? (order.firstApprovedAt | date: 'dd/MM/yyyy HH:mm') : 'Pendente' }}</small>
+          </div>
+          <div>
+            <span>2ª aprovação</span>
+            <strong>{{ approverName(order.secondApprovedByUserName) }}</strong>
+            <small>{{ order.secondApprovedAt ? (order.secondApprovedAt | date: 'dd/MM/yyyy HH:mm') : 'Pendente' }}</small>
           </div>
         </div>
       </article>
-    </div>
-  </section>
 
-  <section class="content-card" *ngIf="payments().length > 0">
-    <div class="section-title"><h2>Pagamentos registrados</h2></div>
-    <article class="receipt-card" *ngFor="let payment of payments()">
-      <strong>{{ money(payment.amount) }}</strong>
-      <span>{{ payment.paymentDate | date: 'dd/MM/yyyy HH:mm' }} · {{ paymentMethodLabel(payment.paymentMethod) }}</span>
-      <span>Registrado por: {{ payment.paidByUserName || 'Nao informado' }}</span>
-      <div class="card-actions" *ngFor="let attachment of payment.attachments">
-        <span>{{ attachment.originalFileName }}</span>
-        <button type="button" class="secondary" (click)="downloadPaymentAttachment(payment, attachment)">Baixar</button>
-        <button *ngIf="canManagePaymentAttachments()" type="button" class="danger" (click)="deletePaymentAttachment(payment, attachment)">Excluir</button>
-      </div>
-    </article>
+      <article class="content-card history-card" *ngIf="order.issueDate || order.firstApprovedAt || order.secondApprovedAt || order.paymentApprovedAt || payments().length > 0 || receipts().length > 0">
+        <h2>Histórico</h2>
+        <ol class="timeline">
+          <li *ngIf="order.issueDate">
+            <strong>Ordem emitida</strong>
+            <span>{{ order.issueDate | date: 'dd/MM/yyyy HH:mm' }}</span>
+          </li>
+          <li *ngIf="order.firstApprovedAt">
+            <strong>1ª aprovação</strong>
+            <span>{{ approverName(order.firstApprovedByUserName) }} · {{ order.firstApprovedAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+          </li>
+          <li *ngIf="order.secondApprovedAt">
+            <strong>2ª aprovação</strong>
+            <span>{{ approverName(order.secondApprovedByUserName) }} · {{ order.secondApprovedAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+          </li>
+          <li *ngIf="order.paymentApprovedAt">
+            <strong>Pagamento autorizado</strong>
+            <span>{{ approverName(order.paymentApprovedByUserName) }} · {{ order.paymentApprovedAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+          </li>
+          <li *ngFor="let payment of payments().slice().reverse()">
+            <strong>Pagamento registrado · {{ money(payment.amount) }}</strong>
+            <span>{{ payment.paidByUserName || 'Nao informado' }} · {{ payment.paymentDate | date: 'dd/MM/yyyy HH:mm' }}</span>
+          </li>
+          <li *ngFor="let receipt of receipts()">
+            <strong>Recebimento registrado</strong>
+            <span>{{ approverName(receipt.receivedByUserName) }} · {{ receipt.receiptDate | date: 'dd/MM/yyyy HH:mm' }}</span>
+          </li>
+        </ol>
+      </article>
+    </aside>
   </section>
 
   <div class="payment-modal-backdrop" *ngIf="showPaymentDialog()" (click)="closePaymentDialog()">

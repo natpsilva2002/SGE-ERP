@@ -1,0 +1,21 @@
+<section class="home-page">
+  <header class="home-context">
+    <div>
+      <span class="eyebrow">Painel operacional</span>
+      <h1>Início</h1>
+      <p>Acompanhe o que precisa de atenção e os próximos movimentos da operação.</p>
+    </div>
+  </header>
+
+  <nav class="home-tabs" aria-label="Visões do início">
+    <a routerLink="/app" [queryParams]="{ tab: 'overview' }" [class.active]="tab() === 'overview'">
+      Visão Geral
+    </a>
+    <a *ngIf="canSeeWorkCosts" routerLink="/app" [queryParams]="{ tab: 'work-costs' }" [class.active]="tab() === 'work-costs'">
+      Gastos por Obra
+    </a>
+  </nav>
+
+  <app-dashboard-page *ngIf="tab() === 'overview'" />
+  <app-work-costs-page *ngIf="tab() === 'work-costs' && canSeeWorkCosts" />
+</section>

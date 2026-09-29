@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SGE.Application.DTOs.Receipt;
 using SGE.Application.Interfaces.Services.Purchasing;
 using SGE.Application.Security;
+using SGE.API.Services.FileStorage;
 
 namespace SGE.API.Controllers.Purchasing;
 
@@ -28,14 +29,14 @@ public class ReceiptController : ControllerBase
     };
 
     private readonly IReceiptService _service;
-    private readonly IWebHostEnvironment _environment;
+    private readonly IFileStorage _fileStorage;
 
     public ReceiptController(
         IReceiptService service,
-        IWebHostEnvironment environment)
+        IFileStorage fileStorage)
     {
         _service = service;
-        _environment = environment;
+        _fileStorage = fileStorage;
     }
 
     [HttpGet]
@@ -73,43 +74,31 @@ public class ReceiptController : ControllerBase
         [FromForm] string? invoiceNumber,
         [FromForm] IFormFile? file)
     {
+        string? storedKey = null;
         try
         {
             if (string.IsNullOrWhiteSpace(invoiceNumber) && file == null)
                 throw new ArgumentException(
                     "Informe o numero da nota fiscal ou anexe o arquivo da nota fiscal.");
 
-            string? storedFileName = null;
-            string? fullPath = null;
-            string? relativePath = null;
-
             if (file != null)
             {
                 ValidateInvoiceFile(file);
 
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-                storedFileName = $"{Guid.NewGuid():N}{extension}";
-                var uploadRoot = GetInvoiceUploadRoot();
-                Directory.CreateDirectory(uploadRoot);
-                fullPath = Path.Combine(uploadRoot, storedFileName);
-
-                await using var stream = System.IO.File.Create(fullPath);
-                await file.CopyToAsync(stream);
-
-                relativePath = Path.Combine("uploads", "receipts", storedFileName);
+                await using var stream = file.OpenReadStream();
+                storedKey = await _fileStorage.UploadAsync(stream, $"receipts/purchase-orders/{id:N}/invoices", extension, file.ContentType, HttpContext.RequestAborted);
             }
 
             var receipt = await _service.AttachInvoiceAsync(
                 id,
                 invoiceNumber,
                 file == null ? null : Path.GetFileName(file.FileName),
-                relativePath);
+                storedKey);
 
             if (receipt == null)
             {
-                if (!string.IsNullOrWhiteSpace(fullPath) &&
-                    System.IO.File.Exists(fullPath))
-                    System.IO.File.Delete(fullPath);
+                if (storedKey != null) await _fileStorage.DeleteAsync(storedKey, HttpContext.RequestAborted);
 
                 return NotFound();
             }
@@ -118,11 +107,18 @@ public class ReceiptController : ControllerBase
         }
         catch (ArgumentException ex)
         {
+            if (storedKey != null) await _fileStorage.DeleteAsync(storedKey, HttpContext.RequestAborted);
             return BadRequest(new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
+            if (storedKey != null) await _fileStorage.DeleteAsync(storedKey, HttpContext.RequestAborted);
             return BadRequest(new { message = ex.Message });
+        }
+        catch
+        {
+            if (storedKey != null) await _fileStorage.DeleteAsync(storedKey, HttpContext.RequestAborted);
+            throw;
         }
     }
 
@@ -135,17 +131,10 @@ public class ReceiptController : ControllerBase
         if (invoice == null)
             return NotFound();
 
-        var fullPath = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, invoice.Value.FilePath));
-        var uploadRoot = GetInvoiceUploadRoot();
+        var stream = await _fileStorage.DownloadAsync(invoice.Value.FilePath, HttpContext.RequestAborted);
+        if (stream == null) return NotFound();
 
-        if (!fullPath.StartsWith(uploadRoot, StringComparison.OrdinalIgnoreCase) ||
-            !System.IO.File.Exists(fullPath))
-            return NotFound();
-
-        return PhysicalFile(
-            fullPath,
-            GetInvoiceContentType(Path.GetExtension(fullPath)),
-            invoice.Value.FileName);
+        return File(stream, GetInvoiceContentType(Path.GetExtension(invoice.Value.FileName)), invoice.Value.FileName);
     }
 
     private static void ValidateInvoiceFile(IFormFile file)
@@ -169,14 +158,6 @@ public class ReceiptController : ControllerBase
 
         if (safeName != file.FileName)
             throw new ArgumentException("Nome de arquivo invalido.");
-    }
-
-    private string GetInvoiceUploadRoot()
-    {
-        return Path.GetFullPath(Path.Combine(
-            _environment.ContentRootPath,
-            "uploads",
-            "receipts"));
     }
 
     private static string GetInvoiceContentType(string extension)

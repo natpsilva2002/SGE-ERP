@@ -9,6 +9,7 @@ import { PurchaseRequestStatus } from '../../../purchase-requests/models/purchas
 import { PurchaseRequestType } from '../../../purchase-requests/models/purchase-request-type';
 import { getApiErrorMessage } from '../../../purchase-requests/services/api-error';
 import { Supplier } from '../../../quotations/models/quotation.models';
+import { UnitOfMeasure } from '../../../../shared/models/unit-of-measure.models';
 import { formatCurrency } from '../../services/formatters';
 import { ServiceOrderService } from '../../services/service-order.service';
 import { ServiceOrder } from '../../models/service-order.models';
@@ -29,6 +30,7 @@ export class ServiceOrderCreateComponent implements OnInit {
 
   readonly purchaseRequests = signal<PurchaseRequest[]>([]);
   readonly suppliers = signal<Supplier[]>([]);
+  readonly units = signal<UnitOfMeasure[]>([]);
   readonly serviceOrders = signal<ServiceOrder[]>([]);
   readonly loading = signal(false);
   readonly saving = signal(false);
@@ -63,6 +65,8 @@ export class ServiceOrderCreateComponent implements OnInit {
     purchaseRequestId: ['', Validators.required],
     supplierId: ['', Validators.required],
     contractedValue: [0, [Validators.required, Validators.min(0.01)]],
+    contractedQuantity: [0, [Validators.required, Validators.min(0.0001)]],
+    unit: ['', Validators.required],
     paymentCondition: ['', Validators.required],
     paymentConditionOther: [''],
     installmentCount: [1, [Validators.required, Validators.min(1), Validators.pattern(/^[1-9]\d*$/)]]
@@ -85,6 +89,7 @@ export class ServiceOrderCreateComponent implements OnInit {
           this.purchaseRequests.set(context.purchaseRequests);
           this.suppliers.set(context.suppliers);
           this.serviceOrders.set(context.serviceOrders);
+          this.units.set(context.units);
 
           const purchaseRequestId = this.route.snapshot.queryParamMap.get('purchaseRequestId');
 
@@ -127,6 +132,8 @@ export class ServiceOrderCreateComponent implements OnInit {
       purchaseRequestId: value.purchaseRequestId,
       supplierId: value.supplierId,
       contractedValue: value.contractedValue,
+      contractedQuantity: value.contractedQuantity,
+      unit: value.unit,
       paymentCondition,
       installmentCount: value.installmentCount
     }).pipe(finalize(() => this.saving.set(false)))

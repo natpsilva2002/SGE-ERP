@@ -1,0 +1,90 @@
+<section class="dashboard-page">
+  <header class="dashboard-header">
+    <div>
+      <span class="eyebrow">SGE-ERP · {{ userRole() }}</span>
+      <h1>Visão geral</h1>
+      <p>Resumo das atividades e pendências do SGE.</p>
+    </div>
+    <button type="button" class="refresh-button" [disabled]="loading()" (click)="load()">
+      {{ loading() ? 'Atualizando...' : 'Atualizar' }}
+    </button>
+  </header>
+
+  <div *ngIf="loading() && !dashboard()" class="state" aria-live="polite">
+    Carregando seu resumo...
+  </div>
+
+  <div *ngIf="error()" class="state error" role="alert">
+    <span>{{ error() }}</span>
+    <button type="button" class="secondary-button" (click)="load()">Tentar novamente</button>
+  </div>
+
+  <ng-container *ngIf="!error() && dashboard() as data">
+    <section class="card-grid" aria-label="Indicadores principais">
+      <a class="metric-card" *ngFor="let card of data.cards" [routerLink]="card.route || null">
+        <span>{{ card.label }}</span>
+        <strong>{{ cardValue(card) }}</strong>
+        <small>Ver detalhes</small>
+      </a>
+    </section>
+
+    <section class="dashboard-columns">
+      <article class="panel">
+        <header class="panel-header">
+          <div>
+            <span class="eyebrow">Fila de trabalho</span>
+            <h2>Pendências</h2>
+          </div>
+          <span class="panel-count">{{ data.pending.length }}</span>
+        </header>
+
+        <div *ngIf="data.pending.length === 0" class="empty-state">
+          Nenhuma pendência no momento.
+        </div>
+
+        <div class="entry-list" *ngIf="data.pending.length > 0">
+          <article class="entry" *ngFor="let entry of data.pending" [class]="entryClass(entry)">
+            <div class="entry-marker" aria-hidden="true"></div>
+            <div class="entry-content">
+              <div class="entry-topline">
+                <span class="entry-type">{{ entry.type }}</span>
+                <time [attr.datetime]="entry.date">{{ entry.date | date: 'dd/MM/yyyy HH:mm' }}</time>
+              </div>
+              <a class="entry-title" [routerLink]="entry.route || null">{{ entry.title }}</a>
+              <p>{{ entry.description }}</p>
+              <small *ngIf="entry.responsible">Responsável: {{ entry.responsible }}</small>
+            </div>
+            <a class="entry-action" [routerLink]="entry.route || null">Abrir</a>
+          </article>
+        </div>
+      </article>
+
+      <article class="panel">
+        <header class="panel-header">
+          <div>
+            <span class="eyebrow">Linha do tempo</span>
+            <h2>Atividades recentes</h2>
+          </div>
+        </header>
+
+        <div *ngIf="data.recentActivities.length === 0" class="empty-state">
+          Ainda não há atividades recentes.
+        </div>
+
+        <div class="activity-list" *ngIf="data.recentActivities.length > 0">
+          <a class="activity" *ngFor="let entry of data.recentActivities" [routerLink]="entry.route || null">
+            <span class="activity-dot" aria-hidden="true"></span>
+            <span class="activity-content">
+              <strong>{{ entry.type }}</strong>
+              <span>{{ entry.title }} · {{ entry.description }}</span>
+              <small>
+                {{ entry.date | date: 'dd/MM/yyyy HH:mm' }}
+                <ng-container *ngIf="entry.responsible"> · {{ entry.responsible }}</ng-container>
+              </small>
+            </span>
+          </a>
+        </div>
+      </article>
+    </section>
+  </ng-container>
+</section>

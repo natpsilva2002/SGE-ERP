@@ -169,6 +169,8 @@ public class PurchaseOrderService : IPurchaseOrderService
             ExpectedDeliveryDate = purchaseOrder.ExpectedDeliveryDate,
             Status = purchaseOrder.Status,
             TotalValue = purchaseOrder.TotalValue,
+            ItemsSubtotal = purchaseOrder.ItemsSubtotal,
+            FreightValue = purchaseOrder.FreightValue,
             AmountPaid = purchaseOrder.AmountPaid,
             AmountPending = purchaseOrder.AmountPending,
             PaymentStatus = purchaseOrder.PaymentStatus,

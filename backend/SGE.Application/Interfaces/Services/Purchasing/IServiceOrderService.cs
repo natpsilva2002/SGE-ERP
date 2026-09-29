@@ -11,6 +11,8 @@ public interface IServiceOrderService
 
     Task<ServiceOrderDto> CreateAsync(CreateServiceOrderDto dto);
 
+    Task<ServiceOrderDto?> UpdateContractTermsAsync(Guid id, UpdateServiceOrderContractDto dto);
+
     Task<ServiceOrderDto?> AttachContractAsync(
         Guid id,
         string originalFileName,

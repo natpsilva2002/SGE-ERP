@@ -1,5 +1,6 @@
 using SGE.Application.DTOs.ServiceOrder;
 using SGE.Application.Interfaces.Repositories.Administration;
+using SGE.Application.Interfaces.Repositories.Catalog;
 using SGE.Application.Interfaces.Repositories.Companies;
 using SGE.Application.Interfaces.Repositories.Purchasing;
 using SGE.Application.Interfaces.Services.Purchasing;
@@ -17,6 +18,7 @@ public class ServiceOrderService : IServiceOrderService
     private readonly IPurchaseRequestRepository _purchaseRequestRepository;
     private readonly ISupplierRepository _supplierRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IUnitOfMeasureRepository _unitRepository;
 
     public ServiceOrderService(
         IServiceOrderRepository repository,
@@ -25,7 +27,8 @@ public class ServiceOrderService : IServiceOrderService
         IServiceOrderAttachmentRepository attachmentRepository,
         IPurchaseRequestRepository purchaseRequestRepository,
         ISupplierRepository supplierRepository,
-        IUserRepository userRepository)
+        IUserRepository userRepository,
+        IUnitOfMeasureRepository unitRepository)
     {
         _repository = repository;
         _paymentRepository = paymentRepository;
@@ -34,6 +37,7 @@ public class ServiceOrderService : IServiceOrderService
         _purchaseRequestRepository = purchaseRequestRepository;
         _supplierRepository = supplierRepository;
         _userRepository = userRepository;
+        _unitRepository = unitRepository;
     }
 
     public async Task<IEnumerable<ServiceOrderDto>> GetAllAsync()
@@ -74,6 +78,12 @@ public class ServiceOrderService : IServiceOrderService
         if (supplier == null)
             throw new ArgumentException("O prestador informado nao existe.");
 
+        if (dto.ContractedQuantity <= 0 || string.IsNullOrWhiteSpace(dto.Unit))
+            throw new ArgumentException("A quantidade contratada e a unidade de medicao sao obrigatorias.");
+        var units = await _unitRepository.FindAsync(x => x.Code == dto.Unit && !x.IsDeleted);
+        if (!units.Any())
+            throw new ArgumentException("Selecione uma unidade de medicao ativa.");
+
         var serviceOrder = new ServiceOrder(
             purchaseRequest.Id,
             purchaseRequest.WorkId,
@@ -81,8 +91,8 @@ public class ServiceOrderService : IServiceOrderService
             await GenerateNumberAsync(),
             purchaseRequest.Description,
             purchaseRequest.ServiceSpecification,
-            purchaseRequest.ServiceQuantity,
-            purchaseRequest.ServiceUnit,
+            dto.ContractedQuantity,
+            dto.Unit.Trim(),
             dto.ContractedValue,
             dto.PaymentCondition,
             dto.InstallmentCount);
@@ -91,6 +101,21 @@ public class ServiceOrderService : IServiceOrderService
         await _repository.SaveChangesAsync();
 
         return await GetByIdAsync(serviceOrder.Id) ?? MapToDto(serviceOrder);
+    }
+
+    public async Task<ServiceOrderDto?> UpdateContractTermsAsync(Guid id, UpdateServiceOrderContractDto dto)
+    {
+        var order = await _repository.GetWithDetailsByIdAsync(id);
+        if (order == null) return null;
+        var supplier = await _supplierRepository.GetByIdAsync(dto.SupplierId);
+        if (supplier == null) throw new ArgumentException("O prestador informado nao existe.");
+        var units = await _unitRepository.FindAsync(x => x.Code == dto.Unit && !x.IsDeleted);
+        if (!units.Any()) throw new ArgumentException("Selecione uma unidade de medicao ativa.");
+        order.UpdateContractTerms(dto.SupplierId, dto.ContractedValue, dto.ContractedQuantity,
+            dto.Unit, dto.PaymentCondition, dto.InstallmentCount);
+        _repository.Update(order);
+        await _repository.SaveChangesAsync();
+        return await GetByIdAsync(id);
     }
 
     public async Task<ServiceOrderDto?> AttachContractAsync(
@@ -141,6 +166,8 @@ public class ServiceOrderService : IServiceOrderService
 
         if (serviceOrder == null)
             return null;
+
+        serviceOrder.EnsureReleasedForFinancialOperation();
 
         var user = await _userRepository.GetByIdAsync(dto.PaidByUserId);
 
@@ -241,6 +268,8 @@ public class ServiceOrderService : IServiceOrderService
         if (serviceOrder == null)
             return null;
 
+        serviceOrder.EnsureReleasedForFinancialOperation();
+
         var user = await _userRepository.GetByIdAsync(dto.RequestedByUserId);
 
         if (user == null)
@@ -253,7 +282,7 @@ public class ServiceOrderService : IServiceOrderService
             .Where(x => x.Status != ServiceAdvancePaymentStatus.Rejected)
             .Sum(x => Math.Max(x.Amount - x.Payments.Sum(p => p.Amount), 0));
 
-        if (serviceOrder.AmountPaid + committedAdvance + dto.Amount > serviceOrder.ContractedValue)
+        if (serviceOrder.AmountPaid + committedAdvance + dto.Amount > serviceOrder.CurrentContractedValue)
             throw new InvalidOperationException("A antecipacao nao pode ultrapassar o saldo contratado da ordem de servico.");
 
         var request = new ServiceAdvancePaymentRequest(
@@ -277,6 +306,8 @@ public class ServiceOrderService : IServiceOrderService
 
         if (serviceOrder == null)
             return null;
+
+        serviceOrder.EnsureReleasedForFinancialOperation();
 
         var user = await _userRepository.GetByIdAsync(approvedByUserId);
 
@@ -422,6 +453,7 @@ public class ServiceOrderService : IServiceOrderService
         return new ServiceOrderDto
         {
             Id = serviceOrder.Id,
+            CreatedAt = serviceOrder.CreatedAt,
             Number = serviceOrder.Number,
             PurchaseRequestId = serviceOrder.PurchaseRequestId,
             PurchaseRequestNumber = serviceOrder.PurchaseRequest?.Number ?? string.Empty,
@@ -431,11 +463,17 @@ public class ServiceOrderService : IServiceOrderService
             SupplierId = serviceOrder.SupplierId,
             SupplierName = serviceOrder.Supplier?.TradeName ?? serviceOrder.Supplier?.CorporateName ?? string.Empty,
             SupplierDocument = serviceOrder.Supplier?.Document ?? string.Empty,
+            SupplierEmail = serviceOrder.Supplier?.Email ?? string.Empty,
+            SupplierPhone = serviceOrder.Supplier?.Phone ?? string.Empty,
             ServiceDescription = serviceOrder.ServiceDescription,
             ServiceSpecification = serviceOrder.ServiceSpecification,
             EstimatedQuantity = serviceOrder.EstimatedQuantity,
             Unit = serviceOrder.Unit,
             ContractedValue = serviceOrder.ContractedValue,
+            CurrentContractedValue = serviceOrder.CurrentContractedValue,
+            CurrentContractedQuantity = serviceOrder.CurrentContractedQuantity,
+            IsReleasedForExecution = serviceOrder.ExecutionStatus is ServiceOrderExecutionStatus.Released or
+                ServiceOrderExecutionStatus.InProgress or ServiceOrderExecutionStatus.Completed,
             PaymentCondition = serviceOrder.PaymentCondition,
             InstallmentCount = serviceOrder.InstallmentCount,
             ExecutionStatus = serviceOrder.ExecutionStatus,
@@ -445,7 +483,7 @@ public class ServiceOrderService : IServiceOrderService
             AvailableToPay = GetAvailableToPay(serviceOrder),
             AvailableMeasuredToPay = GetAvailableMeasuredToPay(serviceOrder),
             AvailableAdvanceToPay = GetAvailableAdvanceToPay(serviceOrder),
-            UnmeasuredBalance = Math.Max(serviceOrder.ContractedValue - GetApprovedMeasuredAmount(serviceOrder), 0),
+            UnmeasuredBalance = Math.Max(serviceOrder.CurrentContractedValue - GetApprovedMeasuredAmount(serviceOrder), 0),
             ContractFileName = serviceOrder.ContractFileName,
             ContractUploadedAt = serviceOrder.ContractUploadedAt,
             ContractUploadedByUserId = serviceOrder.ContractUploadedByUserId,
@@ -454,20 +492,20 @@ public class ServiceOrderService : IServiceOrderService
                 : $"{serviceOrder.ContractUploadedByUser.FirstName} {serviceOrder.ContractUploadedByUser.LastName}".Trim(),
             ApprovedMeasuredAmount = GetApprovedMeasuredAmount(serviceOrder),
             CommittedMeasuredAmount = GetCommittedMeasuredAmount(serviceOrder),
-            RemainingToMeasure = Math.Max(serviceOrder.ContractedValue - GetCommittedMeasuredAmount(serviceOrder), 0),
-            ExecutionPercentage = serviceOrder.ContractedValue <= 0
+            RemainingToMeasure = Math.Max(serviceOrder.CurrentContractedValue - GetCommittedMeasuredAmount(serviceOrder), 0),
+            ExecutionPercentage = serviceOrder.CurrentContractedValue <= 0
                 ? 0
-                : Math.Round(GetApprovedMeasuredAmount(serviceOrder) / serviceOrder.ContractedValue * 100, 2),
+                : Math.Round(GetApprovedMeasuredAmount(serviceOrder) / serviceOrder.CurrentContractedValue * 100, 2),
             MeasuredQuantity = GetMeasuredQuantity(serviceOrder),
-            RemainingQuantity = serviceOrder.EstimatedQuantity.HasValue
-                ? Math.Max(serviceOrder.EstimatedQuantity.Value - GetMeasuredQuantity(serviceOrder), 0)
+            RemainingQuantity = serviceOrder.CurrentContractedQuantity.HasValue
+                ? Math.Max(serviceOrder.CurrentContractedQuantity.Value - GetMeasuredQuantity(serviceOrder), 0)
                 : 0,
-            PhysicalPercentage = serviceOrder.EstimatedQuantity is > 0
-                ? Math.Round(GetMeasuredQuantity(serviceOrder) / serviceOrder.EstimatedQuantity.Value * 100, 2)
+            PhysicalPercentage = serviceOrder.CurrentContractedQuantity is > 0
+                ? Math.Round(GetMeasuredQuantity(serviceOrder) / serviceOrder.CurrentContractedQuantity.Value * 100, 2)
                 : 0,
-            FinancialPercentage = serviceOrder.ContractedValue <= 0
+            FinancialPercentage = serviceOrder.CurrentContractedValue <= 0
                 ? 0
-                : Math.Round(GetApprovedMeasuredAmount(serviceOrder) / serviceOrder.ContractedValue * 100, 2),
+                : Math.Round(GetApprovedMeasuredAmount(serviceOrder) / serviceOrder.CurrentContractedValue * 100, 2),
             Measurements = serviceOrder.Measurements
                 .OrderBy(x => x.MeasurementNumber)
                 .ThenBy(x => x.CreatedAt)
@@ -483,7 +521,10 @@ public class ServiceOrderService : IServiceOrderService
             Attachments = serviceOrder.Attachments
                 .OrderByDescending(x => x.UploadedAt)
                 .ThenByDescending(x => x.Id)
-                .Select(MapAttachmentToDto)
+                .Select(MapAttachmentToDto),
+            Amendments = serviceOrder.Amendments
+                .OrderBy(x => x.CreatedAt)
+                .Select(x => ServiceOrderAmendmentService.Map(x, x.Approvals.OrderByDescending(a => a.CreatedAt).FirstOrDefault()))
         };
     }
 

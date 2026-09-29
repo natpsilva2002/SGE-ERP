@@ -11,6 +11,9 @@ frontend/.angular/
 npm-debug.log*
 
 # Local configuration and secrets
+.env
+.env.*
+!.env.example
 backend/SGE.API/appsettings*.json
 !backend/SGE.API/appsettings.example.json
 

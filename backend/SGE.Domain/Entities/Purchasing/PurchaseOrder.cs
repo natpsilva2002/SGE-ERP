@@ -21,6 +21,10 @@ public class PurchaseOrder : BaseSoftDeleteEntity
 
     public decimal TotalValue { get; private set; }
 
+    public decimal FreightValue { get; private set; }
+
+    public decimal ItemsSubtotal => Items.Sum(x => x.TotalValue);
+
     public decimal AmountPaid { get; private set; }
 
     public decimal AmountPending =>
@@ -118,9 +122,18 @@ public class PurchaseOrder : BaseSoftDeleteEntity
         TotalValue = total;
     }
 
+    public void SetFreightValue(decimal freightValue)
+    {
+        if (freightValue < 0)
+            throw new ArgumentException("O valor do frete nao pode ser negativo.");
+
+        FreightValue = freightValue;
+        RecalculateTotal();
+    }
+
     public void RecalculateTotal()
     {
-        TotalValue = Items.Sum(x => x.TotalValue);
+        TotalValue = ItemsSubtotal + FreightValue;
     }
 
     public void ChangeStatus(PurchaseOrderStatus status)

@@ -8,6 +8,7 @@ using SGE.Application.DTOs.Receipt;
 using SGE.Application.Interfaces.Services.Authentication;
 using SGE.Application.Interfaces.Services.Purchasing;
 using SGE.Application.Security;
+using SGE.API.Services.FileStorage;
 
 namespace SGE.API.Controllers.Purchasing;
 
@@ -21,19 +22,22 @@ public class PurchaseOrderController : ControllerBase
     private readonly IPaymentService _paymentService;
     private readonly IPurchaseOrderPdfService _pdfService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IFileStorage _fileStorage;
 
     public PurchaseOrderController(
         IPurchaseOrderService service,
         IReceiptService receiptService,
         IPaymentService paymentService,
         IPurchaseOrderPdfService pdfService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IFileStorage fileStorage)
     {
         _service = service;
         _receiptService = receiptService;
         _paymentService = paymentService;
         _pdfService = pdfService;
         _currentUserService = currentUserService;
+        _fileStorage = fileStorage;
     }
 
     // GET: api/PurchaseOrder
@@ -180,7 +184,6 @@ public class PurchaseOrderController : ControllerBase
         [FromForm] string? invoiceNumber,
         [FromForm] IFormFile? invoiceFile)
     {
-        string? storedFilePath = null;
         string? storedRelativePath = null;
         try
         {
@@ -200,23 +203,15 @@ public class PurchaseOrderController : ControllerBase
 
             dto.ReceivedByUserId = _currentUserService.UserId;
 
-            var root = Path.Combine(
-                HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().ContentRootPath,
-                "uploads", "receipts");
-            Directory.CreateDirectory(root);
             var extension = Path.GetExtension(invoiceFile.FileName).ToLowerInvariant();
-            var storedName = $"{Guid.NewGuid():N}{extension}";
-            storedFilePath = Path.Combine(root, storedName);
-            storedRelativePath = Path.Combine("uploads", "receipts", storedName);
-            await using (var stream = System.IO.File.Create(storedFilePath))
-                await invoiceFile.CopyToAsync(stream);
+            await using (var stream = invoiceFile.OpenReadStream())
+                storedRelativePath = await _fileStorage.UploadAsync(stream, $"receipts/purchase-orders/{id:N}/invoices", extension, invoiceFile.ContentType, HttpContext.RequestAborted);
 
             var receipt = await _receiptService.ReceiveAsync(id, dto);
 
             if (receipt == null)
             {
-                if (storedFilePath != null && System.IO.File.Exists(storedFilePath))
-                    System.IO.File.Delete(storedFilePath);
+                if (storedRelativePath != null) await _fileStorage.DeleteAsync(storedRelativePath, HttpContext.RequestAborted);
                 return NotFound();
             }
 
@@ -230,6 +225,7 @@ public class PurchaseOrderController : ControllerBase
         }
         catch (ArgumentException ex)
         {
+            if (storedRelativePath != null) await _fileStorage.DeleteAsync(storedRelativePath, HttpContext.RequestAborted);
             return BadRequest(new
             {
                 message = ex.Message
@@ -237,6 +233,7 @@ public class PurchaseOrderController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
+            if (storedRelativePath != null) await _fileStorage.DeleteAsync(storedRelativePath, HttpContext.RequestAborted);
             return BadRequest(new
             {
                 message = ex.Message
@@ -244,9 +241,8 @@ public class PurchaseOrderController : ControllerBase
         }
         catch
         {
-            if (!string.IsNullOrWhiteSpace(storedFilePath) &&
-                System.IO.File.Exists(storedFilePath))
-                System.IO.File.Delete(storedFilePath);
+            if (!string.IsNullOrWhiteSpace(storedRelativePath))
+                await _fileStorage.DeleteAsync(storedRelativePath, HttpContext.RequestAborted);
             throw;
         }
     }

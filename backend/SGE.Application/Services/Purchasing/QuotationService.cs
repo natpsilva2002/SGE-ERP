@@ -146,6 +146,55 @@ public class QuotationService : IQuotationService
         return MapToDto(quotation);
     }
 
+    public async Task<QuotationDto?> SetSupplierOfferFreightAsync(
+        Guid quotationId,
+        Guid supplierId,
+        decimal freightValue)
+    {
+        var quotation = await _repository.GetByIdWithApprovalsAsync(quotationId);
+        if (quotation == null) return null;
+        if (!quotation.IsEditable)
+            throw new InvalidOperationException("Frete so pode ser alterado antes da aprovacao efetiva da cotacao.");
+        if (freightValue < 0)
+            throw new ArgumentException("O valor do frete nao pode ser negativo.");
+
+        var supplierHasItems = (await _quotationItemRepository.GetAllAsync())
+            .Any(item => item.QuotationId == quotationId && item.SupplierId == supplierId);
+        if (!supplierHasItems)
+            throw new ArgumentException("O fornecedor informado nao possui orcamento nesta cotacao.");
+
+        var offer = quotation.SupplierOffers.FirstOrDefault(item => item.SupplierId == supplierId);
+        if (offer == null)
+        {
+            offer = new QuotationSupplierOffer(quotationId, supplierId, freightValue);
+            quotation.SupplierOffers.Add(offer);
+            await _repository.AddSupplierOfferAsync(offer);
+        }
+        else
+        {
+            offer.SetFreightValue(freightValue);
+        }
+
+        await _repository.SaveChangesAsync();
+        return MapToDto(quotation);
+    }
+
+    public async Task<bool> DeleteSupplierOfferAsync(Guid quotationId, Guid supplierId)
+    {
+        var quotation = await _repository.GetByIdWithApprovalsAsync(quotationId);
+        if (quotation == null) return false;
+        if (!quotation.IsEditable)
+            throw new InvalidOperationException("Frete so pode ser alterado antes da aprovacao efetiva da cotacao.");
+
+        var offer = quotation.SupplierOffers.FirstOrDefault(item => item.SupplierId == supplierId);
+        if (offer == null) return true;
+
+        quotation.SupplierOffers.Remove(offer);
+        _repository.Update(quotation);
+        await _repository.SaveChangesAsync();
+        return true;
+    }
+
     public async Task<bool> DeleteAsync(Guid id)
     {
         var quotation = await _repository.GetByIdAsync(id);
@@ -198,7 +247,7 @@ public class QuotationService : IQuotationService
         Guid id,
         ApprovalDecisionDto dto)
     {
-        var quotation = await _repository.GetByIdAsync(id);
+        var quotation = await _repository.GetByIdWithApprovalsAsync(id);
 
         if (quotation == null)
             return null;
@@ -547,6 +596,8 @@ public class QuotationService : IQuotationService
                     selectedItem.QuotationItem.Observation);
             }
 
+            purchaseOrder.SetFreightValue(quotation.SupplierOffers
+                .FirstOrDefault(offer => offer.SupplierId == supplierGroup.Key)?.FreightValue ?? 0m);
             purchaseOrder.RecalculateTotal();
             purchaseOrders.Add(purchaseOrder);
             sequence++;
@@ -605,7 +656,13 @@ public class QuotationService : IQuotationService
                 OriginalFileName = x.OriginalFileName, ContentType = x.ContentType,
                 FileSizeBytes = x.FileSizeBytes, UploadedByUserId = x.UploadedByUserId,
                 UploadedAt = x.UploadedAt
-            }).ToList()
+            }).ToList(),
+            SupplierOffers = quotation.SupplierOffers
+                .Select(x => new QuotationSupplierOfferDto
+                {
+                    SupplierId = x.SupplierId,
+                    FreightValue = x.FreightValue
+                }).ToList()
         };
     }
 
@@ -632,6 +689,8 @@ public class QuotationService : IQuotationService
             ExpectedDeliveryDate = purchaseOrder.ExpectedDeliveryDate,
             Status = purchaseOrder.Status,
             TotalValue = purchaseOrder.TotalValue,
+            ItemsSubtotal = purchaseOrder.ItemsSubtotal,
+            FreightValue = purchaseOrder.FreightValue,
             AmountPaid = purchaseOrder.AmountPaid,
             AmountPending = purchaseOrder.AmountPending,
             PaymentStatus = purchaseOrder.PaymentStatus,

@@ -17,6 +17,7 @@ public class ServiceOrderRepository
     public async Task<IEnumerable<ServiceOrder>> GetAllWithDetailsAsync()
     {
         return await _dbSet
+            .AsSplitQuery()
             .Include(x => x.PurchaseRequest)
                 .ThenInclude(x => x.RequestedByUser)
             .Include(x => x.Work)
@@ -44,12 +45,21 @@ public class ServiceOrderRepository
                 .ThenInclude(x => x.Payments)
             .Include(x => x.Attachments)
                 .ThenInclude(x => x.UploadedByUser)
+            .Include(x => x.Amendments)
+                .ThenInclude(x => x.CreatedByUser)
+            .Include(x => x.Amendments)
+                .ThenInclude(x => x.ApprovedByUser)
+            .Include(x => x.Amendments)
+                .ThenInclude(x => x.Attachments)
+            .Include(x => x.Amendments)
+                .ThenInclude(x => x.Approvals)
             .ToListAsync();
     }
 
     public async Task<ServiceOrder?> GetWithDetailsByIdAsync(Guid id)
     {
         return await _dbSet
+            .AsSplitQuery()
             .Include(x => x.PurchaseRequest)
                 .ThenInclude(x => x.RequestedByUser)
             .Include(x => x.Work)
@@ -77,6 +87,14 @@ public class ServiceOrderRepository
                 .ThenInclude(x => x.Payments)
             .Include(x => x.Attachments)
                 .ThenInclude(x => x.UploadedByUser)
+            .Include(x => x.Amendments)
+                .ThenInclude(x => x.CreatedByUser)
+            .Include(x => x.Amendments)
+                .ThenInclude(x => x.ApprovedByUser)
+            .Include(x => x.Amendments)
+                .ThenInclude(x => x.Attachments)
+            .Include(x => x.Amendments)
+                .ThenInclude(x => x.Approvals)
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 

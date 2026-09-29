@@ -1,0 +1,89 @@
+<section class="work-costs-page">
+  <header class="work-costs-header">
+    <div>
+      <span class="eyebrow">Análise gerencial</span>
+      <h1>Gastos por Obra</h1>
+      <p>Custos contratados e pagamentos efetivamente registrados.</p>
+    </div>
+    <button type="button" class="refresh-button" [disabled]="loading()" (click)="load()">
+      {{ loading() ? 'Atualizando...' : 'Atualizar' }}
+    </button>
+  </header>
+
+  <form class="filters" (submit)="$event.preventDefault()">
+    <label>
+      Obra
+      <select [value]="selectedWork()" (change)="changeWork($any($event.target).value)">
+        <option value="">Todas as obras</option>
+        <option *ngFor="let work of data()?.works" [value]="work.id">{{ work.code }} · {{ work.name }}</option>
+      </select>
+    </label>
+    <label>
+      Data inicial
+      <input type="date" [value]="startDate()" (change)="changeStartDate($any($event.target).value)" />
+    </label>
+    <label>
+      Data final
+      <input type="date" [value]="endDate()" (change)="changeEndDate($any($event.target).value)" />
+    </label>
+  </form>
+
+  <div *ngIf="loading() && !data()" class="state" aria-live="polite">Carregando gastos reais...</div>
+  <div *ngIf="error()" class="state error" role="alert">
+    <span>{{ error() }}</span>
+    <button type="button" class="secondary-button" (click)="load()">Tentar novamente</button>
+  </div>
+
+  <ng-container *ngIf="!error() && data() as costs">
+    <section class="metric-grid" aria-label="Resumo financeiro">
+      <article class="metric-card"><span>Total contratado</span><strong>{{ currency(costs.summary.contracted) }}</strong><small>OCs e OSs válidas no período.</small></article>
+      <article class="metric-card"><span>Total pago</span><strong>{{ currency(costs.summary.paid) }}</strong><small>Pagamentos registrados no período.</small></article>
+      <article class="metric-card"><span>Total a pagar</span><strong>{{ currency(costs.summary.pending) }}</strong><small>Saldo pendente dos documentos.</small></article>
+      <article class="metric-card"><span>Materiais</span><strong>{{ currency(costs.summary.materials) }}</strong><small>Valores contratados em OCs.</small></article>
+      <article class="metric-card"><span>Serviços</span><strong>{{ currency(costs.summary.services) }}</strong><small>Valores contratados em OSs.</small></article>
+    </section>
+
+    <div *ngIf="costs.details.length === 0" class="empty-state">
+      Nenhum gasto registrado para esta obra no período selecionado.
+    </div>
+
+    <ng-container *ngIf="costs.details.length > 0">
+      <section class="panel evolution-panel">
+        <header class="panel-header"><div><span class="eyebrow">Pagamentos reais</span><h2>Evolução dos gastos</h2></div></header>
+        <div class="legend"><span><i class="material-dot"></i>Material</span><span><i class="service-dot"></i>Serviço</span></div>
+        <div class="evolution-list">
+          <div class="evolution-row" *ngFor="let item of costs.evolution">
+            <time>{{ item.period | date: 'MMM/yyyy' }}</time>
+            <div class="bars"><span class="bar material-bar" [style.width.%]="barWidth(item.materials, costs)"></span><span class="bar service-bar" [style.width.%]="barWidth(item.services, costs)"></span></div>
+            <strong>{{ currency(item.total) }}</strong>
+          </div>
+          <p *ngIf="costs.evolution.length === 0" class="empty-state">Nenhum pagamento registrado no período.</p>
+        </div>
+      </section>
+
+      <section class="split-grid">
+        <article class="panel">
+          <header class="panel-header"><div><span class="eyebrow">Composição</span><h2>Material x Serviço</h2></div></header>
+          <div class="composition">
+            <div><span class="composition-label"><i class="material-dot"></i>Materiais</span><strong>{{ currency(costs.summary.materials) }}</strong><small>{{ percentage(costs.summary.materials, costs.summary.contracted) }}% do contratado</small></div>
+            <div><span class="composition-label"><i class="service-dot"></i>Serviços</span><strong>{{ currency(costs.summary.services) }}</strong><small>{{ percentage(costs.summary.services, costs.summary.contracted) }}% do contratado</small></div>
+          </div>
+        </article>
+        <article class="panel">
+          <header class="panel-header"><div><span class="eyebrow">Ranking</span><h2>Maiores custos da obra</h2></div></header>
+          <div class="cost-list"><a *ngFor="let cost of costs.topCosts" [routerLink]="cost.route || null"><span><strong>{{ cost.description }}</strong><small>{{ cost.type }}</small></span><b>{{ currency(cost.amount) }}</b></a></div>
+        </article>
+      </section>
+
+      <section class="panel table-panel">
+        <header class="panel-header"><div><span class="eyebrow">OCs e OSs</span><h2>Detalhamento financeiro</h2></div></header>
+        <div class="table-wrap"><table><thead><tr><th>Tipo</th><th>Documento</th><th>Fornecedor</th><th>Contratado</th><th>Pago</th><th>Pendente</th><th>Status</th></tr></thead><tbody><tr *ngFor="let item of costs.details"><td>{{ item.type }}</td><td><a [routerLink]="item.route || null">{{ item.document }}</a></td><td>{{ item.supplier }}</td><td>{{ currency(item.contracted) }}</td><td>{{ currency(item.paid) }}</td><td>{{ currency(item.pending) }}</td><td><span class="status-badge">{{ item.status }}</span></td></tr></tbody></table></div>
+      </section>
+
+      <section class="panel table-panel">
+        <header class="panel-header"><div><span class="eyebrow">Histórico financeiro</span><h2>Pagamentos realizados</h2></div></header>
+        <div class="table-wrap"><table><thead><tr><th>Data</th><th>Obra</th><th>Tipo</th><th>Documento</th><th>Fornecedor</th><th>Valor</th><th>Forma</th><th>Responsável</th></tr></thead><tbody><tr *ngFor="let payment of costs.payments"><td>{{ payment.date | date: 'dd/MM/yyyy' }}</td><td>{{ payment.work }}</td><td>{{ payment.type }}</td><td><a [routerLink]="payment.route || null">{{ payment.document }}</a></td><td>{{ payment.supplier }}</td><td>{{ currency(payment.amount) }}</td><td>{{ paymentMethod(payment.paymentMethod) }}</td><td>{{ payment.responsible }}</td></tr></tbody></table><p *ngIf="costs.payments.length === 0" class="empty-state">Nenhum pagamento registrado no período.</p></div>
+      </section>
+    </ng-container>
+  </ng-container>
+</section>

@@ -7,6 +7,7 @@ import { AuthService } from '../../../../core/auth/auth.service';
 import { getApiErrorMessage } from '../../../purchase-requests/services/api-error';
 import {
   ServiceOrder,
+  ServiceOrderExecutionStatus,
   getExecutionStatusLabel,
   getPaymentStatusLabel
 } from '../../models/service-order.models';
@@ -29,14 +30,17 @@ export class ServiceOrderListComponent implements OnInit {
   readonly loading = signal(false);
   readonly error = signal('');
   readonly serviceOrders = signal<ServiceOrder[]>([]);
+  readonly selectedStatus = signal<ServiceOrderExecutionStatus | null>(null);
 
   readonly filteredOrders = computed(() => {
     const search = this.searchControl.value.trim().toLowerCase();
+    const status = this.selectedStatus();
 
     return this.serviceOrders().filter((order) => !search ||
       order.number.toLowerCase().includes(search) ||
       order.serviceDescription.toLowerCase().includes(search) ||
-      order.supplierName.toLowerCase().includes(search));
+      order.supplierName.toLowerCase().includes(search))
+      .filter((order) => status === null || order.executionStatus === status);
   });
 
   ngOnInit(): void {
@@ -55,6 +59,18 @@ export class ServiceOrderListComponent implements OnInit {
         next: (orders) => this.serviceOrders.set(orders),
         error: (error) => this.error.set(getApiErrorMessage(error))
       });
+  }
+
+  setStatusFilter(status: ServiceOrderExecutionStatus | null): void {
+    this.selectedStatus.set(status);
+  }
+
+  countByStatus(status: ServiceOrderExecutionStatus | null): number {
+    if (status === null) {
+      return this.serviceOrders().length;
+    }
+
+    return this.serviceOrders().filter((order) => order.executionStatus === status).length;
   }
 
   canCreate(): boolean {

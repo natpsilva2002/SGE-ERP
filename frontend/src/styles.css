@@ -10,10 +10,16 @@
   --primary-strong: #124aa8;
   --danger: #b42318;
   --danger-bg: #fee4e2;
-  --sidebar: #17212f;
-  --sidebar-active: #243347;
-  --sidebar-text: #d7e0ea;
-  --shadow: 0 16px 48px rgba(16, 24, 40, 0.12);
+  --success: #0f766e;
+  --success-bg: #e6f5f2;
+  --warning: #a15c00;
+  --warning-bg: #fff4d6;
+  --violet: #6956a8;
+  --violet-bg: #f0edfa;
+  --sidebar: #ffffff;
+  --sidebar-active: #eaf1fc;
+  --sidebar-text: #46576a;
+  --shadow: 0 2px 8px rgba(24, 34, 45, 0.07);
   font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
@@ -53,4 +59,96 @@ button:disabled {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(23, 92, 211, 0.24);
+  outline-offset: 2px;
+}
+
+/* Shared visual skin. This layer only changes presentation; templates and bindings stay intact. */
+.table-card,
+.content-card,
+.user-form,
+.summary-grid article,
+.toolbar {
+  box-shadow: none;
+}
+
+.table-wrap table th,
+.matrix-wrap table th {
+  background: #fafbfc !important;
+  color: var(--muted) !important;
+  font-size: 11px !important;
+  letter-spacing: 0.04em;
+}
+
+.table-wrap table th,
+.table-wrap table td,
+.matrix-wrap table th,
+.matrix-wrap table td {
+  border-bottom-color: var(--border) !important;
+  padding: 12px 14px !important;
+}
+
+.table-wrap table tbody tr:hover,
+.matrix-wrap table tbody tr:hover {
+  background: #fbfcfe;
+}
+
+.toolbar,
+.filters {
+  background: var(--surface) !important;
+}
+
+.toolbar input,
+.toolbar select,
+.filters input,
+.filters select,
+.form-grid input,
+.form-grid select,
+.form-grid textarea,
+.user-form input,
+.user-form select,
+.user-form textarea {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+}
+
+.badge,
+.status-badge {
+  font-weight: 700;
+}
+
+.status-2,
+.payment-1,
+.warning-badge {
+  background: var(--warning-bg) !important;
+  color: var(--warning) !important;
+}
+
+.status-4,
+.payment-3 {
+  background: var(--success-bg) !important;
+  color: var(--success) !important;
+}
+
+.status-6,
+.status-7,
+.payment-2 {
+  background: var(--sidebar-active) !important;
+  color: var(--primary-strong) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

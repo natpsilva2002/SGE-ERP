@@ -1,9 +1,41 @@
 <section class="page-header">
   <div>
-    <span class="eyebrow">Compras</span>
+    <span class="eyebrow">Operação</span>
     <h1>Ordens de Compra</h1>
+    <p>Consulte compromissos de material, pagamentos e recebimentos em um só lugar.</p>
   </div>
 </section>
+
+<nav class="tabbar" aria-label="Filtro de recebimento">
+  <button
+    type="button"
+    class="tab"
+    [class.active]="receivingTab() === 'all'"
+    (click)="selectReceivingTab('all')">
+    Todas ({{ allCount() }})
+  </button>
+  <button
+    type="button"
+    class="tab"
+    [class.active]="receivingTab() === 'approval'"
+    (click)="selectReceivingTab('approval')">
+    Aguardando aprovação ({{ awaitingApprovalCount() }})
+  </button>
+  <button
+    type="button"
+    class="tab"
+    [class.active]="receivingTab() === 'pending'"
+    (click)="selectReceivingTab('pending')">
+    Aguardando recebimento ({{ pendingReceivingCount() }})
+  </button>
+  <button
+    type="button"
+    class="tab"
+    [class.active]="receivingTab() === 'completed'"
+    (click)="selectReceivingTab('completed')">
+    Concluídas ({{ completedReceivingCount() }})
+  </button>
+</nav>
 
 <section class="toolbar">
   <label>
@@ -58,20 +90,20 @@
       </thead>
       <tbody>
         <tr *ngFor="let order of filteredOrders()">
-          <td>
+          <td class="order-number">
             <a class="table-link" [routerLink]="['/app/ordens-compra', order.id]">
               {{ order.number }}
             </a>
           </td>
-          <td>{{ order.supplierName || 'Nao informado' }}</td>
-          <td>{{ order.workName || 'Nao informada' }}</td>
-          <td>{{ money(order.totalValue) }}</td>
-          <td><span class="badge status-{{ order.status }}">{{ statusLabel(order.status) }}</span></td>
-          <td><span class="badge payment-{{ order.paymentStatus }}">{{ financialStatusLabel(order) }}</span></td>
-          <td>{{ receivingStatusLabel(order) }}</td>
-          <td>{{ order.issueDate | date: 'dd/MM/yyyy HH:mm' }}</td>
-          <td>{{ order.requestedByUserName || 'Nao informado' }}</td>
-          <td>
+          <td class="supplier-cell">{{ order.supplierName || 'Nao informado' }}</td>
+          <td class="work-cell">{{ order.workName || 'Nao informada' }}</td>
+          <td class="money-cell">{{ money(order.totalValue) }}</td>
+          <td class="badge-cell"><span class="badge status-{{ order.status }}">{{ statusLabel(order.status) }}</span></td>
+          <td class="badge-cell"><span class="badge payment-{{ order.paymentStatus }}">{{ financialStatusLabel(order) }}</span></td>
+          <td class="receiving-cell">{{ receivingStatusLabel(order) }}</td>
+          <td class="date-cell">{{ order.issueDate | date: 'dd/MM/yyyy HH:mm' }}</td>
+          <td class="origin-cell">{{ order.requestedByUserName || 'Nao informado' }}</td>
+          <td class="action-cell">
             <a class="action-link" [routerLink]="['/app/ordens-compra', order.id]">Abrir</a>
           </td>
         </tr>

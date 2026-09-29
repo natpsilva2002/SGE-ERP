@@ -315,3 +315,12 @@ th {
     max-width: 100%;
   }
 }
+.page-header {
+  background: transparent;
+  border: 0;
+  padding: 0 0 4px;
+}
+
+.table-card table {
+  font-size: 12px;
+}

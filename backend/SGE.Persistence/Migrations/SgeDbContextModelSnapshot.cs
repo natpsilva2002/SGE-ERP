@@ -556,6 +556,9 @@ namespace SGE.Persistence.Migrations
                     b.Property<Guid?>("QuotationId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ServiceOrderAmendmentId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -576,6 +579,8 @@ namespace SGE.Persistence.Migrations
                     b.HasIndex("PurchaseRequestId");
 
                     b.HasIndex("QuotationId");
+
+                    b.HasIndex("ServiceOrderAmendmentId");
 
                     b.HasIndex("UserId");
 
@@ -749,6 +754,11 @@ namespace SGE.Persistence.Migrations
 
                     b.Property<Guid?>("FirstApprovedByUserId")
                         .HasColumnType("uuid");
+
+                    b.Property<decimal>("FreightValue")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<int?>("InstallmentCount")
                         .HasColumnType("integer");
@@ -1154,6 +1164,33 @@ namespace SGE.Persistence.Migrations
                     b.ToTable("quotation_items", (string)null);
                 });
 
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.QuotationSupplierOffer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("FreightValue")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<Guid>("QuotationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SupplierId");
+
+                    b.HasIndex("QuotationId", "SupplierId")
+                        .IsUnique();
+
+                    b.ToTable("QuotationSupplierOffers", (string)null);
+                });
+
             modelBuilder.Entity("SGE.Domain.Entities.Purchasing.Receipt", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1509,6 +1546,119 @@ namespace SGE.Persistence.Migrations
                     b.ToTable("ServiceOrders", (string)null);
                 });
 
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.ServiceOrderAmendment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Observation")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<decimal?>("QuantityAdjustment")
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal?>("QuantityAfterApproval")
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal?>("QuantityBeforeApproval")
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("ServiceOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("ValueAdjustment")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal?>("ValueAfterApproval")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal?>("ValueBeforeApproval")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedByUserId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("ServiceOrderId");
+
+                    b.ToTable("ServiceOrderAmendments", (string)null);
+                });
+
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.ServiceOrderAmendmentAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("ServiceOrderAmendmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServiceOrderAmendmentId");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.ToTable("ServiceOrderAmendmentAttachments", (string)null);
+                });
+
             modelBuilder.Entity("SGE.Domain.Entities.Purchasing.ServiceOrderAttachment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1700,6 +1850,11 @@ namespace SGE.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("QuotationId");
 
+                    b.HasOne("SGE.Domain.Entities.Purchasing.ServiceOrderAmendment", "ServiceOrderAmendment")
+                        .WithMany("Approvals")
+                        .HasForeignKey("ServiceOrderAmendmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SGE.Domain.Entities.Administration.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -1709,6 +1864,8 @@ namespace SGE.Persistence.Migrations
                     b.Navigation("PurchaseRequest");
 
                     b.Navigation("Quotation");
+
+                    b.Navigation("ServiceOrderAmendment");
 
                     b.Navigation("User");
                 });
@@ -1959,6 +2116,25 @@ namespace SGE.Persistence.Migrations
                     b.Navigation("Supplier");
                 });
 
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.QuotationSupplierOffer", b =>
+                {
+                    b.HasOne("SGE.Domain.Entities.Purchasing.Quotation", "Quotation")
+                        .WithMany("SupplierOffers")
+                        .HasForeignKey("QuotationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SGE.Domain.Entities.Companies.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Quotation");
+
+                    b.Navigation("Supplier");
+                });
+
             modelBuilder.Entity("SGE.Domain.Entities.Purchasing.Receipt", b =>
                 {
                     b.HasOne("SGE.Domain.Entities.Purchasing.PurchaseOrder", "PurchaseOrder")
@@ -2116,6 +2292,51 @@ namespace SGE.Persistence.Migrations
                     b.Navigation("Work");
                 });
 
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.ServiceOrderAmendment", b =>
+                {
+                    b.HasOne("SGE.Domain.Entities.Administration.User", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SGE.Domain.Entities.Administration.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SGE.Domain.Entities.Purchasing.ServiceOrder", "ServiceOrder")
+                        .WithMany("Amendments")
+                        .HasForeignKey("ServiceOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ApprovedByUser");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("ServiceOrder");
+                });
+
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.ServiceOrderAmendmentAttachment", b =>
+                {
+                    b.HasOne("SGE.Domain.Entities.Purchasing.ServiceOrderAmendment", "Amendment")
+                        .WithMany("Attachments")
+                        .HasForeignKey("ServiceOrderAmendmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SGE.Domain.Entities.Administration.User", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Amendment");
+
+                    b.Navigation("UploadedByUser");
+                });
+
             modelBuilder.Entity("SGE.Domain.Entities.Purchasing.ServiceOrderAttachment", b =>
                 {
                     b.HasOne("SGE.Domain.Entities.Purchasing.ServiceOrder", "ServiceOrder")
@@ -2223,6 +2444,8 @@ namespace SGE.Persistence.Migrations
                     b.Navigation("Attachments");
 
                     b.Navigation("Items");
+
+                    b.Navigation("SupplierOffers");
                 });
 
             modelBuilder.Entity("SGE.Domain.Entities.Purchasing.Receipt", b =>
@@ -2244,11 +2467,20 @@ namespace SGE.Persistence.Migrations
                 {
                     b.Navigation("AdvancePaymentRequests");
 
+                    b.Navigation("Amendments");
+
                     b.Navigation("Attachments");
 
                     b.Navigation("Measurements");
 
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("SGE.Domain.Entities.Purchasing.ServiceOrderAmendment", b =>
+                {
+                    b.Navigation("Approvals");
+
+                    b.Navigation("Attachments");
                 });
 
             modelBuilder.Entity("SGE.Domain.Entities.Purchasing.ServiceOrderPayment", b =>

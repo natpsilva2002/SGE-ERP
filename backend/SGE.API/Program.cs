@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using SGE.API.Services;
+using SGE.API.Services.FileStorage;
 
 using SGE.Persistence.Contexts;
 
@@ -13,11 +14,13 @@ using SGE.Application.Interfaces.Repositories.Administration;
 using SGE.Application.Interfaces.Repositories.Catalog;
 using SGE.Application.Interfaces.Repositories.Companies;
 using SGE.Application.Interfaces.Repositories.Purchasing;
+using SGE.Application.Interfaces.Repositories.Dashboard;
 
 using SGE.Persistence.Repositories.Administration;
 using SGE.Persistence.Repositories.Catalog;
 using SGE.Persistence.Repositories.Companies;
 using SGE.Persistence.Repositories.Purchasing;
+using SGE.Persistence.Repositories.Dashboard;
 using SGE.Application.Interfaces.Services.Catalog;
 using SGE.Application.Services.Catalog;
 using SGE.Application.Interfaces.Services.Companies;
@@ -28,6 +31,7 @@ using SGE.Application.Interfaces.Services.Purchasing;
 using SGE.Application.Services.Purchasing;
 using SGE.Application.Services.Authentication;
 using SGE.Domain.Entities.Administration;
+using SGE.Domain.Entities.Companies;
 using SGE.Infrastructure.Authentication;
 using SGE.Infrastructure.Pdf;
 
@@ -36,6 +40,8 @@ using SGE.Infrastructure.Pdf;
 
 var builder = WebApplication.CreateBuilder(args);
 const string LocalAngularCorsPolicy = "LocalAngularCorsPolicy";
+if (int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var railwayPort) && railwayPort is > 0 and <= 65535)
+    builder.WebHost.UseUrls($"http://0.0.0.0:{railwayPort}");
 
 // ==========================================
 // Controllers
@@ -43,16 +49,26 @@ const string LocalAngularCorsPolicy = "LocalAngularCorsPolicy";
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
 
-if (builder.Environment.IsDevelopment())
+var allowedOrigins = builder.Environment.IsDevelopment()
+    ? new[] { "http://localhost:4200", "http://127.0.0.1:4200" }
+    : (builder.Configuration["Cors:AllowedOrigins"] ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Where(origin => !string.IsNullOrWhiteSpace(origin))
+        .ToArray();
+
+if (builder.Environment.IsProduction() && allowedOrigins.Length == 0)
+    throw new InvalidOperationException("Cors:AllowedOrigins precisa conter a origem publica do frontend em producao.");
+
+if (allowedOrigins.Length > 0)
 {
     builder.Services.AddCors(options =>
     {
         options.AddPolicy(LocalAngularCorsPolicy, policy =>
         {
             policy
-                .WithOrigins("http://localhost:4200")
+                .WithOrigins(allowedOrigins)
                 .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-                .WithHeaders("Authorization", "Content-Type");
+                .AllowAnyHeader();
         });
     });
 }
@@ -61,14 +77,30 @@ if (builder.Environment.IsDevelopment())
 // Database
 // ==========================================
 builder.Services.AddDbContext<SgeDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(PostgresConnectionString.Resolve(builder.Configuration)));
+var storageProvider = builder.Configuration["Storage:Provider"] ??
+    (builder.Environment.IsDevelopment() ? "Local" : "S3");
+if (builder.Environment.IsProduction() && !storageProvider.Equals("S3", StringComparison.OrdinalIgnoreCase))
+    throw new InvalidOperationException("Storage:Provider deve ser S3 em produção.");
+
+if (storageProvider.Equals("Local", StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
+else if (storageProvider.Equals("S3", StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddSingleton<IFileStorage, S3FileStorage>();
+else
+    throw new InvalidOperationException("Storage:Provider deve ser Local ou S3.");
 
 // ==========================================
 // Authentication
 // ==========================================
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException("Jwt:Key nao configurado.");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"]
+    ?? throw new InvalidOperationException("Jwt:Issuer nao configurado.");
+var jwtAudience = builder.Configuration["Jwt:Audience"]
+    ?? throw new InvalidOperationException("Jwt:Audience nao configurado.");
+if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
+    throw new InvalidOperationException("Jwt:Key deve conter ao menos 32 bytes.");
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -80,8 +112,8 @@ builder.Services
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(jwtKey))
         };
@@ -127,14 +159,18 @@ builder.Services.AddScoped<IReceiptRepository, ReceiptRepository>();
 builder.Services.AddScoped<IReceiptItemRepository, ReceiptItemRepository>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IServiceOrderRepository, ServiceOrderRepository>();
+builder.Services.AddScoped<IServiceOrderAmendmentRepository, ServiceOrderAmendmentRepository>();
 builder.Services.AddScoped<IServiceMeasurementRepository, ServiceMeasurementRepository>();
 builder.Services.AddScoped<IServiceOrderPaymentRepository, ServiceOrderPaymentRepository>();
 builder.Services.AddScoped<IServiceAdvancePaymentRequestRepository, ServiceAdvancePaymentRequestRepository>();
 builder.Services.AddScoped<IServiceOrderAttachmentRepository, ServiceOrderAttachmentRepository>();
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+builder.Services.AddScoped<IWorkCostsRepository, WorkCostsRepository>();
 
 builder.Services.AddScoped<IPurchaseRequestService, PurchaseRequestService>();
 builder.Services.AddScoped<IQuotationService, QuotationService>();
 builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+builder.Services.AddScoped<IFinanceQueueService, FinanceQueueService>();
 builder.Services.AddScoped<IApprovalService, ApprovalService>();
 builder.Services.AddScoped<IApprovalHistoryService, ApprovalHistoryService>();
 builder.Services.AddScoped<IPurchaseRequestItemService, PurchaseRequestItemService>();
@@ -142,12 +178,14 @@ builder.Services.AddScoped<IQuotationItemService, QuotationItemService>();
 builder.Services.AddScoped<IReceiptService, ReceiptService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IServiceOrderService, ServiceOrderService>();
+builder.Services.AddScoped<IServiceOrderAmendmentService, ServiceOrderAmendmentService>();
 builder.Services.AddScoped<IServiceMeasurementService, ServiceMeasurementService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IPurchaseOrderPdfService, PurchaseOrderPdfService>();
+builder.Services.AddScoped<IServiceOrderPdfService, ServiceOrderPdfService>();
 
 // ==========================================
 // Swagger
@@ -178,6 +216,8 @@ builder.Services.AddSwaggerGen(options =>
 // Build
 // ==========================================
 var app = builder.Build();
+// Resolve eagerly so a Production S3 setup with missing credentials/endpoints fails at startup.
+_ = app.Services.GetRequiredService<IFileStorage>();
 
 app.UseExceptionHandler(errorApp =>
 {
@@ -198,10 +238,10 @@ app.UseExceptionHandler(errorApp =>
     });
 });
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
     using var scope = app.Services.CreateScope();
-    await SeedDevelopmentAdminAsync(scope.ServiceProvider);
+    await SeedStructuralDataAsync(scope.ServiceProvider, app.Configuration, app.Environment.IsProduction());
 }
 
 // ==========================================
@@ -213,9 +253,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsProduction())
+    app.UseHttpsRedirection();
 
-if (app.Environment.IsDevelopment())
+if (allowedOrigins.Length > 0)
 {
     app.UseCors(LocalAngularCorsPolicy);
 }
@@ -223,14 +264,22 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapGet("/health", async (SgeDbContext context, CancellationToken cancellationToken) =>
+    await context.Database.CanConnectAsync(cancellationToken)
+        ? Results.Ok(new { status = "ok" })
+        : Results.StatusCode(StatusCodes.Status503ServiceUnavailable))
+    .AllowAnonymous();
+
 app.MapControllers();
 
 app.Run();
 
-static async Task SeedDevelopmentAdminAsync(IServiceProvider services)
+static async Task SeedStructuralDataAsync(IServiceProvider services, IConfiguration configuration, bool isProduction)
 {
     var context = services.GetRequiredService<SgeDbContext>();
     var passwordHasher = services.GetRequiredService<IPasswordHasher>();
+    await using var transaction = await context.Database.BeginTransactionAsync();
+    await context.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(74380925)");
 
     var roles = new[]
     {
@@ -252,19 +301,37 @@ static async Task SeedDevelopmentAdminAsync(IServiceProvider services)
 
     await context.SaveChangesAsync();
 
-    var adminRole = await context.Roles
-        .FirstAsync(x => x.Name == AppRoles.Admin);
-    const string adminEmail = "admin@sge.local";
-
-    if (!await context.Users.AnyAsync(x => x.Email == adminEmail))
+    if (!await context.Companies.AnyAsync(x => x.TradeName == "Estrutural" || x.CorporateName == "Estrutural"))
     {
-        await context.Users.AddAsync(new User(
-            "Admin",
-            "SGE",
-            adminEmail,
-            passwordHasher.HashPassword("Admin123!"),
-            adminRole.Id));
-
+        await context.Companies.AddAsync(new Company("Estrutural", "Estrutural", "ESTRUTURAL-SGE", string.Empty, string.Empty));
         await context.SaveChangesAsync();
     }
+
+    if (await context.Users.AnyAsync(x => x.Role.Name == AppRoles.Admin))
+    {
+        await transaction.CommitAsync();
+        return;
+    }
+
+    var bootstrapEmail = configuration["BootstrapAdmin:Email"];
+    var bootstrapPassword = configuration["BootstrapAdmin:Password"];
+    if (string.IsNullOrWhiteSpace(bootstrapEmail) || string.IsNullOrWhiteSpace(bootstrapPassword))
+    {
+        if (isProduction)
+            throw new InvalidOperationException("Configure BootstrapAdmin:Email e BootstrapAdmin:Password para criar o primeiro administrador.");
+        await transaction.CommitAsync();
+        return;
+    }
+    if (bootstrapPassword.Length < 16)
+        throw new InvalidOperationException("BootstrapAdmin:Password deve conter ao menos 16 caracteres.");
+
+    var normalizedEmail = bootstrapEmail.Trim();
+    if (await context.Users.AnyAsync(x => x.Email == normalizedEmail))
+        throw new InvalidOperationException("O email BootstrapAdmin:Email ja pertence a outro perfil.");
+
+    var adminRole = await context.Roles.FirstAsync(x => x.Name == AppRoles.Admin);
+    await context.Users.AddAsync(new User("Administrador", "SGE", normalizedEmail,
+        passwordHasher.HashPassword(bootstrapPassword), adminRole.Id));
+    await context.SaveChangesAsync();
+    await transaction.CommitAsync();
 }

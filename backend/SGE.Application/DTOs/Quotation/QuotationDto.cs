@@ -31,4 +31,6 @@ public class QuotationDto
     public string? SecondApprovedByUserName { get; set; }
 
     public List<QuotationAttachmentDto> Attachments { get; set; } = new();
+
+    public List<QuotationSupplierOfferDto> SupplierOffers { get; set; } = new();
 }

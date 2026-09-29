@@ -205,8 +205,20 @@
           placeholder="30 dias, 30/60, 50% entrada + 50% entrega">
       </label>
 
+      <label class="freight-field">
+        <span>Valor do frete (R$) <strong aria-hidden="true">*</strong></span>
+        <input type="text" inputmode="decimal" required aria-label="Valor do frete em reais"
+          [value]="budgetDraft().freightText"
+          (input)="updateFreight($any($event.target).value)"
+          (blur)="formatFreight()" placeholder="R$ 0,00">
+      </label>
+
       <div class="budget-total">
-        <span>Total do orcamento</span>
+        <span>Subtotal dos itens</span>
+        <strong>{{ money(budgetSubtotal()) }}</strong>
+        <span>Frete</span>
+        <strong>{{ money(budgetDraft().freightValue) }}</strong>
+        <span>Total da proposta</span>
         <strong>{{ money(budgetTotal()) }}</strong>
       </div>
 
@@ -240,10 +252,16 @@
             <span>{{ budget.supplierDocument }}</span>
           </div>
           <div class="budget-total-inline">
-            <span>Total</span>
+            <span>Total da proposta</span>
             <strong>{{ money(budget.total) }}</strong>
           </div>
         </header>
+
+        <div class="budget-price-breakdown" aria-label="Composição do valor da proposta">
+          <div><span>Subtotal dos itens</span><strong>{{ money(budget.subtotal) }}</strong></div>
+          <div><span>Frete</span><strong>{{ money(budget.freight) }}</strong></div>
+          <div class="proposal-total"><span>Total da proposta</span><strong>{{ money(budget.total) }}</strong></div>
+        </div>
 
         <div class="budget-items">
           <article class="budget-item" *ngFor="let item of budget.items" [class.selected-card]="item.selected">

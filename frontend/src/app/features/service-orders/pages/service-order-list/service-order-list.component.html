@@ -1,12 +1,34 @@
 <section class="page-header">
   <div>
-    <span class="eyebrow">Servicos</span>
+    <span class="eyebrow">Operação</span>
     <h1>Ordens de Servico</h1>
+    <p>Gerencie contratos, execução, medições e pagamentos em um só lugar.</p>
   </div>
   <a *ngIf="canCreate()" class="primary-action" routerLink="/app/ordens-servico/nova">
     Gerar OS
   </a>
 </section>
+
+<nav class="status-tabs" aria-label="Filtrar ordens de serviço">
+  <button type="button" [class.active]="selectedStatus() === null" [attr.aria-pressed]="selectedStatus() === null" (click)="setStatusFilter(null)">
+    Todas ({{ countByStatus(null) }})
+  </button>
+  <button type="button" [class.active]="selectedStatus() === 1" [attr.aria-pressed]="selectedStatus() === 1" (click)="setStatusFilter(1)">
+    Aguardando contrato ({{ countByStatus(1) }})
+  </button>
+  <button type="button" [class.active]="selectedStatus() === 2" [attr.aria-pressed]="selectedStatus() === 2" (click)="setStatusFilter(2)">
+    Liberadas ({{ countByStatus(2) }})
+  </button>
+  <button type="button" [class.active]="selectedStatus() === 3" [attr.aria-pressed]="selectedStatus() === 3" (click)="setStatusFilter(3)">
+    Em execução ({{ countByStatus(3) }})
+  </button>
+  <button type="button" [class.active]="selectedStatus() === 4" [attr.aria-pressed]="selectedStatus() === 4" (click)="setStatusFilter(4)">
+    Concluídas ({{ countByStatus(4) }})
+  </button>
+  <button type="button" [class.active]="selectedStatus() === 5" [attr.aria-pressed]="selectedStatus() === 5" (click)="setStatusFilter(5)">
+    Canceladas ({{ countByStatus(5) }})
+  </button>
+</nav>
 
 <section class="toolbar">
   <label>
@@ -35,6 +57,7 @@
           <th>Financeiro</th>
           <th>Contrato</th>
           <th>Responsavel</th>
+          <th>Antecipacao</th>
           <th>Acoes</th>
         </tr>
       </thead>

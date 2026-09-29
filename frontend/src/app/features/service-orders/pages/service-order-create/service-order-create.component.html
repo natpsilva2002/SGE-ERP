@@ -43,7 +43,7 @@
       </div>
       <div *ngIf="request.serviceQuantity">
         <span>Quantidade prevista</span>
-        <strong>{{ request.serviceQuantity }} {{ request.serviceUnit }}</strong>
+        <strong>{{ request.serviceQuantity }} {{ request.serviceUnit }} (informação histórica)</strong>
       </div>
     </section>
 
@@ -61,6 +61,20 @@
       <span>Valor contratado</span>
       <input type="number" min="0.01" step="0.01" formControlName="contractedValue">
     </label>
+
+    <div class="form-grid">
+      <label>
+        <span>Quantidade contratada</span>
+        <input type="number" min="0.0001" step="0.0001" formControlName="contractedQuantity">
+      </label>
+      <label>
+        <span>Unidade de medição</span>
+        <select formControlName="unit">
+          <option value="">Selecione</option>
+          <option *ngFor="let unit of units()" [value]="unit.code">{{ unit.code }} — {{ unit.description }}</option>
+        </select>
+      </label>
+    </div>
 
     <div class="form-grid">
       <label>

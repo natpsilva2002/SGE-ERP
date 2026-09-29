@@ -28,16 +28,18 @@
 <section class="toolbar">
   <label>
     <span>Buscar</span>
-    <input type="search" [formControl]="searchControl" placeholder="Numero OC, fornecedor ou obra">
+    <input type="search" [formControl]="searchControl" placeholder="Numero, fornecedor/prestador ou obra">
   </label>
 
   <label>
     <span>Status financeiro</span>
     <select [formControl]="statusControl">
       <option value="all">Todos</option>
-      <option [ngValue]="1">Aguardando aprovacao / Autorizadas</option>
-      <option [ngValue]="2">Parcialmente pago</option>
-      <option [ngValue]="3">Pago</option>
+      <option [ngValue]="1">Aguardando aprovacao</option>
+      <option [ngValue]="2">Autorizada</option>
+      <option [ngValue]="3">Parcialmente pago</option>
+      <option [ngValue]="4">Pago</option>
+      <option [ngValue]="5">Nao pago</option>
     </select>
   </label>
 </section>
@@ -45,16 +47,17 @@
 <section class="table-card">
   <div *ngIf="loading()" class="state">Carregando fila financeira...</div>
   <div *ngIf="!loading() && error()" class="state error">{{ error() }}</div>
-  <div *ngIf="!loading() && !error() && filteredOrders().length === 0" class="state">
-    Nenhuma ordem de compra em etapa financeira.
+  <div *ngIf="!loading() && !error() && filteredItems().length === 0" class="state">
+    Nenhum documento em etapa financeira.
   </div>
 
-  <div class="table-wrap desktop-list" *ngIf="!loading() && !error() && filteredOrders().length > 0">
+  <div class="table-wrap desktop-list" *ngIf="!loading() && !error() && filteredItems().length > 0">
     <table>
       <thead>
         <tr>
-          <th>Numero OC</th>
-          <th>Fornecedor</th>
+          <th>Tipo</th>
+          <th>Documento</th>
+          <th>Fornecedor/prestador</th>
           <th>Obra</th>
           <th>Valor total</th>
           <th>Valor pago</th>
@@ -65,56 +68,56 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let order of filteredOrders()">
-          <td>
-            <a class="table-link" [routerLink]="['/app/ordens-compra', order.id]">{{ order.number }}</a>
-          </td>
-          <td>{{ order.supplierName || 'Nao informado' }}</td>
-          <td>{{ order.workName || 'Nao informada' }}</td>
-          <td>{{ money(order.totalValue) }}</td>
-          <td>{{ money(order.amountPaid) }}</td>
-          <td>{{ money(order.amountPending) }}</td>
-          <td><span class="badge payment-{{ order.paymentStatus }}">{{ financialStatusLabel(order) }}</span></td>
-          <td>{{ order.issueDate | date: 'dd/MM/yyyy HH:mm' }}</td>
-          <td><a class="action-link" [routerLink]="['/app/ordens-compra', order.id]">Abrir</a></td>
+        <tr *ngFor="let item of filteredItems()">
+          <td>{{ documentTypeLabel(item.documentType) }}</td>
+          <td><a class="table-link" [routerLink]="detailsLink(item)">{{ item.number }}</a></td>
+          <td>{{ item.supplierName || 'Nao informado' }}</td>
+          <td>{{ item.workName || 'Nao informada' }}</td>
+          <td>{{ money(item.totalValue) }}</td>
+          <td>{{ money(item.amountPaid) }}</td>
+          <td>{{ money(item.amountPending) }}</td>
+          <td><span class="badge payment-{{ item.paymentStatus }}">{{ financialStatusLabel(item) }}</span></td>
+          <td>{{ item.date | date: 'dd/MM/yyyy HH:mm' }}</td>
+          <td><a class="action-link" [routerLink]="detailsLink(item)">Abrir</a></td>
         </tr>
       </tbody>
     </table>
   </div>
 
-  <div class="mobile-list" *ngIf="!loading() && !error() && filteredOrders().length > 0">
-    <article class="queue-card" *ngFor="let order of filteredOrders()">
+  <div class="mobile-list" *ngIf="!loading() && !error() && filteredItems().length > 0">
+    <article class="queue-card" *ngFor="let item of filteredItems()">
       <div class="card-top">
-        <a class="table-link" [routerLink]="['/app/ordens-compra', order.id]">{{ order.number }}</a>
-        <span class="badge payment-{{ order.paymentStatus }}">{{ financialStatusLabel(order) }}</span>
+        <span>{{ documentTypeLabel(item.documentType) }}</span>
+        <span class="badge payment-{{ item.paymentStatus }}">{{ financialStatusLabel(item) }}</span>
       </div>
+      <a class="table-link" [routerLink]="detailsLink(item)">{{ item.number }}</a>
       <div class="card-meta">
-        <span>Fornecedor</span>
-        <strong>{{ order.supplierName || 'Nao informado' }}</strong>
+        <span>Fornecedor/prestador</span>
+        <strong>{{ item.supplierName || 'Nao informado' }}</strong>
       </div>
       <div class="card-meta">
         <span>Obra</span>
-        <strong>{{ order.workName || 'Nao informada' }}</strong>
+        <strong>{{ item.workName || 'Nao informada' }}</strong>
       </div>
       <div class="card-grid">
         <div>
           <span>Total</span>
-          <strong>{{ money(order.totalValue) }}</strong>
+          <strong>{{ money(item.totalValue) }}</strong>
         </div>
         <div>
           <span>Pago</span>
-          <strong>{{ money(order.amountPaid) }}</strong>
+          <strong>{{ money(item.amountPaid) }}</strong>
         </div>
         <div>
           <span>Pendente</span>
-          <strong>{{ money(order.amountPending) }}</strong>
+          <strong>{{ money(item.amountPending) }}</strong>
         </div>
         <div>
-          <span>Status OC</span>
-          <strong>{{ orderStatusLabel(order.status) }}</strong>
+          <span>Data</span>
+          <strong>{{ item.date | date: 'dd/MM/yyyy HH:mm' }}</strong>
         </div>
       </div>
-      <a class="card-action" [routerLink]="['/app/ordens-compra', order.id]">Abrir</a>
+      <a class="card-action" [routerLink]="detailsLink(item)">Abrir</a>
     </article>
   </div>
 </section>

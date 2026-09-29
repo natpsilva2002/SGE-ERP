@@ -1,0 +1,79 @@
+.home-page {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+  position: relative;
+  width: 100%;
+}
+
+.home-context {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  min-width: 0;
+  width: 100%;
+}
+
+.home-context .eyebrow {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.home-context h1 {
+  font-size: 28px;
+  letter-spacing: -0.03em;
+  margin: 8px 0 4px;
+}
+
+.home-context p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.home-tabs {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 24px;
+  margin: 0 0 24px;
+  min-width: 0;
+  width: 100%;
+}
+
+.home-tabs a {
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-weight: 800;
+  padding: 8px 2px 11px;
+  text-decoration: none;
+}
+
+.home-tabs a:hover,
+.home-tabs a.active {
+  border-bottom-color: var(--primary);
+  color: var(--primary);
+}
+
+.home-tabs a:focus-visible {
+  outline: 3px solid rgba(23, 92, 211, 0.28);
+  outline-offset: 3px;
+}
+
+@media (max-width: 620px) {
+  .home-context {
+    min-height: 0;
+  }
+
+  .home-tabs {
+    gap: 16px;
+    margin-bottom: 18px;
+    overflow-x: auto;
+  }
+
+  .home-tabs a {
+    flex: 0 0 auto;
+  }
+}

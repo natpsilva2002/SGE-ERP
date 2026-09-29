@@ -6,6 +6,8 @@ public class ServiceOrderDto
 {
     public Guid Id { get; set; }
 
+    public DateTime CreatedAt { get; set; }
+
     public string Number { get; set; } = string.Empty;
 
     public Guid PurchaseRequestId { get; set; }
@@ -24,6 +26,10 @@ public class ServiceOrderDto
 
     public string SupplierDocument { get; set; } = string.Empty;
 
+    public string SupplierEmail { get; set; } = string.Empty;
+
+    public string SupplierPhone { get; set; } = string.Empty;
+
     public string ServiceDescription { get; set; } = string.Empty;
 
     public string? ServiceSpecification { get; set; }
@@ -33,6 +39,12 @@ public class ServiceOrderDto
     public string? Unit { get; set; }
 
     public decimal ContractedValue { get; set; }
+
+    public decimal CurrentContractedValue { get; set; }
+
+    public decimal? CurrentContractedQuantity { get; set; }
+
+    public bool IsReleasedForExecution { get; set; }
 
     public string? PaymentCondition { get; set; }
 
@@ -91,4 +103,7 @@ public class ServiceOrderDto
 
     public IEnumerable<ServiceOrderAttachmentDto> Attachments { get; set; } =
         Enumerable.Empty<ServiceOrderAttachmentDto>();
+
+    public IEnumerable<ServiceOrderAmendmentDto> Amendments { get; set; } =
+        Enumerable.Empty<ServiceOrderAmendmentDto>();
 }

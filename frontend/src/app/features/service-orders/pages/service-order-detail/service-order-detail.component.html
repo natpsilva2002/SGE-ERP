@@ -2,8 +2,21 @@
   <div>
     <span class="eyebrow">Ordem de Servico</span>
     <h1>{{ serviceOrder()?.number || 'Detalhes' }}</h1>
+    <p class="page-meta">
+      {{ serviceOrder()?.workName || 'Obra não informada' }} · prestador {{ serviceOrder()?.supplierName || 'Não informado' }}
+    </p>
   </div>
-  <a routerLink="/app/ordens-servico">Voltar</a>
+  <div class="page-header-actions">
+    <a routerLink="/app/ordens-servico">Voltar</a>
+    <section class="header-actions" *ngIf="serviceOrder() as order">
+      <button type="button" class="secondary" [disabled]="downloadingPdf()" (click)="downloadPdf(order)">
+        {{ downloadingPdf() ? 'Gerando PDF...' : 'Baixar Ordem de Serviço' }}
+      </button>
+      <button *ngIf="canRelease(order)" type="button" (click)="release()" [disabled]="saving()">
+        Liberar para execucao
+      </button>
+    </section>
+  </div>
 </section>
 
 <div *ngIf="loading()" class="state">Carregando ordem de servico...</div>
@@ -15,6 +28,26 @@
   </div>
   <section class="summary-grid">
     <div>
+      <span>Numero da OS</span>
+      <strong>{{ order.number }}</strong>
+    </div>
+    <div>
+      <span>Servico</span>
+      <strong>{{ order.serviceDescription }}</strong>
+    </div>
+    <div>
+      <span>Obra</span>
+      <strong>{{ order.workName }}</strong>
+    </div>
+    <div>
+      <span>Prestador</span>
+      <strong>{{ order.supplierName }}</strong>
+    </div>
+    <div>
+      <span>Valor contratado</span>
+      <strong>{{ money(order.currentContractedValue) }}</strong>
+    </div>
+    <div>
       <span>Execucao</span>
       <strong class="badge status-{{ order.executionStatus }}">{{ executionLabel(order) }}</strong>
     </div>
@@ -23,21 +56,511 @@
       <strong class="badge payment-{{ order.paymentStatus }}">{{ paymentLabel(order) }}</strong>
     </div>
     <div>
-      <span>Prestador</span>
-      <strong>{{ order.supplierName }}</strong>
-    </div>
-    <div>
       <span>CNPJ</span>
       <strong>{{ order.supplierDocument }}</strong>
     </div>
   </section>
 
-  <section class="actions-card">
-    <button *ngIf="canRelease(order)" type="button" (click)="release()" [disabled]="saving()">
-      Liberar para execucao
-    </button>
+  <section class="panel contract-terms-panel">
+    <div class="section-heading">
+      <div>
+        <h2>Contrato original e situação atual</h2>
+        <p>Os dados originais são preservados; somente adendos aprovados alteram os limites atuais.</p>
+      </div>
+      <button *ngIf="canEditContractTerms(order) && !editingContractTerms()" type="button" class="secondary" (click)="startEditingContractTerms(order)">
+        Ajustar termos antes da liberação
+      </button>
+    </div>
+    <div class="contract-terms-summary">
+      <div><span>Valor original</span><strong>{{ money(order.contractedValue) }}</strong></div>
+      <div><span>Valor contratual atual</span><strong>{{ money(order.currentContractedValue) }}</strong></div>
+      <div><span>Quantidade original</span><strong>{{ order.estimatedQuantity || '-' }} {{ order.unit || '' }}</strong></div>
+      <div><span>Quantidade contratual atual</span><strong>{{ order.currentContractedQuantity ?? '-' }} {{ order.unit || '' }}</strong></div>
+    </div>
+    <form *ngIf="editingContractTerms()" class="contract-terms-form" [formGroup]="contractTermsForm" (ngSubmit)="saveContractTerms(order)">
+      <label><span>Valor contratado</span><input type="number" min="0.01" step="0.01" formControlName="contractedValue"></label>
+      <label><span>Quantidade contratada</span><input type="number" min="0.0001" step="0.0001" formControlName="contractedQuantity"></label>
+      <label><span>Unidade</span><input type="text" maxlength="20" formControlName="unit"></label>
+      <label><span>Condição de pagamento</span><input type="text" maxlength="500" formControlName="paymentCondition"></label>
+      <label><span>Parcelas</span><input type="number" min="1" step="1" formControlName="installmentCount"></label>
+      <div class="measurement-actions"><button type="button" class="secondary" (click)="editingContractTerms.set(false)">Cancelar</button><button type="submit" [disabled]="contractTermsForm.invalid || saving()">{{ saving() ? 'Salvando...' : 'Salvar termos' }}</button></div>
+    </form>
   </section>
 
+  <section class="panel amendments-panel">
+    <div class="section-heading">
+      <div><h2>Adendos</h2><p>Alterações contratuais só passam a valer após aprovação do Administrador.</p></div>
+      <button *ngIf="canCreateAmendment(order)" type="button" (click)="openAmendmentDialog()">+ Adicionar adendo</button>
+    </div>
+    <div *ngIf="order.amendments.length === 0" class="state inline">Nenhum adendo registrado.</div>
+    <div class="amendment-list" *ngIf="order.amendments.length > 0">
+      <article class="amendment-card" *ngFor="let amendment of order.amendments">
+        <div class="amendment-heading"><div><strong>{{ amendment.reason }}</strong><span>{{ amendment.createdAt | date:'dd/MM/yyyy HH:mm' }} · {{ amendment.createdByUserName || 'Responsável não informado' }}</span></div><span class="badge amendment-status-{{ amendment.status }}">{{ amendmentStatusLabel(amendment.status) }}</span></div>
+        <div class="contract-terms-summary">
+          <div *ngIf="amendment.valueAdjustment !== null && amendment.valueAdjustment !== undefined"><span>Variação de valor</span><strong>{{ money(amendment.valueAdjustment) }}</strong></div>
+          <div *ngIf="amendment.quantityAdjustment !== null && amendment.quantityAdjustment !== undefined"><span>Variação de quantidade</span><strong>{{ amendment.quantityAdjustment }} {{ order.unit }}</strong></div>
+          <div *ngIf="amendment.valueBeforeApproval !== null && amendment.valueBeforeApproval !== undefined"><span>Valor anterior</span><strong>{{ money(amendment.valueBeforeApproval) }}</strong></div>
+          <div *ngIf="amendment.valueAfterApproval !== null && amendment.valueAfterApproval !== undefined"><span>Novo valor</span><strong>{{ money(amendment.valueAfterApproval) }}</strong></div>
+          <div *ngIf="amendment.quantityBeforeApproval !== null && amendment.quantityBeforeApproval !== undefined"><span>Quantidade anterior</span><strong>{{ amendment.quantityBeforeApproval }} {{ order.unit }}</strong></div>
+          <div *ngIf="amendment.quantityAfterApproval !== null && amendment.quantityAfterApproval !== undefined"><span>Nova quantidade</span><strong>{{ amendment.quantityAfterApproval }} {{ order.unit }}</strong></div>
+          <div *ngIf="amendment.approvedAt"><span>Aprovado em</span><strong>{{ amendment.approvedAt | date:'dd/MM/yyyy HH:mm' }} · {{ amendment.approvedByUserName || '-' }}</strong></div>
+        </div>
+        <p *ngIf="amendment.observation" class="amendment-observation">{{ amendment.observation }}</p>
+        <div class="amendment-files" *ngIf="amendment.attachments.length">
+          <div *ngFor="let attachment of amendment.attachments"><span>{{ attachment.originalFileName }}</span><button type="button" class="secondary" (click)="downloadAmendmentAttachment(order, amendment, attachment)">Baixar</button><button *ngIf="canEditAmendment(amendment)" type="button" class="danger" (click)="deleteAmendmentAttachment(order, amendment, attachment.id)">Remover</button></div>
+        </div>
+        <label *ngIf="canEditAmendment(amendment)" class="amendment-upload"><span>Adicionar documentos (PDF, imagens ou Office; até 10 MB por arquivo)</span><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" (change)="uploadAmendmentAttachments(order, amendment, $event)"></label>
+        <div class="measurement-actions" *ngIf="canEditAmendment(amendment) || canDecideAmendment(amendment)">
+          <button *ngIf="canEditAmendment(amendment)" type="button" class="secondary" (click)="editAmendment(amendment)">Editar rascunho</button>
+          <button *ngIf="canSubmitAmendment(amendment)" type="button" (click)="submitAmendment(order, amendment)" [disabled]="saving()">Enviar para aprovação</button>
+          <button *ngIf="canDecideAmendment(amendment)" type="button" (click)="decideAmendment(order, amendment, true)" [disabled]="saving()">Aprovar</button>
+          <button *ngIf="canDecideAmendment(amendment)" type="button" class="danger" (click)="decideAmendment(order, amendment, false)" [disabled]="saving()">Rejeitar</button>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="detail-grid">
+    <div class="detail-main">
+      <article class="panel">
+        <h2>Dados do servico</h2>
+        <div class="info-list">
+          <div>
+            <span>Servico</span>
+            <strong>{{ order.serviceDescription }}</strong>
+          </div>
+          <div *ngIf="order.serviceSpecification">
+            <span>Especificacao</span>
+            <strong>{{ order.serviceSpecification }}</strong>
+          </div>
+          <div *ngIf="order.currentContractedQuantity">
+            <span>Quantidade contratada atual</span>
+            <strong>{{ order.currentContractedQuantity }} {{ order.unit }}</strong>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <h2>Financeiro</h2>
+        <div class="info-list finance-info">
+          <div>
+            <span>Valor contratado</span>
+            <strong>{{ money(order.currentContractedValue) }}</strong>
+          </div>
+          <div>
+            <span>Valor pago acumulado</span>
+            <strong>{{ money(order.approvedMeasuredAmount) }}</strong>
+          </div>
+          <div>
+            <span>Quantidade entregue</span>
+            <strong>{{ order.measuredQuantity }} {{ order.unit || '' }}</strong>
+          </div>
+          <div>
+            <span>Quantidade restante</span>
+            <strong>{{ order.remainingQuantity }} {{ order.unit || '' }}</strong>
+          </div>
+          <div>
+            <span>Valor pago</span>
+            <strong>{{ money(order.amountPaid) }}</strong>
+          </div>
+          <div>
+            <span>Disponivel por medicao</span>
+            <strong>{{ money(order.availableMeasuredToPay) }}</strong>
+          </div>
+          <div>
+            <span>Disponivel por antecipacao</span>
+            <strong>{{ money(order.availableAdvanceToPay) }}</strong>
+          </div>
+          <div>
+            <span>Total disponivel para pagamento</span>
+            <strong>{{ money(order.availableToPay) }}</strong>
+          </div>
+          <div>
+            <span>Saldo nao medido</span>
+            <strong>{{ money(order.unmeasuredBalance) }}</strong>
+          </div>
+          <div>
+            <span>Status financeiro</span>
+            <strong class="badge payment-{{ order.paymentStatus }}">{{ paymentLabel(order) }}</strong>
+          </div>
+          <div>
+            <span>Condicao de pagamento</span>
+            <strong>{{ order.paymentCondition || '-' }}</strong>
+          </div>
+          <div>
+            <span>Parcelas</span>
+            <strong>{{ order.installmentCount ? order.installmentCount + 'x' : '-' }}</strong>
+          </div>
+        </div>
+
+        <div class="finance-actions" *ngIf="canRegisterPayment(order)">
+          <button type="button" [disabled]="saving()" (click)="openPaymentDialog(order)">
+            Registrar pagamento
+          </button>
+        </div>
+
+        <div class="finance-actions" *ngIf="canRequestAdvance(order)">
+          <button type="button" class="secondary" [disabled]="saving()" (click)="openAdvanceDialog(order)">
+            Solicitar antecipacao
+          </button>
+        </div>
+      </article>
+    </div>
+
+    <div class="detail-side">
+      <article class="panel">
+        <h2>Informacoes complementares</h2>
+        <div class="info-list">
+          <div>
+            <span>Prestador</span>
+            <strong>{{ order.supplierName }}</strong>
+          </div>
+          <div>
+            <span>CNPJ</span>
+            <strong>{{ order.supplierDocument }}</strong>
+          </div>
+          <div>
+            <span>Responsavel</span>
+            <strong>{{ order.requestedByUserName || 'Nao informado' }}</strong>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <h2>Origem</h2>
+        <div class="info-list">
+          <div>
+            <span>Solicitacao origem</span>
+            <strong>{{ order.purchaseRequestNumber || '-' }}</strong>
+          </div>
+          <div>
+            <span>Obra</span>
+            <strong>{{ order.workName }}</strong>
+          </div>
+          <div>
+            <span>Descricao</span>
+            <strong>{{ order.serviceDescription }}</strong>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="detail-grid detail-grid-secondary">
+    <div class="detail-main">
+      <section class="panel">
+        <h2>Antecipacoes</h2>
+
+        <div *ngIf="order.advancePaymentRequests.length === 0" class="state inline">
+          Nenhuma antecipacao solicitada.
+        </div>
+
+        <div class="payment-history" *ngIf="order.advancePaymentRequests.length > 0">
+          <article class="payment-history-card" *ngFor="let advance of order.advancePaymentRequests">
+            <div>
+              <span>Status</span>
+              <strong class="badge advance-{{ advance.status }}">{{ advanceStatusLabel(advance.status) }}</strong>
+            </div>
+            <div>
+              <span>Valor</span>
+              <strong>{{ money(advance.amount) }}</strong>
+            </div>
+            <div>
+              <span>Pago</span>
+              <strong>{{ money(advance.amountPaid) }}</strong>
+            </div>
+            <div>
+              <span>Saldo</span>
+              <strong>{{ money(advance.amountPending) }}</strong>
+            </div>
+            <div>
+              <span>Solicitado por</span>
+              <strong>{{ advance.requestedByUserName || '-' }}</strong>
+            </div>
+            <div>
+              <span>Solicitado em</span>
+              <strong>{{ date(advance.requestedAt) }}</strong>
+            </div>
+            <div *ngIf="advance.approvedAt">
+              <span>Aprovado por</span>
+              <strong>{{ advance.approvedByUserName || '-' }}</strong>
+            </div>
+            <div *ngIf="advance.rejectedAt">
+              <span>Rejeitado por</span>
+              <strong>{{ advance.rejectedByUserName || '-' }}</strong>
+            </div>
+            <div *ngIf="advance.observation">
+              <span>Observacao</span>
+              <strong>{{ advance.observation }}</strong>
+            </div>
+            <div *ngIf="advance.rejectionReason">
+              <span>Motivo</span>
+              <strong>{{ advance.rejectionReason }}</strong>
+            </div>
+
+            <div class="measurement-actions" *ngIf="advance.status === ServiceAdvancePaymentStatus.WaitingApproval && canApproveAdvance()">
+              <button type="button" (click)="approveAdvancePayment(order, advance)" [disabled]="saving()">Aprovar</button>
+              <button type="button" class="danger" (click)="openRejectAdvance(advance)" [disabled]="saving()">Rejeitar</button>
+            </div>
+
+            <div class="measurement-actions" *ngIf="canPayAdvance(advance)">
+              <button type="button" (click)="openAdvancePaymentDialog(advance)" [disabled]="saving()">
+                Pagar antecipacao
+              </button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Anexos da OS</h2>
+
+        <div *ngIf="order.attachments.length === 0" class="state inline">
+          Nenhum anexo registrado.
+        </div>
+
+        <div class="payment-history" *ngIf="order.attachments.length > 0">
+          <article class="payment-history-card" *ngFor="let attachment of order.attachments">
+            <div>
+              <span>Tipo</span>
+              <strong>{{ attachmentTypeLabel(attachment.type) }}</strong>
+            </div>
+            <div>
+              <span>Arquivo</span>
+              <strong>{{ attachment.originalFileName }}</strong>
+            </div>
+            <div>
+              <span>Anexado em</span>
+              <strong>{{ date(attachment.uploadedAt) }}</strong>
+            </div>
+            <div>
+              <span>Anexado por</span>
+              <strong>{{ attachment.uploadedByUserName || '-' }}</strong>
+            </div>
+            <div class="measurement-actions">
+              <button *ngIf="canDownloadAttachment()" type="button" class="secondary" (click)="downloadAttachment(order, attachment)">
+                Baixar
+              </button>
+              <button *ngIf="canManageAttachments()" type="button" class="danger" (click)="deleteAttachment(order, attachment)">
+                Excluir
+              </button>
+            </div>
+          </article>
+        </div>
+
+        <div class="upload-box" *ngIf="canManageAttachments()" [formGroup]="attachmentForm">
+          <label>
+            <span>Tipo do anexo</span>
+            <select formControlName="type">
+              <option *ngFor="let type of attachmentTypes" [ngValue]="type">
+                {{ attachmentTypeLabel(type) }}
+              </option>
+            </select>
+          </label>
+          <label>
+            <span>Arquivos PDF, JPG, JPEG ou PNG</span>
+            <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" (change)="onAttachmentFilesSelected($event)">
+          </label>
+          <div class="selected-file" *ngIf="selectedAttachmentFiles().length > 0">
+            {{ selectedAttachmentFiles().length }} arquivo(s) selecionado(s)
+          </div>
+          <button type="button" (click)="uploadAttachments(order)" [disabled]="selectedAttachmentFiles().length === 0 || saving()">
+            {{ saving() ? 'Enviando...' : 'Enviar anexos' }}
+          </button>
+        </div>
+      </section>
+
+      <section class="panel muted-panel">
+        <div class="section-heading">
+          <div>
+            <h2>Medicoes do servico</h2>
+            <p>Acompanhe a execucao e os valores pagos.</p>
+          </div>
+          <button *ngIf="canCreateMeasurement(order)" type="button" (click)="openCreateMeasurement()">
+            + Nova Medicao
+          </button>
+        </div>
+
+        <div class="measurement-summary">
+          <div>
+            <span>Valor contratado</span>
+            <strong>{{ money(order.currentContractedValue) }}</strong>
+          </div>
+          <div>
+            <span>Valor pago acumulado</span>
+            <strong>{{ money(order.approvedMeasuredAmount) }}</strong>
+          </div>
+          <div>
+            <span>Comprometido</span>
+            <strong>{{ money(order.committedMeasuredAmount) }}</strong>
+          </div>
+          <div>
+            <span>Saldo disponivel</span>
+            <strong>{{ money(order.remainingToMeasure) }}</strong>
+          </div>
+          <div>
+            <span>Execucao</span>
+            <strong>{{ order.physicalPercentage }}% físico / {{ order.financialPercentage }}% financeiro pago</strong>
+          </div>
+        </div>
+
+        <div *ngIf="order.measurements.length === 0" class="state inline">
+          Nenhuma medicao registrada.
+        </div>
+
+        <div class="measurement-list" *ngIf="order.measurements.length > 0">
+          <article class="measurement-card" *ngFor="let measurement of order.measurements">
+            <div class="measurement-top">
+              <div>
+                <span>Numero</span>
+                <strong>{{ measurement.measurementNumber }}</strong>
+              </div>
+              <strong class="badge measurement-{{ measurement.status }}">
+                {{ measurementStatusLabel(measurement.status) }}
+              </strong>
+            </div>
+
+            <div class="measurement-grid">
+              <div>
+                <span>Data</span>
+                <strong>{{ measurement.measurementDate | date: 'dd/MM/yyyy' }}</strong>
+              </div>
+              <div>
+                <span>Valor</span>
+                <strong>{{ money(measurement.amount) }}</strong>
+              </div>
+              <div>
+                <span>Quantidade</span>
+                <strong>{{ measurement.quantityMeasured }} {{ measurement.unit }}</strong>
+              </div>
+              <div>
+                <span>Criado por</span>
+                <strong>{{ measurement.createdByUserName || '-' }}</strong>
+              </div>
+            </div>
+
+            <div class="measurement-description">
+              <span>Descricao</span>
+              <strong>{{ measurement.description }}</strong>
+            </div>
+
+            <div class="measurement-description" *ngIf="measurement.observation">
+              <span>Observacao</span>
+              <strong>{{ measurement.observation }}</strong>
+            </div>
+
+            <div class="measurement-description" *ngIf="measurement.status === ServiceMeasurementStatus.Rejected">
+              <span>Motivo da rejeicao</span>
+              <strong>{{ measurement.rejectionReason || '-' }}</strong>
+            </div>
+
+            <div class="measurement-attachments" *ngIf="measurement.attachments?.length">
+              <span>Anexos da medicao</span>
+              <div *ngFor="let attachment of measurement.attachments" class="attachment-row">
+                <strong>{{ attachment.originalFileName }}</strong>
+                <button type="button" class="secondary" (click)="downloadMeasurementAttachment(order, measurement, attachment)">Baixar</button>
+              </div>
+            </div>
+
+            <div class="measurement-actions" *ngIf="canManageMeasurements()">
+              <ng-container *ngIf="measurement.status === ServiceMeasurementStatus.Draft">
+                <button type="button" class="secondary" (click)="openEditMeasurement(measurement)">Editar</button>
+                <button type="button" class="danger" (click)="deleteMeasurement(measurement)" [disabled]="saving()">Excluir</button>
+              </ng-container>
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+
+    <div class="detail-side">
+      <section class="panel">
+        <h2>Historico de pagamentos</h2>
+
+        <div *ngIf="order.payments.length === 0" class="state inline">
+          Nenhum pagamento registrado.
+        </div>
+
+        <div class="payment-history" *ngIf="order.payments.length > 0">
+          <article class="payment-history-card" *ngFor="let payment of order.payments">
+            <div>
+              <span>Data</span>
+              <strong>{{ payment.paymentDate | date: 'dd/MM/yyyy HH:mm' }}</strong>
+            </div>
+            <div>
+              <span>Valor</span>
+              <strong>{{ money(payment.amount) }}</strong>
+            </div>
+            <div>
+              <span>Forma</span>
+              <strong>{{ paymentMethodLabel(payment.paymentMethod) }}</strong>
+            </div>
+            <div>
+              <span>Origem</span>
+              <strong>{{ payment.advancePaymentRequestId ? 'Antecipacao' : 'Medicao aprovada' }}</strong>
+            </div>
+            <div>
+              <span>Responsavel</span>
+              <strong>{{ payment.paidByUserName || '-' }}</strong>
+            </div>
+            <div *ngIf="payment.observation">
+              <span>Observacao</span>
+              <strong>{{ payment.observation }}</strong>
+            </div>
+            <div class="measurement-attachments" *ngIf="payment.attachments?.length">
+              <span>Anexos do pagamento</span>
+              <div *ngFor="let attachment of payment.attachments" class="attachment-row">
+                <strong>{{ attachment.originalFileName }}</strong>
+                <button type="button" class="secondary" (click)="downloadPaymentAttachment(order, payment, attachment)">Baixar</button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Contrato</h2>
+
+        <div class="contract-status" *ngIf="order.contractFileName; else pendingContract">
+          <div>
+            <span>Arquivo</span>
+            <strong>{{ order.contractFileName }}</strong>
+          </div>
+          <div>
+            <span>Anexado em</span>
+            <strong>{{ date(order.contractUploadedAt) }}</strong>
+          </div>
+          <div>
+            <span>Anexado por</span>
+            <strong>{{ order.contractUploadedByUserName || '-' }}</strong>
+          </div>
+          <button *ngIf="canDownloadContract()" type="button" class="secondary" (click)="downloadContract()">
+            Baixar contrato
+          </button>
+        </div>
+
+        <ng-template #pendingContract>
+          <div class="state inline">Contrato pendente.</div>
+        </ng-template>
+
+      <div class="upload-box" *ngIf="canUploadContract(order)">
+          <label>
+            <span>Arquivo PDF, DOC ou DOCX</span>
+            <input type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" (change)="onFileSelected($event)">
+          </label>
+          <div class="selected-file" *ngIf="selectedFile() as file">
+            {{ file.name }}
+          </div>
+          <button type="button" (click)="uploadContract()" [disabled]="!selectedFile() || saving()">
+            {{ saving() ? 'Enviando...' : 'Anexar contrato' }}
+          </button>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- original content removed from this position -->
+  <!--
   <section class="content-grid">
     <article class="panel">
       <h2>Dados do servico</h2>
@@ -58,9 +581,9 @@
           <span>Solicitacao origem</span>
           <strong>{{ order.purchaseRequestNumber || '-' }}</strong>
         </div>
-        <div *ngIf="order.estimatedQuantity">
-          <span>Quantidade prevista</span>
-          <strong>{{ order.estimatedQuantity }} {{ order.unit }}</strong>
+        <div *ngIf="order.currentContractedQuantity">
+          <span>Quantidade contratada atual</span>
+          <strong>{{ order.currentContractedQuantity }} {{ order.unit }}</strong>
         </div>
       </div>
     </article>
@@ -70,7 +593,7 @@
       <div class="info-list">
         <div>
           <span>Valor contratado</span>
-          <strong>{{ money(order.contractedValue) }}</strong>
+          <strong>{{ money(order.currentContractedValue) }}</strong>
         </div>
         <div>
           <span>Valor pago acumulado</span>
@@ -265,7 +788,7 @@
       <div class="state inline">Contrato pendente.</div>
     </ng-template>
 
-    <div class="upload-box" *ngIf="canUploadContract()">
+    <div class="upload-box" *ngIf="canUploadContract(order)">
       <label>
         <span>Arquivo PDF, DOC ou DOCX</span>
         <input type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" (change)="onFileSelected($event)">
@@ -351,7 +874,7 @@
     <div class="measurement-summary">
       <div>
         <span>Valor contratado</span>
-        <strong>{{ money(order.contractedValue) }}</strong>
+        <strong>{{ money(order.currentContractedValue) }}</strong>
       </div>
       <div>
           <span>Valor pago acumulado</span>
@@ -438,6 +961,22 @@
       </article>
     </div>
   </section>
+
+  -->
+  <div class="payment-modal-backdrop" *ngIf="showAmendmentDialog()" (click)="closeAmendmentDialog()">
+    <form class="measurement-modal amendment-modal" [formGroup]="amendmentForm" (ngSubmit)="createAmendment(order)" (click)="$event.stopPropagation()">
+      <header><h2>{{ editingAmendmentId() ? 'Editar adendo' : 'Novo adendo' }}</h2><button type="button" class="secondary" (click)="closeAmendmentDialog()">Fechar</button></header>
+      <label><span>Motivo / descrição</span><textarea rows="3" formControlName="reason" maxlength="500"></textarea></label>
+      <div class="contract-terms-form">
+        <label><span>Ajuste de valor (+/-)</span><input type="number" step="0.01" formControlName="valueAdjustment"></label>
+        <label><span>Ajuste de quantidade (+/-)</span><input type="number" step="0.0001" formControlName="quantityAdjustment"></label>
+      </div>
+      <label><span>Observação</span><textarea rows="3" formControlName="observation"></textarea></label>
+      <label><span>Anexos opcionais — PDF, JPG, JPEG, PNG, DOC, DOCX, XLS ou XLSX · máximo 10 MB por arquivo</span><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" (change)="onAmendmentFilesSelected($event)"></label>
+      <div class="selected-file" *ngFor="let file of selectedAmendmentFiles()">{{ file.name }}</div>
+      <button type="submit" [disabled]="amendmentForm.invalid || saving()">{{ saving() ? 'Salvando...' : (editingAmendmentId() ? 'Atualizar rascunho' : 'Salvar adendo em rascunho') }}</button>
+    </form>
+  </div>
 
   <div class="payment-modal-backdrop" *ngIf="showMeasurementDialog()" (click)="closeMeasurementDialog()">
     <form class="measurement-modal" [formGroup]="measurementForm" (ngSubmit)="submitMeasurementForm()" (click)="$event.stopPropagation()">

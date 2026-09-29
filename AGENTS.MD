@@ -51,6 +51,12 @@ Criar e enviar são ações separadas: salvar cria `Draft` editável; o detalhe 
 
 Depois de aprovado/finalizado, o backend bloqueia edição e exclusão destrutiva dos dados de origem; o frontend oculta/desabilita ações inválidas. Correções posteriores usam fluxo auditável.
 
+## Dashboard
+
+`GET /api/Dashboard` fornece o resumo inicial agregado conforme o perfil autenticado. A página inicial mostra cards, pendências e atividades recentes usando somente dados reais, sem expor valores financeiros para Almoxarife ou Compras. Financeiro e Administrador recebem os indicadores financeiros permitidos; cards e pendências navegam para os módulos existentes.
+
+Administradores e Financeiro também podem acessar `GET /api/Dashboard/work-costs`, com filtros reais de obra e período. A visão Gastos por Obra calcula contratado, pago e pendente a partir de OCs, OSs e pagamentos registrados, sem tratar medição como pagamento. Compras e Almoxarife não recebem esse endpoint nem dados financeiros equivalentes.
+
 ## Material
 
 - Compras cria/edita cotações enquanto editáveis; não aprova.
@@ -63,7 +69,10 @@ Depois de aprovado/finalizado, o backend bloqueia edição e exclusão destrutiv
 - Anexos de pagamento pertencem ao Payment específico, preservam histórico e nunca substituem documentos silenciosamente.
 - Cada solicitação possui no máximo a cotação existente; não oferecer "Criar cotação" novamente.
 - Orçamentos permanecem editáveis enquanto a cotação não tiver aprovação efetiva; após aprovação, cotação, orçamentos e anexos ficam imutáveis.
+- Cada proposta de fornecedor na cotação de material possui seu próprio `FreightValue`; total da proposta = subtotal dos itens + frete, sem rateio do frete entre itens.
+- Ao gerar a Ordem de Compra, preservar o frete da proposta escolhida. O total da OC e os compromissos financeiros consideram itens + frete; o recebimento físico continua baseado somente nas quantidades dos materiais.
 - Pagamentos de antecipação aceitam múltiplos anexos vinculados ao pagamento específico.
+- Ordens de Compra e Ordens de Serviço possuem PDF oficial para download, respeitando autenticação e permissões.
 
 ## Serviço e medições
 
@@ -102,8 +111,32 @@ Toda nova operação de recebimento exige Nota Fiscal anexada no mesmo registro,
 - Operação não autorizada retorna `403` quando aplicável.
 - Após backend: `dotnet build backend/SGE.API/SGE.API.csproj`.
 - Após frontend: `npm run build` em `frontend`.
+- Após mudanças no armazenamento de arquivos: `dotnet run --project backend/SGE.API.StorageChecks/SGE.API.StorageChecks.csproj -c Release` valida upload, metadado de chave, download, atributos de autorização, exclusão, compatibilidade local histórica e path traversal sem usar o banco real.
 - Não corrigir warnings antigos fora do escopo.
 
 ## Resposta do Codex
 
 Responder curto com implementação, migration, testes, builds, arquivos principais e pendências.
+
+## Serviço — contrato e adendos
+
+- Solicitações novas de Serviço registram necessidade, Obra e especificação; quantidade/unidade contratuais são definidas ao gerar a OS. Campos históricos das solicitações e OSs permanecem legíveis.
+- Quantidade, unidade, prestador e condições contratuais da OS só podem ser ajustados diretamente enquanto aguardam contrato/liberação. Após a liberação, alterações contratuais são feitas por adendo.
+- Pagamento e solicitação/aprovação de antecipação exigem OS liberada para execução; o backend bloqueia tentativas anteriores com mensagem amigável.
+- Adendos pertencem à OS, preservam motivo, ajustes, responsável, instante, anexos próprios 1:N e snapshots antes/depois. Rascunho não afeta limites; somente aprovação por Administrador atualiza contrato. Financeiro pode consultar, mas não aprovar.
+- Valor e quantidade contratuais atuais são os termos originais somados aos ajustes aprovados. Pagamentos e medições respeitam os limites atuais e preservam registros históricos.
+- O PDF oficial da OS lista somente adendos aprovados, com valores/quantidades original e atual.
+
+## Deploy Railway
+
+- Produção usa o monorepo como build context e imagens `backend/Dockerfile` e `frontend/Dockerfile`; Railway não deve publicar dados do banco local.
+- API recebe connection string via `ConnectionStrings__DefaultConnection` ou compatibilidade com `DATABASE_URL`/variáveis `PG*`; JWT e primeiro Administrador usam variáveis secretas, nunca valores no código.
+- `Cors__AllowedOrigins` é obrigatório em produção e deve conter somente origens confiáveis; nunca usar `AllowAnyOrigin` em produção.
+- Anexos usam `IFileStorage` para upload/download/existência/exclusão. Desenvolvimento usa `Storage__Provider=Local` (padrão), preservando leitura de caminhos históricos `uploads/<categoria>/<arquivo>` no diretório local; produção exige S3 privado via `Storage__Provider=S3`.
+- Configurar produção com `Storage__Endpoint`, `Storage__Bucket`, `Storage__AccessKey`, `Storage__SecretKey`, `Storage__Region` e `Storage__UsePathStyle`; nunca versionar credenciais. S3 guarda objetos privados com chaves seguras/únicas, e downloads continuam nos endpoints autenticados com as permissões existentes.
+- `UPLOADS_PATH` é apenas para o armazenamento local. Não mover arquivos nem registros durante a configuração inicial; histórico local permanece utilizável em Development. Cópia entre provedores exige plano explícito, preservando as chaves/categorias.
+- Planejar retenção e backup de bucket junto com backup do banco e testar restauração; PDFs gerados sob demanda não são anexos persistidos.
+- A API não aplica migrations no startup/pre-deploy. Revisar SQL idempotente e aplicar migrations manualmente, após backup e confirmação do banco alvo.
+- O bootstrap de produção só cria perfis oficiais faltantes, garante a empresa Estrutural e cria o Administrador inicial quando ainda não existir, usando `BootstrapAdmin__Email`/`BootstrapAdmin__Password`; remover a senha do serviço depois do primeiro login.
+- O frontend recebe `API_URL` em runtime; backend e frontend escutam `PORT`; `/health` é o healthcheck e deve retornar indisponível quando o banco não conecta.
+- PDF deve resolver fontes Linux sem caminhos absolutos Windows; uploads e builds devem ser validados em containers Linux antes de autorizar deploy.

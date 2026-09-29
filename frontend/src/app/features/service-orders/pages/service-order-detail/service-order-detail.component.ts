@@ -20,7 +20,11 @@ import {
   ServiceOrderExecutionStatus,
   ServiceOrderAttachment,
   ServiceOrderAttachmentType,
+  ServiceOrderAmendment,
+  ServiceOrderAmendmentStatus,
+  getServiceOrderAmendmentStatusLabel,
   PaymentMethod,
+  UpdateServiceOrderContract,
   getAdvancePaymentStatusLabel,
   getAttachmentTypeLabel,
   getExecutionStatusLabel,
@@ -53,6 +57,11 @@ export class ServiceOrderDetailComponent implements OnInit {
   readonly selectedMeasurementAttachmentFiles = signal<File[]>([]);
   readonly loading = signal(false);
   readonly saving = signal(false);
+  readonly downloadingPdf = signal(false);
+  readonly editingContractTerms = signal(false);
+  readonly showAmendmentDialog = signal(false);
+  readonly editingAmendmentId = signal<string | null>(null);
+  readonly selectedAmendmentFiles = signal<File[]>([]);
   readonly error = signal('');
   readonly showMeasurementDialog = signal(false);
   readonly editingMeasurement = signal<ServiceMeasurement | null>(null);
@@ -63,6 +72,7 @@ export class ServiceOrderDetailComponent implements OnInit {
   readonly rejectingAdvance = signal<ServiceAdvancePaymentRequest | null>(null);
   readonly ServiceMeasurementStatus = ServiceMeasurementStatus;
   readonly ServiceAdvancePaymentStatus = ServiceAdvancePaymentStatus;
+  readonly ServiceOrderAmendmentStatus = ServiceOrderAmendmentStatus;
   readonly attachmentTypes = [
     ServiceOrderAttachmentType.Invoice,
     ServiceOrderAttachmentType.PaymentReceipt,
@@ -110,6 +120,21 @@ export class ServiceOrderDetailComponent implements OnInit {
     type: [ServiceOrderAttachmentType.Invoice, Validators.required]
   });
 
+  readonly contractTermsForm = this.fb.nonNullable.group({
+    contractedValue: [0, [Validators.required, Validators.min(0.01)]],
+    contractedQuantity: [0, [Validators.required, Validators.min(0.0001)]],
+    unit: ['', Validators.required],
+    paymentCondition: [''],
+    installmentCount: [1, [Validators.required, Validators.min(1)]]
+  });
+
+  readonly amendmentForm = this.fb.group({
+    reason: ['', Validators.required],
+    valueAdjustment: [null as number | null],
+    quantityAdjustment: [null as number | null],
+    observation: ['']
+  });
+
   ngOnInit(): void {
     this.load();
   }
@@ -137,6 +162,17 @@ export class ServiceOrderDetailComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
     this.selectedFile.set(file);
+  }
+
+  downloadPdf(order: ServiceOrder): void {
+    if (this.downloadingPdf()) return;
+    this.downloadingPdf.set(true);
+    this.service.downloadPdf(order.id)
+      .pipe(finalize(() => this.downloadingPdf.set(false)))
+      .subscribe({
+        next: (blob) => this.downloadBlob(blob, `OS-${order.number}.pdf`),
+        error: (error) => this.toast.error(getApiErrorMessage(error))
+      });
   }
 
   uploadContract(): void {
@@ -292,8 +328,9 @@ export class ServiceOrderDetailComponent implements OnInit {
     });
   }
 
-  canUploadContract(): boolean {
-    return this.authService.hasRole([AppRoles.Finance, AppRoles.Admin]);
+  canUploadContract(order: ServiceOrder): boolean {
+    return this.authService.hasRole([AppRoles.Finance, AppRoles.Admin]) &&
+      order.executionStatus === ServiceOrderExecutionStatus.WaitingContract;
   }
 
   canDownloadContract(): boolean {
@@ -308,6 +345,7 @@ export class ServiceOrderDetailComponent implements OnInit {
 
   canRegisterPayment(order: ServiceOrder): boolean {
     return this.authService.hasRole([AppRoles.Finance, AppRoles.Admin]) &&
+      order.isReleasedForExecution &&
       order.availableMeasuredToPay > 0 &&
       order.paymentStatus !== 3;
   }
@@ -518,6 +556,7 @@ export class ServiceOrderDetailComponent implements OnInit {
 
   canRequestAdvance(order: ServiceOrder): boolean {
     return this.authService.hasRole([AppRoles.Finance, AppRoles.Admin]) &&
+      order.isReleasedForExecution &&
       order.amountPending > 0;
   }
 
@@ -530,9 +569,206 @@ export class ServiceOrderDetailComponent implements OnInit {
   }
 
   canPayAdvance(advance: ServiceAdvancePaymentRequest): boolean {
+    const order = this.serviceOrder();
     return this.authService.hasRole([AppRoles.Finance, AppRoles.Admin]) &&
+      !!order?.isReleasedForExecution &&
       advance.status === ServiceAdvancePaymentStatus.Approved &&
       advance.amountPending > 0;
+  }
+
+  canEditContractTerms(order: ServiceOrder): boolean {
+    return this.authService.hasRole([AppRoles.Admin]) &&
+      order.executionStatus === ServiceOrderExecutionStatus.WaitingContract;
+  }
+
+  startEditingContractTerms(order: ServiceOrder): void {
+    this.contractTermsForm.reset({
+      contractedValue: order.contractedValue,
+      contractedQuantity: order.estimatedQuantity ?? 0,
+      unit: order.unit ?? '',
+      paymentCondition: order.paymentCondition ?? '',
+      installmentCount: order.installmentCount ?? 1
+    });
+    this.editingContractTerms.set(true);
+  }
+
+  saveContractTerms(order: ServiceOrder): void {
+    if (this.contractTermsForm.invalid || this.saving()) {
+      this.contractTermsForm.markAllAsTouched();
+      return;
+    }
+    const terms = this.contractTermsForm.getRawValue();
+    this.saving.set(true);
+    this.service.updateContractTerms(order.id, {
+      supplierId: order.supplierId,
+      ...terms
+    }).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: updated => {
+        this.serviceOrder.set(updated);
+        this.editingContractTerms.set(false);
+        this.toast.success('Termos contratuais atualizados.');
+      },
+      error: error => this.toast.error(getApiErrorMessage(error))
+    });
+  }
+
+  canCreateAmendment(order: ServiceOrder): boolean {
+    return this.authService.hasRole([AppRoles.Admin]) && order.isReleasedForExecution;
+  }
+
+  canDecideAmendment(amendment: ServiceOrderAmendment): boolean {
+    return this.authService.hasRole([AppRoles.Admin]) && amendment.status === ServiceOrderAmendmentStatus.WaitingApproval;
+  }
+
+  canEditAmendment(amendment: ServiceOrderAmendment): boolean {
+    return this.authService.hasRole([AppRoles.Admin]) &&
+      (amendment.status === ServiceOrderAmendmentStatus.Draft || amendment.status === ServiceOrderAmendmentStatus.Rejected);
+  }
+
+  canSubmitAmendment(amendment: ServiceOrderAmendment): boolean {
+    return this.canEditAmendment(amendment);
+  }
+
+  openAmendmentDialog(): void {
+    this.editingAmendmentId.set(null);
+    this.amendmentForm.reset({ reason: '', valueAdjustment: null, quantityAdjustment: null, observation: '' });
+    this.selectedAmendmentFiles.set([]);
+    this.showAmendmentDialog.set(true);
+  }
+
+  editAmendment(amendment: ServiceOrderAmendment): void {
+    this.editingAmendmentId.set(amendment.id);
+    this.amendmentForm.reset({
+      reason: amendment.reason,
+      valueAdjustment: amendment.valueAdjustment ?? null,
+      quantityAdjustment: amendment.quantityAdjustment ?? null,
+      observation: amendment.observation ?? ''
+    });
+    this.selectedAmendmentFiles.set([]);
+    this.showAmendmentDialog.set(true);
+  }
+
+  closeAmendmentDialog(): void {
+    this.showAmendmentDialog.set(false);
+    this.selectedAmendmentFiles.set([]);
+  }
+
+  onAmendmentFilesSelected(event: Event): void {
+    const files = Array.from((event.target as HTMLInputElement).files ?? []);
+    if (this.validateDocumentFiles(files)) this.selectedAmendmentFiles.set(files);
+  }
+
+  createAmendment(order: ServiceOrder): void {
+    if (this.amendmentForm.invalid || this.saving()) {
+      this.amendmentForm.markAllAsTouched();
+      return;
+    }
+    const formValue = this.amendmentForm.getRawValue();
+    if (!formValue.valueAdjustment && !formValue.quantityAdjustment) {
+      this.toast.error('Informe uma alteração de valor ou quantidade.');
+      return;
+    }
+    this.saving.set(true);
+    const amendmentId = this.editingAmendmentId();
+    const payload = {
+      reason: formValue.reason?.trim() ?? '',
+      valueAdjustment: formValue.valueAdjustment,
+      quantityAdjustment: formValue.quantityAdjustment,
+      observation: formValue.observation?.trim() || null
+    };
+    const saveRequest = amendmentId
+      ? this.service.updateAmendment(order.id, amendmentId, payload)
+      : this.service.createAmendment(order.id, payload);
+    saveRequest.subscribe({
+      next: amendment => {
+        const files = this.selectedAmendmentFiles();
+        const request = files.length
+          ? this.service.uploadAmendmentAttachments(order.id, amendment.id, files)
+          : null;
+        if (!request) {
+          this.finishAmendmentSave(order.id);
+          return;
+        }
+        request.pipe(finalize(() => this.saving.set(false))).subscribe({
+          next: () => this.finishAmendmentSave(order.id),
+          error: error => {
+            this.saving.set(false);
+            this.closeAmendmentDialog();
+            this.load();
+            this.toast.error(`Adendo salvo, mas não foi possível enviar os anexos: ${getApiErrorMessage(error)}`);
+          }
+        });
+      },
+      error: error => {
+        this.saving.set(false);
+        this.toast.error(getApiErrorMessage(error));
+      }
+    });
+  }
+
+  submitAmendment(order: ServiceOrder, amendment: ServiceOrderAmendment): void {
+    this.saving.set(true);
+    this.service.submitAmendment(order.id, amendment.id).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: () => { this.toast.success('Adendo enviado para aprovação.'); this.load(); },
+      error: error => this.toast.error(getApiErrorMessage(error))
+    });
+  }
+
+  decideAmendment(order: ServiceOrder, amendment: ServiceOrderAmendment, approve: boolean): void {
+    const perform = () => {
+      this.saving.set(true);
+      this.service.decideAmendment(order.id, amendment.id, approve).pipe(finalize(() => this.saving.set(false))).subscribe({
+        next: () => { this.toast.success(approve ? 'Adendo aprovado.' : 'Adendo rejeitado.'); this.load(); },
+        error: error => this.toast.error(getApiErrorMessage(error))
+      });
+    };
+    if (!approve) {
+      this.confirm.confirm({ title: 'Rejeitar adendo', message: `Rejeitar o adendo “${amendment.reason}”?`, confirmLabel: 'Rejeitar' })
+        .pipe(take(1)).subscribe(confirmed => { if (confirmed) perform(); });
+      return;
+    }
+    this.confirm.confirm({ title: 'Aprovar adendo', message: `Aprovar o adendo “${amendment.reason}” e atualizar os limites contratuais?`, confirmLabel: 'Aprovar' })
+      .pipe(take(1)).subscribe(confirmed => { if (confirmed) perform(); });
+  }
+
+  uploadAmendmentAttachments(order: ServiceOrder, amendment: ServiceOrderAmendment, event: Event): void {
+    const files = Array.from((event.target as HTMLInputElement).files ?? []);
+    if (!files.length || !this.validateDocumentFiles(files)) return;
+    this.saving.set(true);
+    this.service.uploadAmendmentAttachments(order.id, amendment.id, files).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: () => { this.toast.success('Anexos adicionados.'); this.load(); },
+      error: error => this.toast.error(getApiErrorMessage(error))
+    });
+  }
+
+  deleteAmendmentAttachment(order: ServiceOrder, amendment: ServiceOrderAmendment, attachmentId: string): void {
+    this.confirm.confirm({ title: 'Remover anexo', message: 'Remover este arquivo do adendo em edição?', confirmLabel: 'Remover' })
+      .pipe(take(1)).subscribe(confirmed => {
+        if (!confirmed) return;
+        this.service.deleteAmendmentAttachment(order.id, amendment.id, attachmentId).subscribe({
+          next: () => { this.toast.success('Anexo removido.'); this.load(); },
+          error: error => this.toast.error(getApiErrorMessage(error))
+        });
+      });
+  }
+
+  downloadAmendmentAttachment(order: ServiceOrder, amendment: ServiceOrderAmendment, attachment: { id: string; originalFileName: string }): void {
+    this.service.downloadAmendmentAttachment(order.id, amendment.id, attachment.id).subscribe({
+      next: blob => this.downloadBlob(blob, attachment.originalFileName),
+      error: error => this.toast.error(getApiErrorMessage(error))
+    });
+  }
+
+  amendmentStatusLabel(status: ServiceOrderAmendmentStatus): string {
+    return getServiceOrderAmendmentStatusLabel(status);
+  }
+
+  private finishAmendmentSave(orderId: string): void {
+    this.saving.set(false);
+    this.closeAmendmentDialog();
+    this.service.getById(orderId).subscribe({ next: updated => this.serviceOrder.set(updated) });
+    this.toast.success(this.editingAmendmentId() ? 'Rascunho do adendo atualizado.' : 'Adendo criado em rascunho.');
+    this.editingAmendmentId.set(null);
   }
 
   canManageAttachments(): boolean {

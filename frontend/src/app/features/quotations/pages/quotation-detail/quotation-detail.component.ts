@@ -1,7 +1,7 @@
 import { DatePipe, NgFor, NgIf } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { finalize, forkJoin, take } from 'rxjs';
+import { finalize, forkJoin, switchMap, take } from 'rxjs';
 import { AppRoles } from '../../../../core/auth/app-roles';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { ConfirmService } from '../../../../shared/feedback/confirm.service';
@@ -35,6 +35,8 @@ interface BudgetGroup {
   supplierName: string;
   supplierDocument: string;
   items: QuotationItem[];
+  subtotal: number;
+  freight: number;
   total: number;
   deliveryDays: number;
   paymentCondition: string;
@@ -51,6 +53,8 @@ interface BudgetDraft {
   paymentCondition: string;
   paymentConditionOther: string;
   installmentCount: number | null;
+  freightValue: number;
+  freightText: string;
 }
 
 @Component({
@@ -160,17 +164,24 @@ export class QuotationDetailComponent implements OnInit {
     }
 
     return Array.from(groups.entries())
-      .map(([supplierId, items]) => ({
+      .map(([supplierId, items]) => {
+        const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
+        const freight = this.quotation()?.supplierOffers?.find((offer) =>
+          this.normalizeId(offer.supplierId) === this.normalizeId(supplierId))?.freightValue ?? 0;
+        return {
         supplierId,
         supplierName: this.supplierLabel(supplierId),
         supplierDocument: this.supplierDocument(supplierId),
         items: items.sort((a, b) => this.itemLabelByRequestItemId(a.purchaseRequestItemId)
           .localeCompare(this.itemLabelByRequestItemId(b.purchaseRequestItemId))),
-        total: items.reduce((sum, item) => sum + item.totalPrice, 0),
+        subtotal,
+        freight,
+        total: subtotal + freight,
         deliveryDays: items[0]?.deliveryDays ?? 0,
         paymentCondition: items[0]?.paymentCondition ?? '',
         installmentCount: items[0]?.installmentCount
-      }))
+      };
+      })
       .sort((a, b) => a.supplierName.localeCompare(b.supplierName));
   });
 
@@ -309,6 +320,16 @@ export class QuotationDetailComponent implements OnInit {
       }
     }
 
+    if (!draft.freightText.trim()) {
+      this.toast.error('Informe o valor do frete. Use R$ 0,00 quando nao houver frete.');
+      return;
+    }
+
+    if (!Number.isFinite(draft.freightValue) || draft.freightValue < 0) {
+      this.toast.error('Informe um valor de frete igual ou maior que R$ 0,00.');
+      return;
+    }
+
     if (draft.deliveryDays < 0) {
       this.toast.error('Informe um prazo de entrega valido.');
       return;
@@ -360,6 +381,11 @@ export class QuotationDetailComponent implements OnInit {
 
     this.saving.set(true);
     forkJoin(operations)
+      .pipe(switchMap(() => this.service.setSupplierOfferFreight(
+        quotation.id,
+        draft.supplierId,
+        draft.freightValue
+      )))
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
         next: () => {
@@ -389,6 +415,8 @@ export class QuotationDetailComponent implements OnInit {
     draft.paymentCondition = option;
     draft.paymentConditionOther = option === 'Outro' ? group.paymentCondition : '';
     draft.installmentCount = group.installmentCount ?? 1;
+    draft.freightValue = group.freight;
+    draft.freightText = this.money(group.freight);
 
     this.editingBudgetSupplierId.set(group.supplierId);
     this.budgetDraft.set(draft);
@@ -409,7 +437,11 @@ export class QuotationDetailComponent implements OnInit {
       }
 
       this.saving.set(true);
+      const quotation = this.quotation();
+      if (!quotation) return;
+
       forkJoin(group.items.map((item) => this.service.deleteQuotationItem(item.id)))
+        .pipe(switchMap(() => this.service.deleteSupplierOffer(quotation.id, group.supplierId)))
         .pipe(finalize(() => this.saving.set(false)))
         .subscribe({
           next: () => {
@@ -604,11 +636,29 @@ export class QuotationDetailComponent implements OnInit {
   }
 
   budgetTotal(): number {
-    const draft = this.budgetDraft();
+    return this.budgetSubtotal() + this.budgetDraft().freightValue;
+  }
 
+  budgetSubtotal(): number {
+    const draft = this.budgetDraft();
     return this.requestItems()
       .filter((item) => draft.includedItems[item.id])
       .reduce((sum, item) => sum + (draft.totalPrices[item.id] ?? 0), 0);
+  }
+
+  updateFreight(value: string): void {
+    this.budgetDraft.update((draft) => ({
+      ...draft,
+      freightText: value,
+      freightValue: Math.max(this.parseCurrency(value), 0)
+    }));
+  }
+
+  formatFreight(): void {
+    this.budgetDraft.update((draft) => ({
+      ...draft,
+      freightText: this.money(draft.freightValue)
+    }));
   }
 
   supplierLabel(supplierId: string): string {
@@ -736,7 +786,9 @@ export class QuotationDetailComponent implements OnInit {
       deliveryDays: 0,
       paymentCondition: '',
       paymentConditionOther: '',
-      installmentCount: 1
+      installmentCount: 1,
+      freightValue: 0,
+      freightText: this.money(0)
     };
   }
 

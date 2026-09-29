@@ -23,6 +23,11 @@ public class PurchaseOrderConfiguration : IEntityTypeConfiguration<PurchaseOrder
         builder.Property(x => x.TotalValue)
             .HasColumnType("numeric(18,2)");
 
+        builder.Property(x => x.FreightValue)
+            .HasColumnType("numeric(18,2)")
+            .HasDefaultValue(0m)
+            .IsRequired();
+
         builder.Property(x => x.AmountPaid)
             .HasColumnType("numeric(18,2)");
 

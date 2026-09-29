@@ -22,6 +22,7 @@ public class QuotationRepository
             .Include(x => x.FirstApprovedByUser)
             .Include(x => x.SecondApprovedByUser)
             .Include(x => x.Attachments)
+            .Include(x => x.SupplierOffers)
             .ToListAsync();
     }
 
@@ -33,6 +34,7 @@ public class QuotationRepository
             .Include(x => x.FirstApprovedByUser)
             .Include(x => x.SecondApprovedByUser)
             .Include(x => x.Attachments)
+            .Include(x => x.SupplierOffers)
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 
@@ -48,6 +50,9 @@ public class QuotationRepository
 
     public async Task AddAttachmentAsync(QuotationAttachment attachment) =>
         await _context.Set<QuotationAttachment>().AddAsync(attachment);
+
+    public async Task AddSupplierOfferAsync(QuotationSupplierOffer supplierOffer) =>
+        await _context.Set<QuotationSupplierOffer>().AddAsync(supplierOffer);
 
     public void RemoveAttachment(QuotationAttachment attachment) =>
         _context.Set<QuotationAttachment>().Remove(attachment);

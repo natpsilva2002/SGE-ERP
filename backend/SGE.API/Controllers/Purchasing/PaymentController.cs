@@ -4,6 +4,7 @@ using SGE.Application.Interfaces.Services.Authentication;
 using SGE.Application.DTOs.Payment;
 using SGE.Application.Interfaces.Services.Purchasing;
 using SGE.Application.Security;
+using SGE.API.Services.FileStorage;
 
 namespace SGE.API.Controllers.Purchasing;
 
@@ -13,13 +14,13 @@ namespace SGE.API.Controllers.Purchasing;
 public class PaymentController : ControllerBase
 {
     private readonly IPaymentService _service;
-    private readonly IWebHostEnvironment _environment;
+    private readonly IFileStorage _fileStorage;
     private readonly ICurrentUserService _currentUserService;
 
-    public PaymentController(IPaymentService service, IWebHostEnvironment environment, ICurrentUserService currentUserService)
+    public PaymentController(IPaymentService service, IFileStorage fileStorage, ICurrentUserService currentUserService)
     {
         _service = service;
-        _environment = environment;
+        _fileStorage = fileStorage;
         _currentUserService = currentUserService;
     }
 
@@ -63,25 +64,22 @@ public class PaymentController : ControllerBase
             foreach (var file in files)
                 ValidateFile(file);
 
-            var root = Path.Combine(_environment.ContentRootPath, "uploads", "payment-attachments");
-            Directory.CreateDirectory(root);
             PaymentDto? result = null;
             foreach (var file in files)
             {
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-                var storedName = $"{Guid.NewGuid():N}{extension}";
-                var fullPath = Path.Combine(root, storedName);
-                await using (var stream = System.IO.File.Create(fullPath)) await file.CopyToAsync(stream);
-                stored.Add(fullPath);
-                result = await _service.AddAttachmentAsync(paymentId, Path.GetFileName(file.FileName), Path.Combine("uploads", "payment-attachments", storedName), file.ContentType, file.Length, _currentUserService.UserId);
-                if (result == null) { DeleteFiles(stored); return NotFound(); }
+                await using var stream = file.OpenReadStream();
+                var key = await _fileStorage.UploadAsync(stream, $"payment-attachments/payments/{paymentId:N}", extension, file.ContentType, HttpContext.RequestAborted);
+                stored.Add(key);
+                result = await _service.AddAttachmentAsync(paymentId, Path.GetFileName(file.FileName), key, file.ContentType, file.Length, _currentUserService.UserId);
+                if (result == null) { await DeleteFilesAsync(stored); return NotFound(); }
             }
             return Ok(result);
         }
-        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (ArgumentException ex) { await DeleteFilesAsync(stored); return BadRequest(new { message = ex.Message }); }
         catch
         {
-            DeleteFiles(stored);
+            await DeleteFilesAsync(stored);
             throw;
         }
     }
@@ -91,10 +89,9 @@ public class PaymentController : ControllerBase
     {
         var attachment = await _service.GetAttachmentAsync(paymentId, attachmentId);
         if (attachment == null) return NotFound();
-        var path = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, attachment.Value.FilePath));
-        var root = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, "uploads", "payment-attachments"));
-        if (!path.StartsWith(root, StringComparison.OrdinalIgnoreCase) || !System.IO.File.Exists(path)) return NotFound();
-        return PhysicalFile(path, attachment.Value.ContentType, attachment.Value.FileName);
+        var stream = await _fileStorage.DownloadAsync(attachment.Value.FilePath, HttpContext.RequestAborted);
+        if (stream == null) return NotFound();
+        return File(stream, attachment.Value.ContentType, attachment.Value.FileName);
     }
 
     [Authorize(Roles = AppRoles.FinanceOrAdmin)]
@@ -103,7 +100,7 @@ public class PaymentController : ControllerBase
     {
         var result = await _service.DeleteAttachmentAsync(paymentId, attachmentId);
         if (!result.Deleted) return NotFound();
-        if (result.FilePath != null) DeleteStoredFile(result.FilePath);
+        if (result.FilePath != null) await _fileStorage.DeleteAsync(result.FilePath, HttpContext.RequestAborted);
         return NoContent();
     }
 
@@ -115,11 +112,9 @@ public class PaymentController : ControllerBase
         if (!AllowedExtensions.Contains(Path.GetExtension(file.FileName))) throw new ArgumentException("Extensao de arquivo nao permitida.");
         if (Path.GetFileName(file.FileName) != file.FileName) throw new ArgumentException("Nome de arquivo invalido.");
     }
-    private void DeleteStoredFile(string relativePath)
+    private async Task DeleteFilesAsync(IEnumerable<string> keys)
     {
-        var path = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, relativePath));
-        var root = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, "uploads", "payment-attachments"));
-        if (path.StartsWith(root, StringComparison.OrdinalIgnoreCase) && System.IO.File.Exists(path)) System.IO.File.Delete(path);
+        foreach (var key in keys)
+            await _fileStorage.DeleteAsync(key, HttpContext.RequestAborted);
     }
-    private void DeleteFiles(IEnumerable<string> files) { foreach (var file in files) if (System.IO.File.Exists(file)) System.IO.File.Delete(file); }
 }

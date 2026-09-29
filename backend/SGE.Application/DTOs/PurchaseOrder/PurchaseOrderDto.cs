@@ -42,6 +42,10 @@ public class PurchaseOrderDto
 
     public decimal TotalValue { get; set; }
 
+    public decimal ItemsSubtotal { get; set; }
+
+    public decimal FreightValue { get; set; }
+
     public decimal AmountPaid { get; set; }
 
     public decimal AmountPending { get; set; }

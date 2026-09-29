@@ -7,7 +7,6 @@ import { AppRoles } from '../../../../core/auth/app-roles';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { ToastService } from '../../../../shared/feedback/toast.service';
 import { CatalogItem, Work } from '../../models/purchase-request.models';
-import { UnitOfMeasure } from '../../../../shared/models/unit-of-measure.models';
 import {
   PurchaseRequestType,
   getPurchaseRequestTypeLabel,
@@ -39,7 +38,6 @@ export class PurchaseRequestCreateComponent implements OnInit {
 
   readonly works = signal<Work[]>([]);
   readonly catalogItems = signal<CatalogItem[]>([]);
-  readonly units = signal<UnitOfMeasure[]>([]);
   readonly materialDraftItems = signal<MaterialDraftItem[]>([]);
   readonly loadingRefs = signal(false);
   readonly saving = signal(false);
@@ -63,8 +61,6 @@ export class PurchaseRequestCreateComponent implements OnInit {
     description: ['', Validators.required],
     serviceDescription: [''],
     serviceSpecification: [''],
-    serviceQuantity: [null as number | null],
-    serviceUnitOfMeasureId: ['']
   });
 
   readonly materialItemForm = this.fb.nonNullable.group({
@@ -91,13 +87,11 @@ export class PurchaseRequestCreateComponent implements OnInit {
     forkJoin({
       works: this.service.getWorks(),
       catalogItems: this.service.getCatalogItems(),
-      units: this.service.getActiveUnits()
     }).pipe(finalize(() => this.loadingRefs.set(false)))
       .subscribe({
-        next: ({ works, catalogItems, units }) => {
+        next: ({ works, catalogItems }) => {
           this.works.set(works.filter(work => work.isActive));
           this.catalogItems.set(catalogItems);
-          this.units.set(units);
         },
         error: (error) => this.error.set(getApiErrorMessage(error))
       });
@@ -184,12 +178,6 @@ export class PurchaseRequestCreateComponent implements OnInit {
       serviceSpecification: value.type === PurchaseRequestType.Service
         ? value.serviceSpecification.trim() || null
         : null,
-      serviceQuantity: value.type === PurchaseRequestType.Service
-        ? value.serviceQuantity
-        : null,
-      serviceUnitOfMeasureId: value.type === PurchaseRequestType.Service
-        ? value.serviceUnitOfMeasureId || null
-        : null,
       items: value.type === PurchaseRequestType.Material
         ? this.materialDraftItems().map((item) => ({
             itemId: item.itemId,
@@ -228,18 +216,12 @@ export class PurchaseRequestCreateComponent implements OnInit {
     if (type === PurchaseRequestType.Service) {
       this.form.controls.description.clearValidators();
       this.form.controls.serviceDescription.setValidators([Validators.required]);
-      this.form.controls.serviceQuantity.setValidators([Validators.required, Validators.min(0.0001)]);
-      this.form.controls.serviceUnitOfMeasureId.setValidators([Validators.required]);
     } else {
       this.form.controls.description.setValidators([Validators.required]);
       this.form.controls.serviceDescription.clearValidators();
-      this.form.controls.serviceQuantity.clearValidators();
-      this.form.controls.serviceUnitOfMeasureId.clearValidators();
     }
 
     this.form.controls.description.updateValueAndValidity({ emitEvent: false });
     this.form.controls.serviceDescription.updateValueAndValidity({ emitEvent: false });
-    this.form.controls.serviceQuantity.updateValueAndValidity({ emitEvent: false });
-    this.form.controls.serviceUnitOfMeasureId.updateValueAndValidity({ emitEvent: false });
   }
 }

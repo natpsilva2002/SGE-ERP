@@ -8,6 +8,10 @@ public class CreateServiceOrderDto
 
     public decimal ContractedValue { get; set; }
 
+    public decimal ContractedQuantity { get; set; }
+
+    public string Unit { get; set; } = string.Empty;
+
     public string? PaymentCondition { get; set; }
 
     public int? InstallmentCount { get; set; }

@@ -1,5 +1,6 @@
 import { Supplier } from '../../quotations/models/quotation.models';
 import { PurchaseRequest, Work } from '../../purchase-requests/models/purchase-request.models';
+import { UnitOfMeasure } from '../../../shared/models/unit-of-measure.models';
 
 export enum ServiceOrderExecutionStatus {
   WaitingContract = 1,
@@ -38,6 +39,13 @@ export enum ServiceAdvancePaymentStatus {
   Rejected = 3
 }
 
+export enum ServiceOrderAmendmentStatus {
+  Draft = 1,
+  WaitingApproval = 2,
+  Approved = 3,
+  Rejected = 4
+}
+
 export enum ServiceOrderAttachmentType {
   Invoice = 1,
   PaymentReceipt = 2,
@@ -55,11 +63,16 @@ export interface ServiceOrder {
   supplierId: string;
   supplierName: string;
   supplierDocument: string;
+  supplierEmail?: string | null;
+  supplierPhone?: string | null;
   serviceDescription: string;
   serviceSpecification?: string | null;
   estimatedQuantity?: number | null;
   unit?: string | null;
   contractedValue: number;
+  currentContractedValue: number;
+  currentContractedQuantity?: number | null;
+  isReleasedForExecution: boolean;
   paymentCondition?: string | null;
   installmentCount?: number | null;
   executionStatus: ServiceOrderExecutionStatus;
@@ -87,12 +100,15 @@ export interface ServiceOrder {
   lastPaymentId?: string | null;
   advancePaymentRequests: ServiceAdvancePaymentRequest[];
   attachments: ServiceOrderAttachment[];
+  amendments: ServiceOrderAmendment[];
 }
 
 export interface CreateServiceOrder {
   purchaseRequestId: string;
   supplierId: string;
   contractedValue: number;
+  contractedQuantity: number;
+  unit: string;
   paymentCondition?: string | null;
   installmentCount?: number | null;
 }
@@ -102,6 +118,55 @@ export interface ServiceOrderCreateContext {
   suppliers: Supplier[];
   works: Work[];
   serviceOrders: ServiceOrder[];
+  units: UnitOfMeasure[];
+}
+
+export interface UpdateServiceOrderContract {
+  supplierId: string;
+  contractedValue: number;
+  contractedQuantity: number;
+  unit: string;
+  paymentCondition?: string | null;
+  installmentCount?: number | null;
+}
+
+export interface ServiceOrderAmendment {
+  id: string;
+  serviceOrderId: string;
+  reason: string;
+  valueAdjustment?: number | null;
+  quantityAdjustment?: number | null;
+  observation?: string | null;
+  status: ServiceOrderAmendmentStatus;
+  createdByUserId: string;
+  createdByUserName?: string | null;
+  createdAt: string;
+  approvedAt?: string | null;
+  approvedByUserId?: string | null;
+  approvedByUserName?: string | null;
+  valueBeforeApproval?: number | null;
+  valueAfterApproval?: number | null;
+  quantityBeforeApproval?: number | null;
+  quantityAfterApproval?: number | null;
+  approvalStatus?: number | null;
+  attachments: ServiceOrderAmendmentAttachment[];
+}
+
+export interface ServiceOrderAmendmentAttachment {
+  id: string;
+  serviceOrderAmendmentId: string;
+  originalFileName: string;
+  contentType: string;
+  fileSizeBytes: number;
+  uploadedByUserId: string;
+  uploadedAt: string;
+}
+
+export interface CreateServiceOrderAmendment {
+  reason: string;
+  valueAdjustment?: number | null;
+  quantityAdjustment?: number | null;
+  observation?: string | null;
 }
 
 export interface ServiceMeasurement {
@@ -240,6 +305,16 @@ export function getExecutionStatusLabel(status: ServiceOrderExecutionStatus): st
       return 'Cancelada';
     default:
       return 'Nao informado';
+  }
+}
+
+export function getServiceOrderAmendmentStatusLabel(status: ServiceOrderAmendmentStatus): string {
+  switch (status) {
+    case ServiceOrderAmendmentStatus.Draft: return 'Rascunho';
+    case ServiceOrderAmendmentStatus.WaitingApproval: return 'Aguardando aprovação';
+    case ServiceOrderAmendmentStatus.Approved: return 'Aprovado';
+    case ServiceOrderAmendmentStatus.Rejected: return 'Rejeitado';
+    default: return 'Não informado';
   }
 }
 
