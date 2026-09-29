@@ -20,6 +20,10 @@ backend/SGE.API/appsettings*.json
 # Local uploaded files
 backend/SGE.API/uploads/
 
+# Generated test artifacts
+output/
+tmp/
+
 # IDE / OS
 .vs/
 .vscode/
