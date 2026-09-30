@@ -57,15 +57,16 @@ public sealed class S3FileStorage : IFileStorage, IDisposable
             throw new ArgumentException("O tamanho informado do arquivo não corresponde ao conteúdo disponível.");
 
         var key = StorageKey.Create(keyPrefix, fileExtension);
-        await _client.PutObjectAsync(new PutObjectRequest
+        var request = new PutObjectRequest
         {
             BucketName = _bucket,
             Key = key,
             InputStream = content,
             ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType,
-            ContentLength = actualContentLength,
             UseChunkEncoding = false
-        }, cancellationToken);
+        };
+        request.Headers.ContentLength = actualContentLength;
+        await _client.PutObjectAsync(request, cancellationToken);
         _logger.LogInformation("S3 object upload completed. ObjectKeyLength={ObjectKeyLength}", key.Length);
         return key;
     }
