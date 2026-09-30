@@ -52,7 +52,7 @@ public class QuotationController : ControllerBase
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
                 _logger.LogInformation("Starting quotation attachment storage upload. QuotationId={QuotationId}, SupplierId={SupplierId}, FileSizeBytes={FileSizeBytes}, Extension={Extension}, ContentType={ContentType}", id, supplierId, file.Length, extension, file.ContentType);
                 await using var stream = file.OpenReadStream();
-                var key = await _fileStorage.UploadAsync(stream, $"quotation-attachments/quotations/{id:N}/suppliers/{supplierId:N}", extension, file.ContentType, HttpContext.RequestAborted);
+                var key = await _fileStorage.UploadAsync(stream, $"quotation-attachments/quotations/{id:N}/suppliers/{supplierId:N}", extension, file.ContentType, HttpContext.RequestAborted, file.Length);
                 stored.Add(key);
                 _logger.LogInformation("Persisting quotation attachment metadata. QuotationId={QuotationId}, SupplierId={SupplierId}, FileSizeBytes={FileSizeBytes}", id, supplierId, file.Length);
                 result = await _service.AddAttachmentAsync(id, supplierId, Path.GetFileName(file.FileName), key, file.ContentType, file.Length, _currentUserService.UserId);

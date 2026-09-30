@@ -208,7 +208,7 @@ public class ServiceOrderController : ControllerBase
                 ValidateDocumentFile(file);
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
                 await using var stream = file.OpenReadStream();
-                var key = await _fileStorage.UploadAsync(stream, $"service-orders/{id:N}/amendments/{amendmentId:N}", extension, GetContentType(extension), HttpContext.RequestAborted);
+                var key = await _fileStorage.UploadAsync(stream, $"service-orders/{id:N}/amendments/{amendmentId:N}", extension, GetContentType(extension), HttpContext.RequestAborted, file.Length);
                 storedFiles.Add(key);
                 result = await _amendmentService.AddAttachmentAsync(id, amendmentId, Path.GetFileName(file.FileName),
                     key, GetContentType(extension), file.Length, _currentUserService.UserId);
@@ -262,7 +262,7 @@ public class ServiceOrderController : ControllerBase
 
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
             await using (var stream = file.OpenReadStream())
-                storedKey = await _fileStorage.UploadAsync(stream, $"service-orders/{id:N}/contracts", extension, file.ContentType, HttpContext.RequestAborted);
+                storedKey = await _fileStorage.UploadAsync(stream, $"service-orders/{id:N}/contracts", extension, file.ContentType, HttpContext.RequestAborted, file.Length);
             var serviceOrder = await _service.AttachContractAsync(
                 id,
                 Path.GetFileName(file.FileName),
@@ -460,7 +460,7 @@ public class ServiceOrderController : ControllerBase
 
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
                 await using var stream = file.OpenReadStream();
-                var key = await _fileStorage.UploadAsync(stream, $"service-orders/{id:N}/attachments", extension, GetContentType(extension), HttpContext.RequestAborted);
+                var key = await _fileStorage.UploadAsync(stream, $"service-orders/{id:N}/attachments", extension, GetContentType(extension), HttpContext.RequestAborted, file.Length);
                 storedFiles.Add(key);
                 serviceOrder = await _service.AddAttachmentAsync(
                     id,
@@ -547,7 +547,7 @@ public class ServiceOrderController : ControllerBase
                 ValidateDocumentFile(file);
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
                 await using var stream = file.OpenReadStream();
-                var key = await _fileStorage.UploadAsync(stream, $"service-orders/{id:N}/payments/{paymentId:N}/attachments", extension, GetContentType(extension), HttpContext.RequestAborted);
+                var key = await _fileStorage.UploadAsync(stream, $"service-orders/{id:N}/payments/{paymentId:N}/attachments", extension, GetContentType(extension), HttpContext.RequestAborted, file.Length);
                 storedFiles.Add(key);
                 serviceOrder = await _service.AddPaymentAttachmentAsync(
                     id, paymentId, Path.GetFileName(file.FileName),
@@ -630,7 +630,7 @@ public class ServiceOrderController : ControllerBase
                 ValidateDocumentFile(file);
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
                 await using var stream = file.OpenReadStream();
-                var key = await _fileStorage.UploadAsync(stream, $"service-orders/{id:N}/measurements/{measurementId:N}/attachments", extension, GetContentType(extension), HttpContext.RequestAborted);
+                var key = await _fileStorage.UploadAsync(stream, $"service-orders/{id:N}/measurements/{measurementId:N}/attachments", extension, GetContentType(extension), HttpContext.RequestAborted, file.Length);
                 storedFiles.Add(key);
                 measurement = await _measurementService.AddAttachmentAsync(
                     id, measurementId, Path.GetFileName(file.FileName),

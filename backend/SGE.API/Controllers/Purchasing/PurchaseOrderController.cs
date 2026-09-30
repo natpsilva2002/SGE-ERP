@@ -205,7 +205,7 @@ public class PurchaseOrderController : ControllerBase
 
             var extension = Path.GetExtension(invoiceFile.FileName).ToLowerInvariant();
             await using (var stream = invoiceFile.OpenReadStream())
-                storedRelativePath = await _fileStorage.UploadAsync(stream, $"receipts/purchase-orders/{id:N}/invoices", extension, invoiceFile.ContentType, HttpContext.RequestAborted);
+                storedRelativePath = await _fileStorage.UploadAsync(stream, $"receipts/purchase-orders/{id:N}/invoices", extension, invoiceFile.ContentType, HttpContext.RequestAborted, invoiceFile.Length);
 
             var receipt = await _receiptService.ReceiveAsync(id, dto);
 

@@ -17,7 +17,8 @@ public sealed class LocalFileStorage : IFileStorage
         string keyPrefix,
         string fileExtension,
         string contentType,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        long? contentLength = null)
     {
         var key = StorageKey.Create(keyPrefix, fileExtension);
         var path = Resolve(key);

@@ -87,7 +87,7 @@ public class ReceiptController : ControllerBase
 
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
                 await using var stream = file.OpenReadStream();
-                storedKey = await _fileStorage.UploadAsync(stream, $"receipts/purchase-orders/{id:N}/invoices", extension, file.ContentType, HttpContext.RequestAborted);
+                storedKey = await _fileStorage.UploadAsync(stream, $"receipts/purchase-orders/{id:N}/invoices", extension, file.ContentType, HttpContext.RequestAborted, file.Length);
             }
 
             var receipt = await _service.AttachInvoiceAsync(

@@ -69,7 +69,7 @@ public class PaymentController : ControllerBase
             {
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
                 await using var stream = file.OpenReadStream();
-                var key = await _fileStorage.UploadAsync(stream, $"payment-attachments/payments/{paymentId:N}", extension, file.ContentType, HttpContext.RequestAborted);
+                var key = await _fileStorage.UploadAsync(stream, $"payment-attachments/payments/{paymentId:N}", extension, file.ContentType, HttpContext.RequestAborted, file.Length);
                 stored.Add(key);
                 result = await _service.AddAttachmentAsync(paymentId, Path.GetFileName(file.FileName), key, file.ContentType, file.Length, _currentUserService.UserId);
                 if (result == null) { await DeleteFilesAsync(stored); return NotFound(); }
