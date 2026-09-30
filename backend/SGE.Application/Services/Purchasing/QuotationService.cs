@@ -7,6 +7,7 @@ using SGE.Application.Interfaces.Repositories.Purchasing;
 using SGE.Application.Interfaces.Services.Purchasing;
 using SGE.Domain.Entities.Purchasing;
 using SGE.Domain.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace SGE.Application.Services.Purchasing;
 
@@ -21,6 +22,7 @@ public class QuotationService : IQuotationService
     private readonly IApprovalRepository _approvalRepository;
     private readonly IApprovalHistoryRepository _approvalHistoryRepository;
     private readonly IUserRepository _userRepository;
+    private readonly ILogger<QuotationService> _logger;
 
     public QuotationService(
         IQuotationRepository repository,
@@ -31,7 +33,8 @@ public class QuotationService : IQuotationService
         ISupplierRepository supplierRepository,
         IApprovalRepository approvalRepository,
         IApprovalHistoryRepository approvalHistoryRepository,
-        IUserRepository userRepository)
+        IUserRepository userRepository,
+        ILogger<QuotationService> logger)
     {
         _repository = repository;
         _purchaseRequestRepository = purchaseRequestRepository;
@@ -42,6 +45,7 @@ public class QuotationService : IQuotationService
         _approvalRepository = approvalRepository;
         _approvalHistoryRepository = approvalHistoryRepository;
         _userRepository = userRepository;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<QuotationDto>> GetAllAsync()
@@ -71,7 +75,9 @@ public class QuotationService : IQuotationService
         var attachment = new QuotationAttachment(quotationId, supplierId, originalFileName, filePath, contentType, fileSizeBytes, uploadedByUserId);
         quotation.Attachments.Add(attachment);
         await _repository.AddAttachmentAsync(attachment);
+        _logger.LogInformation("Saving quotation attachment metadata. QuotationId={QuotationId}, SupplierId={SupplierId}, AttachmentId={AttachmentId}", quotationId, supplierId, attachment.Id);
         await _repository.SaveChangesAsync();
+        _logger.LogInformation("Quotation attachment metadata saved. QuotationId={QuotationId}, SupplierId={SupplierId}, AttachmentId={AttachmentId}", quotationId, supplierId, attachment.Id);
         return MapToDto(quotation);
     }
 

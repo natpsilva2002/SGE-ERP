@@ -6,6 +6,7 @@ using SGE.Application.Interfaces.Services.Authentication;
 using SGE.Application.Interfaces.Services.Purchasing;
 using SGE.Application.Security;
 using SGE.API.Services.FileStorage;
+using System.Text.RegularExpressions;
 
 namespace SGE.API.Controllers.Purchasing;
 
@@ -17,15 +18,18 @@ public class QuotationController : ControllerBase
     private readonly IQuotationService _service;
     private readonly ICurrentUserService _currentUserService;
     private readonly IFileStorage _fileStorage;
+    private readonly ILogger<QuotationController> _logger;
 
     public QuotationController(
         IQuotationService service,
         ICurrentUserService currentUserService,
-        IFileStorage fileStorage)
+        IFileStorage fileStorage,
+        ILogger<QuotationController> logger)
     {
         _service = service;
         _currentUserService = currentUserService;
         _fileStorage = fileStorage;
+        _logger = logger;
     }
 
     [Authorize(Roles = AppRoles.QuotationManagers)]
@@ -36,17 +40,21 @@ public class QuotationController : ControllerBase
         var stored = new List<string>();
         try
         {
+            _logger.LogInformation("Quotation attachment upload received. QuotationId={QuotationId}, SupplierId={SupplierId}, FileCount={FileCount}", id, supplierId, files?.Count ?? 0);
             if (files == null || files.Count == 0) return BadRequest(new { message = "Informe ao menos um arquivo." });
             foreach (var file in files)
                 ValidateFile(file);
+            _logger.LogInformation("Quotation attachment validation passed. QuotationId={QuotationId}, FileCount={FileCount}", id, files.Count);
 
             QuotationDto? result = null;
             foreach (var file in files)
             {
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                _logger.LogInformation("Starting quotation attachment storage upload. QuotationId={QuotationId}, SupplierId={SupplierId}, FileSizeBytes={FileSizeBytes}, Extension={Extension}, ContentType={ContentType}", id, supplierId, file.Length, extension, file.ContentType);
                 await using var stream = file.OpenReadStream();
                 var key = await _fileStorage.UploadAsync(stream, $"quotation-attachments/quotations/{id:N}/suppliers/{supplierId:N}", extension, file.ContentType, HttpContext.RequestAborted);
                 stored.Add(key);
+                _logger.LogInformation("Persisting quotation attachment metadata. QuotationId={QuotationId}, SupplierId={SupplierId}, FileSizeBytes={FileSizeBytes}", id, supplierId, file.Length);
                 result = await _service.AddAttachmentAsync(id, supplierId, Path.GetFileName(file.FileName), key, file.ContentType, file.Length, _currentUserService.UserId);
                 if (result == null) { await DeleteFilesAsync(stored); return NotFound(); }
             }
@@ -54,8 +62,10 @@ public class QuotationController : ControllerBase
         }
         catch (ArgumentException ex) { await DeleteFilesAsync(stored); return BadRequest(new { message = ex.Message }); }
         catch (InvalidOperationException ex) { await DeleteFilesAsync(stored); return BadRequest(new { message = ex.Message }); }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError("Quotation attachment upload failed. QuotationId={QuotationId}, SupplierId={SupplierId}, ExceptionType={ExceptionType}, ExceptionMessage={ExceptionMessage}, StackTrace={StackTrace}",
+                id, supplierId, ex.GetType().FullName, SanitizeDiagnostic(ex.Message), SanitizeDiagnostic(ex.StackTrace ?? string.Empty));
             await DeleteFilesAsync(stored);
             throw;
         }
@@ -93,6 +103,12 @@ public class QuotationController : ControllerBase
         if (file.Length > 10 * 1024 * 1024) throw new ArgumentException("Cada arquivo deve ter no maximo 10 MB.");
         if (!AllowedExtensions.Contains(Path.GetExtension(file.FileName))) throw new ArgumentException("Extensao de arquivo nao permitida.");
         if (Path.GetFileName(file.FileName) != file.FileName) throw new ArgumentException("Nome de arquivo invalido.");
+    }
+    private static string SanitizeDiagnostic(string value)
+    {
+        var sanitized = Regex.Replace(value, @"(?i)(AccessKey|SecretKey|Jwt(?::|__)?Key|Password|DATABASE_URL|Authorization)\s*[:=]\s*[^;\s,]+", "$1=[REDACTED]");
+        sanitized = Regex.Replace(sanitized, @"(?i)(postgres(?:ql)?://)[^@\s]+@", "$1[REDACTED]@");
+        return Regex.Replace(sanitized, @"(?i)Bearer\s+[A-Za-z0-9._~-]+", "Bearer [REDACTED]");
     }
     private async Task DeleteFilesAsync(IEnumerable<string> keys)
     {

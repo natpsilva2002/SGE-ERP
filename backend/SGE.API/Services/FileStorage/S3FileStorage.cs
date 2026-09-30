@@ -2,6 +2,7 @@ using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
+using Microsoft.Extensions.Logging;
 
 namespace SGE.API.Services.FileStorage;
 
@@ -9,9 +10,14 @@ public sealed class S3FileStorage : IFileStorage, IDisposable
 {
     private readonly IAmazonS3 _client;
     private readonly string _bucket;
+    private readonly ILogger<S3FileStorage> _logger;
 
-    public S3FileStorage(IConfiguration configuration, IHostEnvironment environment)
+    public S3FileStorage(
+        IConfiguration configuration,
+        IHostEnvironment environment,
+        ILogger<S3FileStorage> logger)
     {
+        _logger = logger;
         var endpoint = configuration["Storage:Endpoint"];
         _bucket = configuration["Storage:Bucket"] ?? string.Empty;
         var accessKey = configuration["Storage:AccessKey"] ?? string.Empty;
@@ -30,7 +36,8 @@ public sealed class S3FileStorage : IFileStorage, IDisposable
         {
             ServiceURL = serviceUri.ToString().TrimEnd('/'),
             ForcePathStyle = configuration.GetValue("Storage:UsePathStyle", true),
-            AuthenticationRegion = region
+            AuthenticationRegion = region,
+            RequestChecksumCalculation = Amazon.Runtime.RequestChecksumCalculation.WHEN_REQUIRED
         };
         _client = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey), clientConfig);
     }
@@ -50,6 +57,7 @@ public sealed class S3FileStorage : IFileStorage, IDisposable
             InputStream = content,
             ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType
         }, cancellationToken);
+        _logger.LogInformation("S3 object upload completed. ObjectKeyLength={ObjectKeyLength}", key.Length);
         return key;
     }
 
